@@ -5,6 +5,11 @@ All notable changes to [Latch](https://latch.network) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0.2] — 2026-07-03
+
+### Fixed
+- **Fresh install migration order** — `001.5_security.sql` sorted before `001_initial.sql` under `sort()`, so new installs failed on `ALTER TABLE users` before the table existed. Renamed to `001a_security.sql`; existing databases that already recorded `001.5_security.sql` in `schema_migrations` are not re-applied.
+
 ## [0.3.0.1] — 2026-07-03
 
 ### Security

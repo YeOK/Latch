@@ -11,6 +11,11 @@ use RuntimeException;
  */
 final class Migrator
 {
+    /** @var array<string, list<string>> New filename => legacy schema_migrations.version keys. */
+    private const LEGACY_VERSION_ALIASES = [
+        '001a_security.sql' => ['001.5_security.sql'],
+    ];
+
     public function __construct(
         private readonly Database $db,
         private readonly string $migrationsPath,
@@ -80,6 +85,23 @@ final class Migrator
     }
 
     private function isApplied(string $version): bool
+    {
+        foreach ($this->appliedVersionKeys($version) as $key) {
+            if ($this->hasMigrationRecord($key)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @return list<string> */
+    private function appliedVersionKeys(string $version): array
+    {
+        return array_merge([$version], self::LEGACY_VERSION_ALIASES[$version] ?? []);
+    }
+
+    private function hasMigrationRecord(string $version): bool
     {
         $stmt = $this->db->pdo()->prepare('SELECT 1 FROM schema_migrations WHERE version = :version');
         $stmt->execute(['version' => $version]);
