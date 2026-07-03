@@ -5,6 +5,14 @@ All notable changes to [Latch](https://latch.network) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0.3] — 2026-07-03
+
+### Fixed
+- **Public docs** — removed operator-specific references (`yeok`, `henpen.dev`, private IPs) from `INSTALL.md`, `EMAIL.md`, `CLI.md`, and `UPGRADE.md`; dropped henpen msmtp fallbacks from `Mail` auto-detect.
+
+### Changed
+- **Release tarball** — `build-release.sh` now excludes `PLAN.md`, `deploy/forum-data/`, `deploy/msmtp.conf`, site-local fail2ban overrides, and private deploy scripts; fails the build if operator hostnames or paths remain in the staged tree.
+
 ## [0.3.0.2] — 2026-07-03
 
 ### Fixed

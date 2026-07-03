@@ -31,9 +31,9 @@ final class MentionParserTest extends TestCase
 
     public function testIgnoresEmailAddresses(): void
     {
-        $names = $this->parser->usernames('Contact yeok@henpen.org or @yeok');
+        $names = $this->parser->usernames('Contact alice@example.com or @alice');
 
-        $this->assertSame(['yeok'], $names);
+        $this->assertSame(['alice'], $names);
     }
 
     public function testLinkifiesMentionsInFormattedPost(): void

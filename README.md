@@ -38,7 +38,7 @@ Try it in minutes — download a release tarball, run `php bin/latch install`, p
 
 ## Status
 
-**v0.3.0.2** — public release (Phases 1–4 core + Phase 5 operator tooling).  
+**v0.3.0.3** — public release (Phases 1–4 core + Phase 5 operator tooling).  
 Live demo: **[latch.network](https://latch.network)** · Release notes: [CHANGELOG.md](CHANGELOG.md) · [v0.3.0](docs/RELEASE-v0.3.0.md)
 
 ## Quick paths
@@ -57,11 +57,11 @@ Production: **https://latch.network** (Cloudflare proxy → home server Apache v
 ## Install (release tarball)
 
 ```bash
-tar -xzf latch-0.3.0.2.tar.gz && cd latch-0.3.0.2-stage/source
+tar -xzf latch-0.3.0.3.tar.gz && cd latch-0.3.0.3-stage/source
 composer install --no-dev
 php bin/latch install --url=https://forum.example.com --name="My Forum"
 ```
 
-Download: [GitHub Releases](https://github.com/YeOK/Latch/releases) · Build locally: `./scripts/build-release.sh` → `dist/latch-0.3.0.2.tar.gz`
+Download: [GitHub Releases](https://github.com/YeOK/Latch/releases) · Build locally: `./scripts/build-release.sh` → `dist/latch-0.3.0.3.tar.gz`
 
 See [source/docs/INSTALL.md](source/docs/INSTALL.md) and [source/docs/UPGRADE.md](source/docs/UPGRADE.md).

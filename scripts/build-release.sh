@@ -72,6 +72,10 @@ rsync -a \
     --exclude='source/tests/api/config.local.php' \
     --exclude='source/tests/api/user-token.local.json' \
     --exclude='source/tests/api/pkce.local.json' \
+    --exclude='PLAN.md' \
+    --exclude='deploy/forum-data/' \
+    --exclude='deploy/msmtp.conf' \
+    --exclude='deploy/server/fail2ban-latch-login.local' \
     --exclude='scripts/sync-latch.sh' \
     --exclude='scripts/publish-latch-server.sh' \
     --exclude='scripts/publish-latch-nopass.sh' \
@@ -80,6 +84,9 @@ rsync -a \
     --exclude='scripts/post-documentation.php' \
     --exclude='scripts/post-security-news.php' \
     --exclude='scripts/update-roadmap-post.php' \
+    --exclude='scripts/latch-logs.sh' \
+    --exclude='scripts/setup-api-test-client.sh' \
+    --exclude='scripts/install-latch-security.sh' \
     --exclude='dist/' \
     "${REPO_ROOT}/" "${STAGE}/"
 
@@ -95,6 +102,15 @@ fi
 if grep -RInE '(BEGIN (RSA |EC )?PRIVATE KEY|client_secret["\x27]\s*=>|encryption_key["\x27]\s*=>\s*["\x27][^"\x27]{8,})' \
     "${STAGE}/source" --exclude-dir=vendor 2>/dev/null | grep -v 'docs/' | grep -v 'tests/' ; then
     echo "Error: possible secret in staged tree (see above)" >&2
+    exit 1
+fi
+if grep -RInE '(henpen\.(dev|org)|noreply@henpen\.org|yeok@192\.168|192\.168\.1\.6|/home/yeok/)' \
+    "${STAGE}" --exclude-dir=vendor --exclude='CHANGELOG.md' --exclude='build-release.sh' 2>/dev/null ; then
+    echo "Error: operator-specific hostnames or paths in staged tree (see above)" >&2
+    exit 1
+fi
+if [[ -f "${STAGE}/PLAN.md" ]] || [[ -d "${STAGE}/deploy/forum-data" ]] || [[ -f "${STAGE}/deploy/msmtp.conf" ]]; then
+    echo "Error: operator-only paths must not ship (PLAN.md, deploy/forum-data/, deploy/msmtp.conf)" >&2
     exit 1
 fi
 
