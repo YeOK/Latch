@@ -5,7 +5,18 @@ All notable changes to [Latch](https://latch.network) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0.1] — 2026-07-03
+
+### Security
+- **Removed leaked artifacts from release** — v0.3.0 accidentally shipped `source/storage/backups/*.tar.gz` (contained `config/local.php` + SQLite) and operator forum-post manifests under `source/data/`. **If you downloaded v0.3.0, rotate `security.encryption_key` on any install that shared those backup files** and treat the old key as compromised.
+- `build-release.sh` now excludes `source/data/` and `source/storage/backups/*` and fails the build if either is present in the staged tree.
+
+### Changed
+- Operator forum-post JSON/MD lives under `deploy/forum-data/` (local only, never in git or tarball).
+
 ## [0.3.0] — 2026-07-03
+
+**Withdrawn artifact** — use [0.3.0.1] instead. The v0.3.0 tarball contained dev backup archives and operator forum-post data; do not use it.
 
 First **public** release. Latch is an MIT-licensed, self-hosted PHP + SQLite forum engine. Production has been running at [latch.network](https://latch.network); this tag is the sanitized open-source artifact.
 

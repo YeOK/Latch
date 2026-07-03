@@ -7,7 +7,12 @@ source/storage/database/*.sqlite-*
 source/storage/uploads/*
 source/storage/cache/*
 source/storage/logs/*
+source/storage/backups/*
+!source/storage/backups/.gitkeep
 !source/storage/**/.gitkeep
+
+# Operator forum-post manifests (use deploy/forum-data/ locally)
+source/data/
 
 # Local config (created by installer)
 source/config/local.php

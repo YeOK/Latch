@@ -66,6 +66,8 @@ rsync -a \
     --exclude='source/storage/database/*.sqlite-*' \
     --exclude='source/storage/logs/*' \
     --exclude='source/storage/cache/*' \
+    --exclude='source/storage/backups/*' \
+    --exclude='source/data/' \
     --exclude='source/config/local.php' \
     --exclude='source/tests/api/config.local.php' \
     --exclude='source/tests/api/user-token.local.json' \
@@ -82,6 +84,14 @@ rsync -a \
     "${REPO_ROOT}/" "${STAGE}/"
 
 echo "==> Secret scrub"
+if find "${STAGE}/source/storage/backups" -type f ! -name '.gitkeep' -print -quit 2>/dev/null | grep -q .; then
+    echo "Error: backup archives must not ship in release (source/storage/backups/)" >&2
+    exit 1
+fi
+if find "${STAGE}/source/data" -type f -print -quit 2>/dev/null | grep -q .; then
+    echo "Error: operator forum-post data must not ship in release (source/data/)" >&2
+    exit 1
+fi
 if grep -RInE '(BEGIN (RSA |EC )?PRIVATE KEY|client_secret["\x27]\s*=>|encryption_key["\x27]\s*=>\s*["\x27][^"\x27]{8,})' \
     "${STAGE}/source" --exclude-dir=vendor 2>/dev/null | grep -v 'docs/' | grep -v 'tests/' ; then
     echo "Error: possible secret in staged tree (see above)" >&2
