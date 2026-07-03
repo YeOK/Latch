@@ -1,0 +1,180 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}{{ target.username }} — Users{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <p class="breadcrumb"><a href="/admin/users">Users</a> / {{ target.username }}</p>
+        <h1>{{ target.username }}</h1>
+        <p class="muted" id="admin-user-summary">
+            {{ target.email }} · <span id="admin-user-meta-role">{{ target.role }}</span>
+            · joined {{ target.created_at|slice(0, 10) }}
+            · <a href="/user/{{ target.username }}">Public profile</a>
+            <span id="admin-user-ban-badge"{% if not is_banned %} hidden{% endif %}> · <span class="badge badge-muted">Banned</span></span>
+        </p>
+    </section>
+
+    <section class="admin-split">
+        <div>
+            <h2>Account</h2>
+            <dl class="detail-list" id="admin-user-details">
+                <dt>User ID</dt><dd>{{ target.id }}</dd>
+                <dt>Role</dt><dd id="admin-user-detail-role">{{ target.role }}</dd>
+                <dt>Last login</dt><dd>{{ target.last_login_at ? target.last_login_at|format_datetime : '—' }}</dd>
+                <dt>Warnings</dt><dd>{{ warning_count }}</dd>
+                {% if target.role == 'member' and reputation.is_member %}
+                    <dt>Reputation</dt>
+                    <dd id="admin-user-reputation">
+                        {% if reputation.rank %}
+                            Rank {{ reputation.rank }} — {{ reputation.label }}
+                            (score {{ reputation.score|number_format(1) }})
+                        {% else %}
+                            Not computed yet
+                        {% endif %}
+                    </dd>
+                    {% if target.rank_override %}
+                        <dt>Rank override</dt><dd id="admin-user-rank-override">Locked at {{ target.rank_override }}</dd>
+                    {% endif %}
+                {% endif %}
+                <div id="admin-user-banned-since-row"{% if not target.banned_at %} hidden{% endif %}>
+                    <dt>Banned since</dt>
+                    <dd id="admin-user-banned-since">{{ target.banned_at ? target.banned_at|format_datetime : '' }}</dd>
+                </div>
+                <div id="admin-user-ban-expires-row"{% if not target.banned_until %} hidden{% endif %}>
+                    <dt>Ban expires</dt>
+                    <dd id="admin-user-ban-expires">{{ target.banned_until ? target.banned_until|format_datetime : '' }}</dd>
+                </div>
+                <div id="admin-user-ban-reason-row"{% if not target.ban_reason %} hidden{% endif %}>
+                    <dt>Ban reason</dt>
+                    <dd id="admin-user-ban-reason">{{ target.ban_reason|default('') }}</dd>
+                </div>
+            </dl>
+
+            <div class="user-actions" data-staff-feedback>
+                <div class="staff-action-icons">
+                    <div id="admin-user-icons-normal"{% if is_banned %} hidden{% endif %}>
+                        {% if target.id != user.id and target.id != 1 %}
+                            <details class="staff-action-panel"
+                                     data-staff-post="/admin/users/{{ target.id }}/role"
+                                     data-staff-success="admin-user">
+                                <summary class="btn btn-small btn-icon" title="Change role" aria-label="Change role">
+                                    {% include 'partials/icon.twig' with { name: 'shield' } %}
+                                </summary>
+                                <div class="staff-action-popover">
+                                    <label class="staff-action-label">
+                                        Role
+                                        <select name="role">
+                                            <option value="member"{% if target.role == 'member' %} selected{% endif %}>member</option>
+                                            <option value="mod"{% if target.role == 'mod' %} selected{% endif %}>mod</option>
+                                            <option value="admin"{% if target.role == 'admin' %} selected{% endif %}>admin</option>
+                                        </select>
+                                    </label>
+                                    <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Save role" aria-label="Save role">
+                                        {% include 'partials/icon.twig' with { name: 'check' } %}
+                                    </button>
+                                </div>
+                            </details>
+                            <details class="staff-action-panel"
+                                     data-staff-post="/admin/users/{{ target.id }}/ban"
+                                     data-staff-success="admin-user">
+                                <summary class="btn btn-small btn-icon btn-danger" title="Ban user" aria-label="Ban user">
+                                    {% include 'partials/icon.twig' with { name: 'ban' } %}
+                                </summary>
+                                <div class="staff-action-popover">
+                                    <label class="staff-action-label">
+                                        Ban duration
+                                        {% include 'partials/ban_duration_select.twig' %}
+                                    </label>
+                                    <button type="button" class="btn btn-small btn-danger btn-icon" data-staff-action-submit title="Confirm ban" aria-label="Confirm ban">
+                                        {% include 'partials/icon.twig' with { name: 'check' } %}
+                                    </button>
+                                </div>
+                            </details>
+                            <details class="report-details">
+                                <summary class="btn btn-small btn-icon btn-report" title="Report user" aria-label="Report user">
+                                    {% include 'partials/icon.twig' with { name: 'flag' } %}
+                                </summary>
+                                <form method="post" action="/report/user/{{ target.id }}" class="form report-form">
+                                    {{ csrf_field() }}
+                                    <label>
+                                        Reason (required)
+                                        <select name="reason_code" required>
+                                            <option value="">Select…</option>
+                                            {% for code, cat in report_categories %}
+                                                <option value="{{ code }}">{{ cat.label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </label>
+                                    <label>
+                                        Details (optional)
+                                        <input type="text" name="reason_detail" maxlength="500">
+                                    </label>
+                                    <button type="submit" class="btn btn-small btn-primary btn-icon" title="Submit report" aria-label="Submit report">
+                                        {% include 'partials/icon.twig' with { name: 'check' } %}
+                                    </button>
+                                </form>
+                            </details>
+                        {% endif %}
+                    </div>
+                    <div id="admin-user-icons-banned"{% if not is_banned %} hidden{% endif %}>
+                        <details class="staff-action-panel"
+                                 data-staff-post="/admin/users/{{ target.id }}/unban"
+                                 data-staff-success="admin-user">
+                            <summary class="btn btn-small btn-icon" title="Unban user" aria-label="Unban user">
+                                {% include 'partials/icon.twig' with { name: 'unlock' } %}
+                            </summary>
+                            <div class="staff-action-popover">
+                                <p class="staff-action-confirm muted">Remove ban from this user?</p>
+                                <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Confirm unban" aria-label="Confirm unban">
+                                    {% include 'partials/icon.twig' with { name: 'check' } %}
+                                </button>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+                <div class="staff-action-feedback" hidden role="status"></div>
+            </div>
+        </div>
+
+        {% if target.role == 'member' %}
+            <div>
+                <h2>Reputation</h2>
+                <p class="muted">Override locks a member’s displayed rank. Clear override to recalculate from activity on save.</p>
+                <form method="post" action="/admin/users/{{ target.id }}/reputation" class="form reputation-override-form" data-staff-feedback>
+                    {{ csrf_field() }}
+                    <label class="staff-action-label">
+                        Rank override
+                        <select name="rank_override">
+                            <option value=""{% if not target.rank_override %} selected{% endif %}>Auto (from activity)</option>
+                            {% for rank, label in reputation_rank_labels %}
+                                <option value="{{ rank }}"{% if target.rank_override == rank %} selected{% endif %}>{{ rank }} — {{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <button type="submit" class="btn btn-small btn-primary">Save reputation</button>
+                    <div class="staff-action-feedback" hidden role="status"></div>
+                </form>
+            </div>
+        {% endif %}
+
+        <div>
+            <h2>Warnings (staff record)</h2>
+            {% if warnings is empty %}
+                <p class="muted">No warnings on record.</p>
+            {% else %}
+                <ul class="warning-list">
+                    {% for w in warnings %}
+                        <li class="warning-item">
+                            <p><strong>{{ w.reason }}</strong></p>
+                            <p class="muted">
+                                Issued by {{ w.issued_by_username }}
+                                · {{ w.created_at|format_datetime }}
+                                {% if w.report_id %} · <a href="/admin/reports">report #{{ w.report_id }}</a>{% endif %}
+                            </p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

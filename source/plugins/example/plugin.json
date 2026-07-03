@@ -1,0 +1,17 @@
+{
+    "name": "Example plugin",
+    "slug": "example",
+    "version": "1.0.0",
+    "min_latch_version": "0.3.0",
+    "description": "Reference plugin — demo route, footer line, and hook registration.",
+    "hooks": [
+        "bootstrap",
+        "route.register",
+        "layout.footer"
+    ],
+    "permissions": {
+        "filesystem": [],
+        "network": [],
+        "config": []
+    }
+}

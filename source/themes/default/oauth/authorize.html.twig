@@ -1,0 +1,28 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}Authorize {{ client_name }} — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="auth-card">
+        <h1>Authorize application</h1>
+        <p><strong>{{ client_name }}</strong> is requesting access to your Latch account.</p>
+        <p class="muted">This app will be able to:</p>
+        <ul>
+            {% for scope in scopes %}
+                <li>{{ scope_labels[scope] ?? scope }}</li>
+            {% endfor %}
+        </ul>
+        <form method="post" action="/oauth/authorize" class="form form-inline-actions">
+            {{ csrf_field() }}
+            <input type="hidden" name="response_type" value="code">
+            <input type="hidden" name="client_id" value="{{ client_id }}">
+            <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
+            <input type="hidden" name="scope" value="{{ scope }}">
+            <input type="hidden" name="state" value="{{ state }}">
+            <input type="hidden" name="code_challenge" value="{{ code_challenge }}">
+            <input type="hidden" name="code_challenge_method" value="{{ code_challenge_method }}">
+            <button type="submit" name="decision" value="approve" class="btn btn-primary">Allow</button>
+            <button type="submit" name="decision" value="deny" class="btn btn-secondary">Deny</button>
+        </form>
+    </section>
+{% endblock %}

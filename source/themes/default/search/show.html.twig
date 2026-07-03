@@ -1,0 +1,62 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}{% if query %}Search: {{ query }} — {% endif %}{{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="page-header">
+        <p class="breadcrumb"><a href="/">Boards</a> / Search</p>
+        <h1>Search</h1>
+        {% include 'partials/search_field.html.twig' with {
+            variant: 'inline',
+            value: query,
+            label: 'Search topics and posts',
+            minlength: 2,
+            required: true,
+            autofocus: true,
+            wrap_class: 'site-search-wrap--page'
+        } %}
+    </section>
+
+    {% if search_error %}
+        <p class="flash flash-error">{{ search_error }}</p>
+    {% elseif query %}
+        {% if results is empty %}
+            <p class="empty">No results for “{{ query }}”.</p>
+        {% else %}
+            <p class="muted search-result-count">{{ total }} topic{{ total == 1 ? '' : 's' }} found</p>
+            <ul class="search-results">
+                {% for row in results %}
+                    <li class="search-result card">
+                        <h2 class="search-result-title">
+                            <a href="/topic/{{ row.topic_id }}#post-{{ row.post_id }}">{{ row.title }}</a>
+                        </h2>
+                        <p class="search-result-meta muted">
+                            <a href="/board/{{ row.board_slug }}">{{ row.board_name }}</a>
+                            · Last activity <time>{{ row.last_post_at|format_datetime }}</time>
+                        </p>
+                        {% if row.excerpt %}
+                            <p class="search-result-excerpt">{{ row.excerpt|raw }}</p>
+                        {% endif %}
+                        {% if row.tags is not empty %}
+                            <div>{% include 'partials/topic_tags.html.twig' with { tags: row.tags } %}</div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {% if total_pages > 1 %}
+                <nav class="pagination">
+                    {% if page > 1 %}
+                        <a href="/search?q={{ query|url_encode }}&page={{ page - 1 }}">← Previous</a>
+                    {% endif %}
+                    <span>Page {{ page }} of {{ total_pages }}</span>
+                    {% if page < total_pages %}
+                        <a href="/search?q={{ query|url_encode }}&page={{ page + 1 }}">Next →</a>
+                    {% endif %}
+                </nav>
+            {% endif %}
+        {% endif %}
+    {% else %}
+        <p class="muted">Search topic titles, post content, and tags across all boards you can access.</p>
+    {% endif %}
+{% endblock %}

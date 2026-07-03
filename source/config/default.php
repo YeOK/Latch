@@ -1,0 +1,100 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Default configuration — copied/adjusted by the installer.
+ * Secrets and environment overrides go in config/local.php (not committed).
+ */
+return [
+    'app' => [
+        'version' => '0.3.0',
+    ],
+    'site' => [
+        'name' => 'Latch',
+        'tagline' => 'Fast, secure discussions',
+        'url' => 'http://localhost',
+    ],
+    'forum' => [
+        // When true, guests cannot read boards unless a board allows it (Phase 2).
+        'members_only' => false,
+        'allow_registration' => true,
+        'posts_per_page' => 20,
+        'topics_per_page' => 30,
+        'rss_items_limit' => 50,
+        'sitemap_topics_limit' => 5000,
+    ],
+    'input' => [
+        'username_min' => 3,
+        'username_max' => 32,
+        'post_body_max' => 65535,
+        'topic_title_min' => 1,
+        'topic_title_max' => 255,
+        'bio_max' => 500,
+        'board_name_max' => 80,
+        'board_description_max' => 500,
+        'search_query_max' => 200,
+        'report_detail_max' => 500,
+        'site_name_max' => 80,
+        'site_tagline_max' => 160,
+        'email_max' => 254,
+        'password_max' => 128,
+    ],
+    'security' => [
+        'session_name' => 'latch_session',
+        'login_max_attempts' => 10,
+        'login_lockout_minutes' => 15,
+        'password_min_length' => 8,
+        // Base64-encoded 32-byte key for encrypting TOTP secrets (set in local.php for production).
+        'encryption_key' => '',
+        // Roles that must enrol TOTP before sign-in completes.
+        'totp_required_roles' => ['admin'],
+        // When behind Cloudflare (CF-Ray header present), log rate-limit by CF-Connecting-IP.
+        'trust_cloudflare' => true,
+        // When true, X-Forwarded-Proto is trusted without requiring CF-Ray (only if behind a trusted proxy).
+        'trust_forwarded_proto' => false,
+        'trust_x_forwarded_for' => false,
+        // Cloudflare Turnstile — set in config/local.php (free at dash.cloudflare.com → Turnstile).
+        'turnstile_site_key' => '',
+        'turnstile_secret_key' => '',
+        'registration_max_per_ip_hour' => 3,
+    ],
+    'cache' => [
+        'enabled' => true,
+        'ttl_seconds' => 120,
+    ],
+    'mail' => [
+        'enabled' => true,
+        'transport' => 'msmtp',
+        'from_email' => 'noreply@localhost',
+        'from_name' => 'Latch',
+        'msmtp_config' => '',
+    ],
+    'oidc' => [
+        'google' => [
+            'client_id' => '',
+            'client_secret' => '',
+        ],
+        'github' => [
+            'client_id' => '',
+            'client_secret' => '',
+        ],
+    ],
+    'paths' => [
+        'storage' => dirname(__DIR__) . '/storage',
+        'themes' => dirname(__DIR__) . '/themes',
+        'plugins' => dirname(__DIR__) . '/plugins',
+    ],
+    'theme' => [
+        'active' => 'default',
+        // Optional prefix; Latch appends theme file mtimes automatically (see Application::assetVersion).
+        'asset_version' => '',
+    ],
+    'i18n' => [
+        'default_locale' => 'en',
+    ],
+    'database' => [
+        'driver' => 'sqlite',
+        'path' => dirname(__DIR__) . '/storage/database/latch.sqlite',
+    ],
+];

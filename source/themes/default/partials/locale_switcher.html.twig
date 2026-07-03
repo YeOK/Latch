@@ -1,0 +1,9 @@
+{% set is_footer = variant|default('') == 'footer' %}
+<div class="locale-switcher{% if is_footer %} locale-switcher--footer{% endif %}">
+    <label class="locale-switcher-label{% if is_footer %} locale-switcher-label--visible{% endif %}" for="locale-select{% if is_footer %}-footer{% endif %}">{{ trans('locale.label') }}</label>
+    <select id="locale-select{% if is_footer %}-footer{% endif %}" class="locale-select" aria-label="{{ trans('locale.label') }}">
+        {% for code, meta in locale_catalog %}
+            <option value="{{ code }}"{% if locale == code %} selected{% endif %}>{{ meta.native }}</option>
+        {% endfor %}
+    </select>
+</div>

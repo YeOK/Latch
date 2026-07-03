@@ -1,0 +1,45 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}OAuth callback — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="auth-card oauth-cli-callback">
+        {% if error %}
+            <h1>Authorization failed</h1>
+            <p class="flash flash-error" role="alert">
+                <strong>{{ error }}</strong>
+                {% if error_description %} — {{ error_description }}{% endif %}
+            </p>
+            <p class="muted">Close this tab and run <code>php bin/latch test-api-messages authorize</code> again.</p>
+        {% elseif code %}
+            <h1>Authorization complete</h1>
+            <p>Copy this code into your terminal at the <code>test-api-messages authorize</code> prompt:</p>
+            <p class="oauth-cli-code-wrap">
+                <code id="oauth-cli-code" class="oauth-cli-code">{{ code }}</code>
+            </p>
+            <button type="button" class="btn btn-primary" id="oauth-cli-copy">Copy code</button>
+            {% if state %}
+                <p class="muted">State: <code>{{ state }}</code></p>
+            {% endif %}
+            <p class="muted">You can close this tab after pasting the code.</p>
+        {% else %}
+            <h1>OAuth callback</h1>
+            <p class="muted">No authorization code in this URL. Start again from the CLI harness.</p>
+        {% endif %}
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {% if code %}
+        <script nonce="{{ csp_nonce }}">
+            document.getElementById('oauth-cli-copy')?.addEventListener('click', function () {
+                var code = document.getElementById('oauth-cli-code')?.textContent?.trim() || '';
+                if (!code) return;
+                navigator.clipboard.writeText(code).then(function () {
+                    var btn = document.getElementById('oauth-cli-copy');
+                    if (btn) btn.textContent = 'Copied!';
+                });
+            });
+        </script>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}Set up two-factor — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="auth-card form-wide">
+        <h1>Set up two-factor authentication</h1>
+        {% if setup_required %}
+            <p class="flash flash-error">Administrators must enable two-factor authentication before continuing.</p>
+        {% endif %}
+        <ol class="muted">
+            <li>Install an authenticator app (Google Authenticator, Authy, 1Password, etc.).</li>
+            <li>Scan the QR code below, or enter the secret manually.</li>
+            <li>Enter the 6-digit code to confirm.</li>
+        </ol>
+
+        <div class="totp-setup-qr" aria-hidden="false">
+            {{ qr_svg|raw }}
+        </div>
+        <p class="muted totp-scan-hint">Hold your phone steady and fill the frame with the code. Increase screen brightness if scanning fails.</p>
+
+        <details class="muted" open>
+            <summary>Can't scan? Enter the secret manually</summary>
+            <p><code class="totp-secret">{{ secret_display }}</code></p>
+            <p><a href="{{ provisioning_uri }}">Open in authenticator app</a> (mobile)</p>
+        </details>
+
+        <form method="post" action="{{ form_action }}" class="form">
+            {{ csrf_field() }}
+            <label>
+                Confirm with a code from your app
+                <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required autofocus>
+            </label>
+            <button type="submit" class="btn btn-primary">Enable two-factor</button>
+        </form>
+    </section>
+{% endblock %}

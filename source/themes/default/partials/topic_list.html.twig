@@ -1,0 +1,40 @@
+{# Expects: topics (list), board_slug (optional — omit on tag/search pages that include board link) #}
+{% if topics is empty %}
+    <p class="empty">No topics yet.</p>
+{% else %}
+    <ul class="topic-list" role="list">
+        {% for topic in topics %}
+            <li class="topic-row card">
+                <div class="topic-row-main">
+                    {% include 'partials/avatar.twig' with {
+                        username: topic.author_name,
+                        avatar_src: topic.avatar_src|default(''),
+                        avatar_hue: topic.avatar_hue|default(210),
+                        size: 36
+                    } %}
+                    <div class="topic-row-body">
+                        <div class="topic-row-title">
+                            {% if topic.is_unread is defined and topic.is_unread %}<span class="badge badge-unread" title="New posts">New</span>{% endif %}
+                            {% if topic.is_pinned %}<span class="badge">Pinned</span>{% endif %}
+                            {% if topic.is_locked %}<span class="badge badge-muted">Locked</span>{% endif %}
+                            <a href="/topic/{{ topic.id }}"{% if topic.is_unread is defined and topic.is_unread %} class="topic-unread-link"{% endif %}>{{ topic.title }}</a>
+                        </div>
+                        <p class="topic-row-author muted">
+                            by {% include 'partials/username_link.twig' with { username: topic.author_name } %}
+                            {% if topic.board_slug is defined and topic.board_name is defined %}
+                                · <a href="/board/{{ topic.board_slug }}">{{ topic.board_name }}</a>
+                            {% endif %}
+                        </p>
+                        {% if topic.tags is defined and topic.tags is not empty %}
+                            {% include 'partials/topic_tags.html.twig' with { tags: topic.tags } %}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="topic-row-meta">
+                    <span class="topic-row-stat">{{ topic.post_count }} post{{ topic.post_count == 1 ? '' : 's' }}</span>
+                    <time class="topic-row-date">{{ topic.last_post_at|format_datetime }}</time>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}

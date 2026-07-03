@@ -1,0 +1,45 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Approval queue — Moderation{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <h1>Approval queue</h1>
+        <p class="muted">Posts from new members awaiting staff approval (distinct from report quarantine).</p>
+    </section>
+
+    {% if pending_posts is empty %}
+        <p class="muted">No posts pending approval.</p>
+    {% else %}
+        <ul class="approval-list">
+            {% for post in pending_posts %}
+                <li class="approval-item">
+                    <div class="approval-item-header">
+                        <strong>{% include 'partials/username_link.twig' with { username: post.author_name } %}</strong>
+                        <span class="muted">· {{ post.created_at|format_datetime }}</span>
+                    </div>
+                    <p class="muted">
+                        <a href="/topic/{{ post.topic_id }}#post-{{ post.id }}">{{ post.topic_title }}</a>
+                        · <a href="/board/{{ post.board_slug }}">{{ post.board_name }}</a>
+                    </p>
+                    <div class="post-content approval-preview">{{ post.body|format_post }}</div>
+                    <div class="staff-action-icons">
+                        <form class="inline-form" method="post" action="/admin/approval/{{ post.id }}/approve">
+                            {{ csrf_field() }}
+                            <button type="submit" class="btn btn-small btn-primary btn-icon" title="Approve" aria-label="Approve post">
+                                {% include 'partials/icon.twig' with { name: 'check' } %}
+                            </button>
+                        </form>
+                        <form class="inline-form" method="post" action="/admin/approval/{{ post.id }}/reject"
+                              data-confirm="Reject this post? It will be removed.">
+                            {{ csrf_field() }}
+                            <button type="submit" class="btn btn-small btn-danger btn-icon" title="Reject" aria-label="Reject post">
+                                {% include 'partials/icon.twig' with { name: 'trash' } %}
+                            </button>
+                        </form>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

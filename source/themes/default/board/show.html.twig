@@ -1,0 +1,86 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}{{ board.name }} — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="page-header">
+        <div class="page-header-row">
+            <div>
+                <p class="breadcrumb"><a href="/">Boards</a> / {{ board.name }}</p>
+                <h1>{{ board.name }}</h1>
+                {% if filter_tag %}
+                    <p class="muted">Filtered by <a class="tag-pill" href="/tag/{{ filter_tag.slug }}">#{{ filter_tag.name }}</a> · <a href="/board/{{ board.slug }}">Clear filter</a></p>
+                {% endif %}
+                {% if board.description %}<p class="muted">{{ board.description }}</p>{% endif %}
+                {% if not can_create_topic|default(false) %}
+                    <p class="muted">You cannot start new topics here{% if can_reply|default(true) %} — you can still reply in existing threads{% endif %}.</p>
+                {% elseif not can_reply|default(true) %}
+                    <p class="muted">This board is read-only for you — you can browse topics but not reply.</p>
+                {% endif %}
+
+            </div>
+            {% if user and can_create_topic|default(false) %}
+                <a class="btn btn-primary btn-icon board-new-topic-btn"
+                   href="/board/{{ board.slug }}/new"
+                   title="New topic"
+                   aria-label="New topic">
+                    {% include 'partials/icon.twig' with { name: 'plus', size: 18 } %}
+                </a>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if topics is empty %}
+        {% if board.slug == 'mod-trash' %}
+            <p class="empty">No removed posts yet. When moderators remove content, each post appears here as its own topic for review.</p>
+        {% else %}
+            <p class="empty">No topics yet.{% if user and can_create_topic|default(false) %} <a href="/board/{{ board.slug }}/new">Start one</a>.{% endif %}</p>
+        {% endif %}
+    {% else %}
+        {% set unread_topic_count = topics|filter(t => t.is_unread is defined and t.is_unread)|length %}
+        {% if unread_topic_count > 0 %}
+            <p class="board-unread-summary muted">{{ unread_topic_count }} topic{{ unread_topic_count == 1 ? '' : 's' }} with new posts since your last visit — look for <span class="badge badge-unread">New</span>.</p>
+        {% endif %}
+
+        <div class="board-topic-toolbar">
+            <label class="board-topic-sort">
+                <span class="board-topic-sort-label muted">Sort</span>
+                <select class="field-control board-topic-sort-select" id="board-topic-sort" aria-label="Sort topics">
+                    {% for sort_key, sort_label in topic_sort_options %}
+                        <option value="{{ sort_key }}"{% if topic_sort|default('activity') == sort_key %} selected{% endif %}>{{ sort_label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+        <script nonce="{{ csp_nonce }}">
+        (function () {
+            var select = document.getElementById('board-topic-sort');
+            if (!select) return;
+            select.addEventListener('change', function () {
+                var url = new URL(window.location.href);
+                if (select.value === 'activity') {
+                    url.searchParams.delete('sort');
+                } else {
+                    url.searchParams.set('sort', select.value);
+                }
+                url.searchParams.delete('page');
+                window.location.assign(url.pathname + url.search);
+            });
+        })();
+        </script>
+
+        {% include 'partials/topic_list.html.twig' with { topics: topics } %}
+
+        {% if total_pages > 1 %}
+            <nav class="pagination">
+                {% if page > 1 %}
+                    <a href="/board/{{ board.slug }}?page={{ page - 1 }}{% if filter_tag %}&amp;tag={{ filter_tag.slug }}{% endif %}{% if topic_sort|default('activity') != 'activity' %}&amp;sort={{ topic_sort }}{% endif %}">← Previous</a>
+                {% endif %}
+                <span>Page {{ page }} of {{ total_pages }}</span>
+                {% if page < total_pages %}
+                    <a href="/board/{{ board.slug }}?page={{ page + 1 }}{% if filter_tag %}&amp;tag={{ filter_tag.slug }}{% endif %}{% if topic_sort|default('activity') != 'activity' %}&amp;sort={{ topic_sort }}{% endif %}">Next →</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    {% endif %}
+{% endblock %}

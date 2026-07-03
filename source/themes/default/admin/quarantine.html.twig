@@ -1,0 +1,63 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Quarantined posts — {{ site.name }}{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <h1>Quarantined posts</h1>
+        <p class="muted">Posts hidden from members until staff lift quarantine or take other action. Manual quarantines and report-triggered quarantines appear here.</p>
+    </section>
+
+    <div class="staff-action-feedback" id="staff-action-feedback" hidden role="status"></div>
+
+    {% if entries is empty %}
+        <p class="muted">No quarantined posts.</p>
+    {% else %}
+        <ul class="trash-list quarantine-list">
+            {% for entry in entries %}
+                <li class="trash-item quarantine-item card" id="quarantine-{{ entry.id }}">
+                    <header class="trash-item-header">
+                        <strong>Post #{{ entry.id }}</strong>
+                        <span class="badge badge-quarantine">Quarantined</span>
+                        <span class="muted">by {% include 'partials/username_link.twig' with { username: entry.author_name } %}</span>
+                        <time class="muted">{{ entry.quarantined_at|format_datetime }}</time>
+                    </header>
+                    <p class="trash-item-source muted">
+                        In <a href="/board/{{ entry.board_slug }}">{{ entry.board_name }}</a>
+                        · <a href="/topic/{{ entry.topic_id }}#post-{{ entry.id }}">{{ entry.topic_title }}</a>
+                    </p>
+                    {% if entry.quarantined_by_report_id %}
+                        <p class="muted">
+                            From report #{{ entry.quarantined_by_report_id }}
+                            {% if entry.report_reason_code %}
+                                ({{ report_categories[entry.report_reason_code].label|default(entry.report_reason_code) }}{% if entry.report_severity %}, {{ entry.report_severity }}{% endif %})
+                            {% endif %}
+                            · <a href="/admin/reports">Open reports</a>
+                        </p>
+                    {% else %}
+                        <p class="muted">Manually quarantined by staff</p>
+                    {% endif %}
+                    <div class="trash-item-body post-content">{{ entry.body|format_post }}</div>
+                    <div class="trash-item-actions staff-action-icons" data-staff-feedback>
+                        <details class="staff-action-panel" data-staff-post="/admin/quarantine/{{ entry.id }}/lift" data-staff-success="quarantine-item">
+                            <summary class="btn btn-small btn-icon" title="Lift quarantine" aria-label="Lift quarantine">
+                                {% include 'partials/icon.twig' with { name: 'eye', size: 16 } %}
+                                <span>Lift quarantine</span>
+                            </summary>
+                            <div class="staff-action-popover">
+                                <p class="staff-action-confirm muted">Make this post visible to members again?</p>
+                                <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Confirm lift" aria-label="Confirm lift quarantine">
+                                    {% include 'partials/icon.twig' with { name: 'check' } %}
+                                </button>
+                            </div>
+                        </details>
+                        <a class="btn btn-small btn-icon" href="/topic/{{ entry.topic_id }}#post-{{ entry.id }}" title="View in topic" aria-label="View in topic">
+                            {% include 'partials/icon.twig' with { name: 'chevron-right', size: 16 } %}
+                            <span>View topic</span>
+                        </a>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}" dir="{{ locale_dir }}" data-theme="{{ theme_effective }}" data-theme-mode="{{ theme_mode }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}{{ site.name }}{% endblock %}</title>
+    {% block seo %}{% include 'partials/seo_head.twig' %}{% endblock %}
+    {% include 'partials/site_icons.html.twig' %}
+    {% if not members_only or user %}
+        <link rel="alternate" type="application/rss+xml" title="{{ site.name }} RSS" href="/feed.xml">
+    {% endif %}
+    <script nonce="{{ csp_nonce }}">
+    (function(){try{var m=localStorage.getItem('latch_theme');if(!m){var c=document.cookie.match(/(?:^|; )latch_theme=([^;]*)/);m=c?decodeURIComponent(c[1]):'{{ theme_mode }}';}if(m==='dark'||(m==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.dataset.theme='dark';else if(m==='light')document.documentElement.dataset.theme='light';document.documentElement.dataset.themeMode=m;}catch(e){}})();
+    </script>
+    <link rel="stylesheet" href="/assets/css/theme.css?v={{ asset_version }}">
+    {% for asset in plugin_theme_assets|default([]) %}
+        <link rel="stylesheet" href="{{ asset }}">
+    {% endfor %}
+</head>
+<body{% if user %} data-logged-in="1" data-username="{{ user.username }}"{% endif %}{% if gdpr_enabled %} data-gdpr="1"{% endif %}{% if current_path starts with '/admin' %} class="page-admin"{% elseif current_path starts with '/profile' %} class="page-profile"{% endif %}>
+    {% include 'partials/staff_report_bar.html.twig' %}
+    {% include 'partials/members_only_banner.html.twig' %}
+    <header class="site-header latch-header">
+        <div class="header-bar">
+            {% if site.name|lower == 'latch' %}
+                {% include 'partials/brand_latch.html.twig' %}
+            {% else %}
+                {% include 'partials/brand_custom.html.twig' %}
+            {% endif %}
+            <div class="header-search" id="sub-header-panel">
+                {% include 'partials/site_search.html.twig' %}
+            </div>
+            <nav class="header-nav" aria-label="{{ trans('nav.site_tools') }}">
+                {% include 'partials/theme_toggle.html.twig' %}
+                {% include 'partials/sub_header_auth.html.twig' %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="container{% block main_class %}{% endblock %}">
+        {% if not (current_path starts with '/admin') %}
+            {% include 'partials/flash.html.twig' %}
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include 'partials/rss_bar.twig' %}
+
+    {% include 'partials/footer.html.twig' %}
+    {% include 'partials/cookie_consent.html.twig' %}
+    {% if user %}
+        {% include 'partials/account_overlay.html.twig' %}
+        {% if direct_messages_enabled|default(false) %}
+            {% include 'partials/messages_overlay.html.twig' %}
+        {% endif %}
+    {% endif %}
+    <script src="/assets/js/theme.js?v={{ asset_version }}" defer></script>
+    {% if user %}
+        <script src="/assets/js/notifications.js?v={{ asset_version }}" defer></script>
+        <script src="/assets/js/account-panel.js?v={{ asset_version }}" defer></script>
+        {% if direct_messages_enabled|default(false) %}
+            <script src="/assets/js/messages.js?v={{ asset_version }}" defer></script>
+            <script src="/assets/js/messages-panel.js?v={{ asset_version }}" defer></script>
+        {% endif %}
+    {% endif %}
+    {% if is_mod %}
+        <script src="/assets/js/staff-reports.js?v={{ asset_version }}" defer></script>
+        <script src="/assets/js/staff-actions.js?v={{ asset_version }}" defer></script>
+    {% endif %}
+    {% for script in plugin_theme_scripts|default([]) %}
+        <script src="{{ script }}" defer></script>
+    {% endfor %}
+    {% block scripts %}{% endblock %}
+</body>
+</html>

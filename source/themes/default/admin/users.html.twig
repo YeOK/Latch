@@ -1,0 +1,213 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Users — Admin{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <h1>User management</h1>
+        <p class="muted">{{ total }} matching · {{ banned_count }} banned</p>
+    </section>
+
+    <nav class="filter-tabs" aria-label="User filters">
+        <a class="filter-tab{% if filter == 'members' %} is-active{% endif %}" href="/admin/users?filter=members">Members</a>
+        <a class="filter-tab{% if filter == 'staff' %} is-active{% endif %}" href="/admin/users?filter=staff">Staff</a>
+        <a class="filter-tab{% if filter == 'banned' %} is-active{% endif %}" href="/admin/users?filter=banned">Banned{% if banned_count %} ({{ banned_count }}){% endif %}</a>
+        <a class="filter-tab{% if filter == 'all' %} is-active{% endif %}" href="/admin/users?filter=all">All</a>
+    </nav>
+
+    <div class="site-search-toolbar">
+        {% include 'partials/search_field.html.twig' with {
+            variant: 'inline',
+            action: '/admin/users',
+            value: search,
+            label: 'Search username or email',
+            placeholder: 'Search username or email…',
+            hidden_fields: [{ name: 'filter', value: filter }],
+            wrap_class: 'site-search-wrap--admin'
+        } %}
+        {% if search %}
+            <a class="btn btn-small site-search-clear" href="/admin/users?filter={{ filter }}">Clear</a>
+        {% endif %}
+    </div>
+
+    {% if filter != 'staff' and staff is not empty %}
+        <section class="staff-panel">
+            <h2>Staff ({{ staff|length }})</h2>
+            <p class="muted"><a href="/admin/users?filter=staff">View all staff →</a></p>
+            <table class="data-table data-table-compact">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in staff|slice(0, 6) %}
+                        <tr>
+                            <td class="user-cell">
+                                {% include 'partials/avatar.twig' with { username: u.username, avatar_src: u.avatar_src|default(''), avatar_hue: u.avatar_hue|default(210), size: 28 } %}
+                                <a href="/admin/users/{{ u.id }}">{{ u.username }}</a>
+                            </td>
+                            <td>{{ u.role }}</td>
+                            <td>
+                                <a class="btn btn-small btn-icon" href="/admin/users/{{ u.id }}" title="View {{ u.username }}" aria-label="View {{ u.username }}">
+                                    {% include 'partials/icon.twig' with { name: 'eye' } %}
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+
+    <form id="bulk-users-form" method="post" action="/admin/users/bulk-ban">
+        {{ csrf_field() }}
+    <div class="bulk-user-actions" id="bulk-user-actions" hidden>
+        <span id="bulk-user-count" class="muted">0 selected</span>
+        <details class="staff-action-panel" data-staff-post="/admin/users/bulk-ban">
+            <summary class="btn btn-small btn-danger">Ban selected</summary>
+            <div class="staff-action-popover">
+                <label class="staff-action-label">
+                    Ban duration
+                    {% include 'partials/ban_duration_select.twig' %}
+                </label>
+                <button type="button" class="btn btn-small btn-danger" data-bulk-ban-submit>Ban selected</button>
+            </div>
+        </details>
+        <button type="submit" class="btn btn-small" formaction="/admin/users/bulk-unban" formmethod="post">Unban selected</button>
+    </div>
+
+    <table class="data-table" data-staff-feedback>
+        <thead>
+            <tr>
+                <th><span class="visually-hidden">Select</span></th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Warnings</th>
+                <th>Joined</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+                <tr{% if u.banned_at %} class="row-muted"{% endif %} data-user-id="{{ u.id }}">
+                    <td>
+                        {% if u.id != user.id and u.id != 1 %}
+                            <input type="checkbox" class="user-bulk-check" name="user_ids[]" value="{{ u.id }}" form="bulk-users-form">
+                        {% endif %}
+                    </td>
+                    <td class="user-cell">
+                        {% include 'partials/avatar.twig' with { username: u.username, avatar_src: u.avatar_src|default(''), avatar_hue: u.avatar_hue|default(210), size: 28 } %}
+                        <a href="/admin/users/{{ u.id }}">{{ u.username }}</a>
+                    </td>
+                    <td>{{ u.email }}</td>
+                    <td>{{ u.role }}</td>
+                    <td>{% if u.warning_count %}<span class="badge">{{ u.warning_count }}</span>{% else %}—{% endif %}</td>
+                    <td>{{ u.created_at|slice(0, 10) }}</td>
+                    <td data-user-status>
+                        {% if u.banned_at %}
+                            <span class="badge badge-muted">Banned</span>
+                            {% if u.banned_until %}<span class="muted">until {{ u.banned_until|format_datetime }}</span>{% endif %}
+                        {% else %}
+                            Active
+                        {% endif %}
+                    </td>
+                    <td class="actions-cell" data-user-actions>
+                        <div class="staff-action-icons">
+                            <a class="btn btn-small btn-icon" href="/admin/users/{{ u.id }}" title="View {{ u.username }}" aria-label="View {{ u.username }}">
+                                {% include 'partials/icon.twig' with { name: 'eye' } %}
+                            </a>
+                            {% if not u.banned_at and u.id != user.id and u.id != 1 %}
+                                <details class="staff-action-panel"
+                                         data-staff-post="/admin/users/{{ u.id }}/ban"
+                                         data-staff-success="users-row-ban">
+                                    <summary class="btn btn-small btn-icon btn-danger" title="Ban {{ u.username }}" aria-label="Ban {{ u.username }}">
+                                        {% include 'partials/icon.twig' with { name: 'ban' } %}
+                                    </summary>
+                                    <div class="staff-action-popover">
+                                        <label class="staff-action-label">
+                                            Ban duration
+                                            {% include 'partials/ban_duration_select.twig' %}
+                                        </label>
+                                        <button type="button" class="btn btn-small btn-danger btn-icon" data-staff-action-submit title="Confirm ban" aria-label="Confirm ban">
+                                            {% include 'partials/icon.twig' with { name: 'check' } %}
+                                        </button>
+                                    </div>
+                                </details>
+                            {% elseif u.banned_at %}
+                                <details class="staff-action-panel"
+                                         data-staff-post="/admin/users/{{ u.id }}/unban"
+                                         data-staff-success="users-row-unban">
+                                    <summary class="btn btn-small btn-icon" title="Unban {{ u.username }}" aria-label="Unban {{ u.username }}">
+                                        {% include 'partials/icon.twig' with { name: 'unlock' } %}
+                                    </summary>
+                                    <div class="staff-action-popover">
+                                        <p class="staff-action-confirm muted">Unban this user?</p>
+                                        <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Confirm unban" aria-label="Confirm unban">
+                                            {% include 'partials/icon.twig' with { name: 'check' } %}
+                                        </button>
+                                    </div>
+                                </details>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="8" class="muted">No users found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </form>
+
+    {% if total_pages > 1 %}
+        <nav class="pagination" aria-label="User list pages">
+            {% if page > 1 %}
+                <a href="/admin/users?filter={{ filter }}&q={{ search|url_encode }}&page={{ page - 1 }}">← Previous</a>
+            {% endif %}
+            <span>Page {{ page }} of {{ total_pages }}</span>
+            {% if page < total_pages %}
+                <a href="/admin/users?filter={{ filter }}&q={{ search|url_encode }}&page={{ page + 1 }}">Next →</a>
+            {% endif %}
+        </nav>
+    {% endif %}
+
+    <div class="staff-action-feedback" id="staff-action-feedback" hidden role="status"></div>
+{% endblock %}
+
+{% block scripts %}
+    {{ parent() }}
+    <script>
+    (function () {
+        var form = document.getElementById('bulk-users-form');
+        var bar = document.getElementById('bulk-user-actions');
+        var countEl = document.getElementById('bulk-user-count');
+        if (!form || !bar) {
+            return;
+        }
+        function syncBulkBar() {
+            var checked = form.querySelectorAll('.user-bulk-check:checked');
+            bar.hidden = checked.length === 0;
+            if (countEl) {
+                countEl.textContent = checked.length + ' selected';
+            }
+        }
+        form.addEventListener('change', function (event) {
+            if (event.target.classList.contains('user-bulk-check')) {
+                syncBulkBar();
+            }
+        });
+        var bulkBanBtn = document.querySelector('[data-bulk-ban-submit]');
+        if (bulkBanBtn) {
+            bulkBanBtn.addEventListener('click', function () {
+                form.action = '/admin/users/bulk-ban';
+                form.submit();
+            });
+        }
+    })();
+    </script>
+{% endblock %}
+

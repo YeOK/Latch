@@ -1,0 +1,34 @@
+{# Expects: reputation_rank_labels, board (optional for edit) #}
+<details class="board-min-rank-details">
+    <summary>Minimum member rank (optional)</summary>
+    <p class="muted">Require a reputation rank for members only. Moderators and admins are unaffected. Leave as “No requirement” to disable.</p>
+    <div class="board-min-rank-grid">
+        <label>
+            Read
+            <select name="min_rank_read">
+                <option value="">No requirement</option>
+                {% for rank, label in reputation_rank_labels %}
+                    <option value="{{ rank }}"{% if board.min_rank_read|default(null) == rank %} selected{% endif %}>{{ rank }} — {{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Start topics
+            <select name="min_rank_topic">
+                <option value="">No requirement</option>
+                {% for rank, label in reputation_rank_labels %}
+                    <option value="{{ rank }}"{% if board.min_rank_topic|default(null) == rank %} selected{% endif %}>{{ rank }} — {{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Reply
+            <select name="min_rank_reply">
+                <option value="">No requirement</option>
+                {% for rank, label in reputation_rank_labels %}
+                    <option value="{{ rank }}"{% if board.min_rank_reply|default(null) == rank %} selected{% endif %}>{{ rank }} — {{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+</details>

@@ -1,0 +1,58 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}Notifications — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="page-header notifications-header">
+        <div class="notifications-header-row">
+            <div>
+                <h1>Notifications</h1>
+                <p class="muted">
+                    {% if unread_count > 0 %}
+                        {{ unread_count }} unread
+                    {% else %}
+                        You are all caught up.
+                    {% endif %}
+                </p>
+            </div>
+            {% if unread_count > 0 %}
+                <form method="post" action="/notifications/read-all">
+                    {{ csrf_field() }}
+                    <button type="submit" class="btn btn-small">Mark all read</button>
+                </form>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if notifications is empty %}
+        <p class="muted notifications-empty">No notifications yet. You will be notified when someone replies to your topics, quotes your posts, or staff acts on your content.</p>
+    {% else %}
+        <ul class="notification-list">
+            {% for item in notifications %}
+                <li class="notification-item{% if item.is_unread %} is-unread{% endif %} type-{{ item.event_type }}">
+                    <a class="notification-item-link" href="/notifications/{{ item.id }}/go">
+                        <span class="notification-item-message">{{ item.message }}</span>
+                        <time class="notification-item-time muted" datetime="{{ item.created_at }}">{{ item.created_at|format_datetime }}</time>
+                    </a>
+                    {% if item.is_unread %}
+                        <form class="notification-item-mark" method="post" action="/notifications/{{ item.id }}/read">
+                            {{ csrf_field() }}
+                            <button type="submit" class="link-button" title="Mark as read" aria-label="Mark as read">✓</button>
+                        </form>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+
+        {% if page > 1 or has_more %}
+            <nav class="pagination" aria-label="Notification pages">
+                {% if page > 1 %}
+                    <a class="btn btn-small" href="/notifications?page={{ page - 1 }}">← Newer</a>
+                {% endif %}
+                {% if has_more %}
+                    <a class="btn btn-small" href="/notifications?page={{ page + 1 }}">Older →</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    {% endif %}
+{% endblock %}

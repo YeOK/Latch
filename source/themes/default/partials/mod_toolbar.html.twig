@@ -1,0 +1,60 @@
+{# Moderation mode UI — checkboxes and toolbar appear only when mod mode is active (mod-tools.js). #}
+<div class="mod-mode-wrap" id="mod-mode-wrap" data-topic-id="{{ topic.id }}" data-mod-boards="{{ mod_boards_json|default('[]')|e('html_attr') }}">
+    <div class="mod-mode-bar">
+        <button type="button"
+                class="btn btn-small btn-icon mod-mode-toggle"
+                id="mod-mode-toggle"
+                aria-pressed="false"
+                aria-controls="mod-toolbar"
+                title="Moderate"
+                aria-label="Toggle moderation mode">
+            {% include 'partials/icon.twig' with { name: 'shield-filled', size: 24 } %}
+        </button>
+    </div>
+
+    <div class="mod-toolbar mod-tools-active-only" id="mod-toolbar">
+        <label class="mod-select-all">
+            <input type="checkbox" id="mod-select-all" class="mod-select-all-input" aria-label="Select all posts">
+            <span>Select all</span>
+        </label>
+        <span class="mod-selection-count muted" id="mod-selection-count">0 selected</span>
+        <div class="mod-toolbar-actions" role="group" aria-label="Moderation actions">
+            <button type="button" class="btn btn-small mod-toolbar-btn" data-mod-action="move" disabled title="Move topic">
+                {% include 'partials/icon.twig' with { name: 'move', size: 16 } %}
+                <span>Move</span>
+            </button>
+            <button type="button" class="btn btn-small mod-toolbar-btn" data-mod-action="split" disabled title="Split from earliest selected reply (not the first post)">
+                {% include 'partials/icon.twig' with { name: 'split', size: 16 } %}
+                <span>Split</span>
+            </button>
+            <button type="button" class="btn btn-small mod-toolbar-btn" data-mod-action="merge" title="Merge this topic into another">
+                {% include 'partials/icon.twig' with { name: 'merge', size: 16 } %}
+                <span>Merge</span>
+            </button>
+            <button type="button" class="btn btn-small mod-toolbar-btn" data-mod-action="quarantine" disabled title="Quarantine selected posts">
+                {% include 'partials/icon.twig' with { name: 'shield', size: 16 } %}
+                <span>Quarantine</span>
+            </button>
+            <button type="button" class="btn btn-small mod-toolbar-btn" data-mod-action="lift-quarantine" disabled title="Lift quarantine on selected posts">
+                {% include 'partials/icon.twig' with { name: 'eye', size: 16 } %}
+                <span>Lift quarantine</span>
+            </button>
+            <button type="button" class="btn btn-small mod-toolbar-btn btn-danger" data-mod-action="remove" disabled title="Remove selected posts to admin trash">
+                {% include 'partials/icon.twig' with { name: 'archive', size: 16 } %}
+                <span>Remove</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="mod-dialog" id="mod-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="mod-dialog-title">
+        <div class="mod-dialog-backdrop" data-mod-dialog-close></div>
+        <div class="mod-dialog-panel">
+            <header class="mod-dialog-header">
+                <h2 class="mod-dialog-title" id="mod-dialog-title">Moderation</h2>
+                <button type="button" class="mod-dialog-close" data-mod-dialog-close aria-label="Close">×</button>
+            </header>
+            <div class="mod-dialog-body" id="mod-dialog-body"></div>
+            <footer class="mod-dialog-footer" id="mod-dialog-footer"></footer>
+        </div>
+    </div>
+</div>

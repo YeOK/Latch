@@ -1,0 +1,90 @@
+{#
+    Unified search field for Latch themes.
+
+    variant:       header (collapsible nav search) | inline (always visible). Default: inline
+    action:        form action URL. Default: /search
+    name:          query parameter name. Default: q
+    value:         current search text
+    placeholder:   input placeholder
+    label:         accessible label (visually hidden)
+    minlength:     optional minimum length
+    maxlength:     defaults to input_limits.search_query_max
+    required:      mark input required
+    autofocus:     focus input on load
+    hidden_fields: [{ name, value }] extra GET fields
+    wrap_class:    extra class on the outer wrap
+    wrap_id:       outer wrap id (header uses site-search-wrap)
+    form_id:       form id (header uses site-search-form)
+    input_id:      input id (header uses site-search-input)
+    show_kbd:      show / shortcut hint (default: header only)
+    show_toggle:   show expand button (default: header only)
+    show_icon:     left magnifying glass inside the field (default: inline only)
+#}
+{% set variant = variant|default('inline') %}
+{% set is_header = variant == 'header' %}
+{% set action = action|default('/search') %}
+{% set input_name = name|default('q') %}
+{% set input_value = value|default(search_query|default('')) %}
+{% set has_query = input_value|length > 0 %}
+{% set input_label = label|default(trans('search.label')) %}
+{% set input_placeholder = placeholder|default(trans('search.placeholder')) %}
+{% set input_maxlength = maxlength|default(input_limits.search_query_max) %}
+{% set show_kbd = show_kbd is defined ? show_kbd : is_header %}
+{% set show_toggle = show_toggle is defined ? show_toggle : is_header %}
+{% set show_icon = show_icon is defined ? show_icon : not is_header %}
+{% set wrap_id = wrap_id|default(is_header ? 'site-search-wrap' : '') %}
+{% set form_id = form_id|default(is_header ? 'site-search-form' : '') %}
+{% set input_id = input_id|default(is_header ? 'site-search-input' : 'search-field-input') %}
+<div
+    class="site-search-wrap{% if not is_header %} site-search-wrap--inline{% endif %}{% if wrap_class|default('') %} {{ wrap_class }}{% endif %}{% if is_header and has_query %} is-open{% endif %}"
+    {% if wrap_id %}id="{{ wrap_id }}"{% endif %}
+>
+    {% if show_toggle %}
+        <button
+            type="button"
+            class="btn btn-small btn-icon site-search-toggle"
+            id="site-search-toggle"
+            aria-expanded="{{ has_query ? 'true' : 'false' }}"
+            aria-controls="{{ form_id }}"
+            title="{{ trans('common.search') }}"
+            aria-label="{{ trans('search.label') }}"
+            {% if has_query %}hidden{% endif %}
+        >
+            {% include 'partials/icon.twig' with { name: 'search' } %}
+        </button>
+    {% endif %}
+    <form
+        class="site-search"
+        {% if form_id %}id="{{ form_id }}"{% endif %}
+        method="get"
+        action="{{ action }}"
+        role="search"
+        {% if is_header and not has_query %}hidden{% endif %}
+    >
+        {% for field in hidden_fields|default([]) %}
+            <input type="hidden" name="{{ field.name }}" value="{{ field.value }}">
+        {% endfor %}
+        <label class="visually-hidden" for="{{ input_id }}">{{ input_label }}</label>
+        {% if show_icon %}
+            <span class="site-search-icon" aria-hidden="true">
+                {% include 'partials/icon.twig' with { name: 'search', size: 16 } %}
+            </span>
+        {% endif %}
+        <input
+            type="search"
+            class="field-control{% if not show_icon %} site-search-input--no-icon{% endif %}"
+            id="{{ input_id }}"
+            name="{{ input_name }}"
+            placeholder="{{ input_placeholder }}"
+            {% if minlength|default('') %}minlength="{{ minlength }}"{% endif %}
+            maxlength="{{ input_maxlength }}"
+            autocomplete="off"
+            value="{{ input_value }}"
+            {% if required|default(false) %}required{% endif %}
+            {% if autofocus|default(false) %}autofocus{% endif %}
+        >
+        {% if show_kbd %}
+            <kbd class="site-search-kbd" aria-hidden="true">/</kbd>
+        {% endif %}
+    </form>
+</div>

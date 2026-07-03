@@ -1,0 +1,20 @@
+<button type="button" class="theme-toggle" id="theme-toggle" aria-label="Theme: {{ theme_mode|capitalize }}" title="Theme: {{ theme_mode|capitalize }}" data-theme-mode="{{ theme_mode }}">
+    <span class="theme-icon theme-icon-light" data-theme-icon="light"{% if theme_mode != 'light' %} hidden{% endif %} aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
+            <path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+    </span>
+    <span class="theme-icon theme-icon-dark" data-theme-icon="dark"{% if theme_mode != 'dark' %} hidden{% endif %} aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M21 14.5A8.38 8.38 0 0 1 9.5 3 7 7 0 1 0 21 14.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+    </span>
+    <span class="theme-icon theme-icon-system" data-theme-icon="system"{% if theme_mode != 'system' %} hidden{% endif %} aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 3v18" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 3a9 9 0 0 1 0 18" fill="currentColor" opacity="0.35"/>
+        </svg>
+    </span>
+</button>

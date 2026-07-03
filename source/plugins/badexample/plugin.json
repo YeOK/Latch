@@ -1,0 +1,16 @@
+{
+    "name": "Bad example (audit test)",
+    "slug": "badexample",
+    "version": "1.0.0",
+    "min_latch_version": "0.3.0",
+    "description": "Intentionally unsafe patterns for testing plugin-audit — never enable on production.",
+    "hooks": [
+        "bootstrap",
+        "layout.footer"
+    ],
+    "permissions": {
+        "filesystem": [],
+        "network": [],
+        "config": []
+    }
+}

@@ -1,0 +1,49 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Copy to local.php during install, or let `php bin/latch install` create it.
+ * Secrets stay here — not in the admin UI or database.
+ */
+return [
+    'site' => [
+        'name' => 'Latch',
+        'url' => 'https://forum.example.com',
+    ],
+    'security' => [
+        // Generate: php -r "echo base64_encode(random_bytes(32));"
+        'encryption_key' => 'REPLACE_WITH_BASE64_32_BYTE_KEY',
+    ],
+    // Optional social sign-in (enable per provider in Admin → Settings)
+    'oidc' => [
+        'google' => [
+            'client_id' => '',
+            'client_secret' => '',
+        ],
+        'github' => [
+            'client_id' => '',
+            'client_secret' => '',
+        ],
+    ],
+    // Phase 4 — image upload plugin (Cloudflare R2; secrets stay here)
+    'plugins' => [
+        'image_upload' => [
+            'account_id' => '',
+            'access_key_id' => '',
+            'secret_access_key' => '',
+            'bucket' => 'latch-forum-images',
+            'public_host' => 'images.latch.network',
+            'max_mb' => 8,
+            'key_prefix' => 'forum/',
+        ],
+    ],
+    'mail' => [
+        // Transport: msmtp (recommended) or mail (PHP mail())
+        'transport' => 'msmtp',
+        // Absolute path to msmtp.conf (see deploy/msmtp.conf.example)
+        'msmtp_config' => '/var/www/latch/deploy/msmtp.conf',
+        'from_email' => 'noreply@example.com',
+        'from_name' => 'Latch',
+    ],
+];

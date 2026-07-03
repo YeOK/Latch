@@ -1,0 +1,47 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}Privacy policy — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="page-header">
+        <h1>Privacy policy</h1>
+        <p class="muted">How {{ operator_name }} handles your personal data on this forum.</p>
+    </section>
+
+    <article class="legal-doc card">
+        <h2>Who is responsible</h2>
+        <p><strong>{{ operator_name }}</strong> is the data controller for this installation{% if contact_email %} (<a href="mailto:{{ contact_email }}">{{ contact_email }}</a>){% endif %}.</p>
+        <p>This site runs on <strong>Latch</strong>, self-hosted forum software. The operator configures hosting, backups, and community rules.</p>
+
+        <h2>What we collect</h2>
+        <ul>
+            <li><strong>Account data</strong> — username, email, password hash, optional avatar URL and profile bio.</li>
+            <li><strong>Content</strong> — topics, replies, and tags you post.</li>
+            <li><strong>Security &amp; session data</strong> — login timestamps, IP addresses for rate limiting, audit events, and active session fingerprints.</li>
+            <li><strong>Preferences</strong> — theme mode (light/dark/system) stored in your account or browser.</li>
+        </ul>
+
+        <h2>Why we use it</h2>
+        <ul>
+            <li>Provide the forum service (contract / legitimate interest).</li>
+            <li>Keep accounts secure and prevent abuse (legitimate interest).</li>
+            <li>Moderate reports and enforce community standards (legitimate interest).</li>
+        </ul>
+
+        <h2>Your rights (GDPR)</h2>
+        <p>If you are in the UK or EEA you may have the right to access, rectify, erase, restrict, or port your data, and to object to certain processing. You may also lodge a complaint with your supervisory authority.</p>
+        <ul>
+            <li><a href="/profile/export">Export your data</a> (JSON) when signed in.</li>
+            <li>Delete your account from <a href="/profile">your profile</a> (posts may be anonymised).</li>
+            <li>Contact the operator{% if contact_email %} at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %} for other requests.</li>
+        </ul>
+
+        <h2>Retention</h2>
+        <p>Account and post data are kept while your account exists. Security logs and audit entries may be retained for a limited period for incident response. Backups are the operator's responsibility.</p>
+
+        <h2>Processors &amp; transfers</h2>
+        <p>Latch does not phone home. Optional services (e.g. Gravatar for avatars, outbound email relay) are configured by the operator and may process data outside your region — check with {{ operator_name }}.</p>
+
+        <p class="muted legal-updated">Last updated {{ "now"|date("Y-m-d") }}.</p>
+    </article>
+{% endblock %}

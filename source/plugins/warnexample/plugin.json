@@ -1,0 +1,16 @@
+{
+    "name": "Warn example (audit test)",
+    "slug": "warnexample",
+    "version": "1.0.0",
+    "min_latch_version": "0.3.0",
+    "description": "Intentional markup and JS warnings for testing plugin-audit — never enable on production.",
+    "hooks": [
+        "bootstrap",
+        "layout.footer"
+    ],
+    "permissions": {
+        "filesystem": [],
+        "network": [],
+        "config": []
+    }
+}

@@ -1,0 +1,7 @@
+{% if tags is not empty %}
+    <ul class="tag-list">
+        {% for tag in tags %}
+            <li><a class="tag-pill" href="/tag/{{ tag.slug }}">{{ tag.name }}</a></li>
+        {% endfor %}
+    </ul>
+{% endif %}

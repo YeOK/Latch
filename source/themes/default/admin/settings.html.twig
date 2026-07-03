@@ -1,0 +1,271 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Settings — Admin{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <h1>Site settings</h1>
+    </section>
+
+    <form method="post" action="/admin/settings" class="form form-wide">
+        {{ csrf_field() }}
+        <label>
+            Site name
+            <input type="text" name="site_name" value="{{ site_name }}" required maxlength="{{ input_limits.site_name_max }}">
+        </label>
+        <label>
+            Tagline
+            <input type="text" name="site_tagline" value="{{ site_tagline }}" maxlength="{{ input_limits.site_tagline_max }}">
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="members_only" value="1"{% if members_only %} checked{% endif %}>
+            Members only (guests cannot read boards)
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="allow_registration" value="1"{% if allow_registration %} checked{% endif %}>
+            Allow new registrations
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="require_email_verification" value="1"{% if require_email_verification %} checked{% endif %}>
+            Require email verification before sign-in
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="cache_enabled" value="1"{% if cache_enabled %} checked{% endif %}>
+            Enable guest page cache
+        </label>
+        <label>
+            Cache TTL (seconds)
+            <input type="number" name="cache_ttl_seconds" value="{{ cache_ttl_seconds }}" min="30" max="3600">
+        </label>
+        <label>
+            Max tags per topic
+            <input type="number" name="max_tags_per_topic" value="{{ max_tags_per_topic }}" min="1" max="20">
+        </label>
+        <h2>Email</h2>
+        <p class="muted">
+            Password reset and verification emails.
+            {% if mail.configured %}
+                <span class="badge">Transport ready</span>
+            {% else %}
+                <span class="badge badge-muted">Not configured</span>
+            {% endif %}
+        </p>
+        <label class="checkbox">
+            <input type="checkbox" name="mail_enabled" value="1"{% if mail.enabled %} checked{% endif %}>
+            Enable outbound email
+        </label>
+        <label>
+            Transport
+            <select name="mail_transport">
+                <option value="msmtp"{% if mail.transport == 'msmtp' %} selected{% endif %}>msmtp (recommended)</option>
+                <option value="mail"{% if mail.transport == 'mail' %} selected{% endif %}>PHP mail()</option>
+            </select>
+        </label>
+        <label>
+            From email
+            <input type="email" name="mail_from_email" value="{{ mail.from_email }}" required>
+        </label>
+        <label>
+            From name
+            <input type="text" name="mail_from_name" value="{{ mail.from_name }}" required>
+        </label>
+        <label>
+            msmtp config path (optional — auto-detects deploy/msmtp.conf)
+            <input type="text" name="mail_msmtp_config" value="{{ mail_msmtp_config_input }}" placeholder="/var/www/latch/deploy/msmtp.conf">
+        </label>
+        {% if mail.msmtp_config %}
+            <p class="muted">Active config: <code>{{ mail.msmtp_config }}</code></p>
+        {% endif %}
+        <p class="muted">Use <code>php bin/latch test-mail --to=you@example.com</code> on the server to verify. See <code>docs/EMAIL.md</code> and <code>deploy/msmtp.conf.example</code>.</p>
+
+        <h2>Privacy &amp; GDPR (EU hosting)</h2>
+        <p class="muted">Enable for European deployments: cookie consent banner, footer notices, and on-site privacy pages.</p>
+        <label class="checkbox">
+            <input type="checkbox" name="gdpr_enabled" value="1"{% if gdpr_enabled %} checked{% endif %}>
+            Enable GDPR / EU hosting mode (cookie consent + required notices)
+        </label>
+        <label>
+            Data controller name (shown in footer &amp; policies)
+            <input type="text" name="privacy_operator_name" value="{{ privacy_operator_name }}" placeholder="{{ site_name }}">
+        </label>
+        <label>
+            Privacy contact email
+            <input type="email" name="privacy_contact_email" value="{{ privacy_contact_email }}" placeholder="privacy@example.com">
+        </label>
+        <p class="muted">Policies are served at <a href="/privacy">/privacy</a> and <a href="/cookies">/cookies</a>.</p>
+
+        <h2>Profiles</h2>
+        <label class="checkbox">
+            <input type="checkbox" name="use_gravatar" value="1"{% if use_gravatar %} checked{% endif %}>
+            Use Gravatar for member avatars (email hash → gravatar.com); otherwise identicon initials only
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="anonymise_posts_on_delete" value="1"{% if anonymise_posts_on_delete %} checked{% endif %}>
+            Anonymise post and topic content when users delete their account (<code>[deleted]</code>)
+        </label>
+        <label>
+            Default color theme for new users
+            <select name="default_theme_mode">
+                <option value="system"{% if default_theme_mode == 'system' %} selected{% endif %}>System</option>
+                <option value="light"{% if default_theme_mode == 'light' %} selected{% endif %}>Light</option>
+                <option value="dark"{% if default_theme_mode == 'dark' %} selected{% endif %}>Dark</option>
+            </select>
+        </label>
+        <label>
+            Default language for guests and new users
+            <select name="default_locale">
+                {% for code, meta in locale_catalog %}
+                    <option value="{{ code }}"{% if default_locale == code %} selected{% endif %}>{{ meta.native }} ({{ meta.name }})</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <h2>Email notifications</h2>
+        <p class="muted">Optional email copies of in-app notifications. Requires outbound email above. Users can opt out on their profile.</p>
+        <label class="checkbox">
+            <input type="checkbox" name="email_notify_replies" value="1"{% if email_notify_replies %} checked{% endif %}{% if not mail.enabled %} disabled{% endif %}>
+            Replies and quotes on your topics/posts
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="email_notify_mentions" value="1"{% if email_notify_mentions %} checked{% endif %}{% if not mail.enabled %} disabled{% endif %}>
+            @mentions
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="email_notify_likes" value="1"{% if email_notify_likes %} checked{% endif %}{% if not mail.enabled %} disabled{% endif %}>
+            Post likes
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="email_notify_warnings" value="1"{% if email_notify_warnings %} checked{% endif %}{% if not mail.enabled %} disabled{% endif %}>
+            Staff warnings
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="email_notify_staff" value="1"{% if email_notify_staff %} checked{% endif %}{% if not mail.enabled %} disabled{% endif %}>
+            Staff actions on your content (quarantine, etc.)
+        </label>
+        <h2>Post editing</h2>
+        <p class="muted">Authors can edit their own posts within the window. Staff can always edit. Revisions are stored for staff review.</p>
+        <label>
+            Author edit window (minutes, 0 = unlimited)
+            <input type="number" name="post_edit_window_minutes" value="{{ post_edit_window_minutes }}" min="0" max="10080">
+        </label>
+
+        <h2>Spam controls</h2>
+        <p class="muted">Honeypot, link limits for new members, and a mod approval queue (separate from report quarantine).</p>
+        <label class="checkbox">
+            <input type="checkbox" name="spam_honeypot_enabled" value="1"{% if spam_honeypot_enabled %} checked{% endif %}>
+            Enable honeypot field on compose forms (bots are silently rejected)
+        </label>
+        <label>
+            Max links per post for new members (0 = disabled)
+            <input type="number" name="spam_link_limit_new_users" value="{{ spam_link_limit_new_users }}" min="0" max="20">
+        </label>
+        <label>
+            New member threshold (approved posts below this count are “new”)
+            <input type="number" name="spam_new_user_max_posts" value="{{ spam_new_user_max_posts }}" min="0" max="100">
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="spam_approval_queue_enabled" value="1"{% if spam_approval_queue_enabled %} checked{% endif %}>
+            Require staff approval for posts from new members
+        </label>
+
+        <h2>Social sign-in (OIDC)</h2>
+        <p class="muted">
+            Optional Google and GitHub login. Client IDs and secrets live in <code>config/local.php</code>
+            (<code>oidc.google.client_id</code>, <code>oidc.google.client_secret</code>, and the GitHub equivalents).
+            Register each redirect URI with the provider:
+        </p>
+        {% if oidc_google_redirect %}
+            <p class="muted">Google callback: <code>{{ oidc_google_redirect }}</code></p>
+        {% endif %}
+        {% if oidc_github_redirect %}
+            <p class="muted">GitHub callback: <code>{{ oidc_github_redirect }}</code></p>
+        {% endif %}
+        <p class="muted">
+            Google: {% if oidc_google_configured %}<strong>configured</strong>{% else %}<strong>not configured</strong>{% endif %}
+            · GitHub: {% if oidc_github_configured %}<strong>configured</strong>{% else %}<strong>not configured</strong>{% endif %}
+        </p>
+        <label class="checkbox">
+            <input type="checkbox" name="oidc_google_enabled" value="1"{% if oidc_google_enabled %} checked{% endif %}{% if not oidc_google_configured %} disabled{% endif %}>
+            Enable Sign in with Google
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="oidc_github_enabled" value="1"{% if oidc_github_enabled %} checked{% endif %}{% if not oidc_github_configured %} disabled{% endif %}>
+            Enable Sign in with GitHub
+        </label>
+        <p class="muted">Social sign-in can create accounts even when manual registration is disabled. Admins with 2FA enabled still complete TOTP after OAuth. See <code>docs/OIDC.md</code>.</p>
+
+        <h2>Registration protection</h2>
+        <p class="muted">Honeypot, Cloudflare Turnstile (“human check”), and per-IP signup limits. Turnstile keys are set in <code>config/local.php</code> (<code>security.turnstile_site_key</code> / <code>security.turnstile_secret_key</code>).</p>
+        <p class="muted">Turnstile status: {% if turnstile_configured %}<strong>configured</strong>{% else %}<strong>not configured</strong> — add keys to enable the widget{% endif %}.</p>
+        <label class="checkbox">
+            <input type="checkbox" name="registration_honeypot_enabled" value="1"{% if registration_honeypot_enabled %} checked{% endif %}>
+            Honeypot on registration form
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="registration_turnstile_enabled" value="1"{% if registration_turnstile_enabled %} checked{% endif %}{% if not turnstile_configured %} disabled{% endif %}>
+            Require Cloudflare Turnstile on registration
+        </label>
+
+        <h2>Member reputation</h2>
+        <p class="muted">Ranks 1–5 appear on member profiles. Staff show Moderator/Admin badges instead. Scores recompute on the hourly/daily cron; override per user on their admin detail page.</p>
+        <details class="reputation-admin-details">
+            <summary>Score weights</summary>
+            <div class="reputation-admin-grid">
+                <label>Topic weight <input type="number" name="reputation_weight_topic" value="{{ reputation_weights.topic }}" min="0" step="0.1"></label>
+                <label>Reply weight <input type="number" name="reputation_weight_reply" value="{{ reputation_weights.reply }}" min="0" step="0.1"></label>
+                <label>Dislike penalty <input type="number" name="reputation_weight_dislike" value="{{ reputation_weights.dislike }}" min="0" step="0.1"></label>
+                <label>Read weight <input type="number" name="reputation_weight_read" value="{{ reputation_weights.read }}" min="0" step="0.1"></label>
+                <label>Watch weight <input type="number" name="reputation_weight_watch" value="{{ reputation_weights.watch }}" min="0" step="0.1"></label>
+                <label>Active day weight <input type="number" name="reputation_weight_active_day" value="{{ reputation_weights.active_day }}" min="0" step="0.1"></label>
+                <label>Like cap per post <input type="number" name="reputation_weight_like_cap" value="{{ reputation_weights.like_cap }}" min="1" max="100" step="1"></label>
+                <label>Warning penalty <input type="number" name="reputation_weight_warning_penalty" value="{{ reputation_weights.warning_penalty }}" min="0" step="0.1"></label>
+            </div>
+        </details>
+        <details class="reputation-admin-details">
+            <summary>Rank thresholds (ranks 2–5)</summary>
+            <p class="muted">Rank 1 is automatic for accounts under 7 days old. Rank 5 requires no warnings in the last 90 days.</p>
+            <table class="data-table reputation-threshold-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Label</th>
+                        <th>Min score</th>
+                        <th>Min account age (days)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rank in 2..5 %}
+                        <tr>
+                            <td>{{ rank }}</td>
+                            <td>{{ reputation_rank_labels[rank] }}</td>
+                            <td>
+                                <input type="number" name="reputation_threshold_{{ rank }}_score"
+                                       value="{{ reputation_thresholds[rank].min_score }}" min="0" step="1">
+                            </td>
+                            <td>
+                                <input type="number" name="reputation_threshold_{{ rank }}_age"
+                                       value="{{ reputation_thresholds[rank].min_age_days }}" min="0" step="1">
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </details>
+
+        <h2>Report quarantine</h2>
+        <label>
+            Minimum severity to auto-quarantine posts
+            <select name="report_quarantine_min_severity">
+                <option value="low"{% if report_quarantine_min_severity == 'low' %} selected{% endif %}>low</option>
+                <option value="medium"{% if report_quarantine_min_severity == 'medium' %} selected{% endif %}>medium</option>
+                <option value="high"{% if report_quarantine_min_severity == 'high' %} selected{% endif %}>high</option>
+                <option value="critical"{% if report_quarantine_min_severity == 'critical' %} selected{% endif %}>critical</option>
+            </select>
+        </label>
+        <label>
+            Or quarantine after N open reports (0 = disabled)
+            <input type="number" name="report_quarantine_report_count" value="{{ report_quarantine_report_count }}" min="0" max="50">
+        </label>
+        <button type="submit" class="btn btn-primary">Save settings</button>
+    </form>
+{% endblock %}

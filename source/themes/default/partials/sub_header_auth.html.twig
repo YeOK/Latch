@@ -1,0 +1,9 @@
+<nav class="sub-header-auth" aria-label="{{ trans('nav.account') }}">
+    {% if user %}
+        {% include 'partials/inbox_cluster.html.twig' %}
+        {% include 'partials/user_menu.html.twig' %}
+    {% else %}
+        <a href="/login" class="header-auth-link">{{ trans('nav.sign_in') }}</a>
+        {% if allow_registration %}<a href="/register" class="btn btn-small btn-primary">{{ trans('nav.register') }}</a>{% endif %}
+    {% endif %}
+</nav>

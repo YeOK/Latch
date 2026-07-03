@@ -1,0 +1,32 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Audit log — Admin{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <h1>Audit log</h1>
+    </section>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Actor</th>
+                <th>Action</th>
+                <th>Target</th>
+                <th>IP</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+                <tr>
+                    <td>{{ entry.created_at|format_datetime }}</td>
+                    <td>{{ entry.actor_username ?? '—' }}</td>
+                    <td>{{ entry.action }}</td>
+                    <td>{{ entry.target_type }}{% if entry.target_id %} #{{ entry.target_id }}{% endif %}</td>
+                    <td>{{ entry.ip_address }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}{{ profile.username }} — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="profile-public card">
+        <header class="profile-public-header">
+            {% include 'partials/avatar.twig' with {
+                username: profile.username,
+                avatar_src: profile.avatar_src,
+                avatar_hue: profile.avatar_hue,
+                size: 96
+            } %}
+            <div class="profile-public-meta">
+                <h1>{{ profile.username }}</h1>
+                <p class="muted profile-public-joined">Member since {{ profile.created_at|slice(0, 10) }}</p>
+                <dl class="profile-stats">
+                    <div>
+                        <dt>{{ profile.post_count }}</dt>
+                        <dd>Post{{ profile.post_count == 1 ? '' : 's' }}</dd>
+                    </div>
+                    <div>
+                        <dt>{{ profile.topic_count }}</dt>
+                        <dd>Topic{{ profile.topic_count == 1 ? '' : 's' }} started</dd>
+                    </div>
+                </dl>
+                {% if profile.bio %}
+                    <div class="profile-bio post-content">{{ profile.bio|format_post }}</div>
+                {% endif %}
+                {% if profile.reputation.is_member and profile.reputation.rank and profile.reputation.components is not empty %}
+                    <dl class="profile-reputation-breakdown muted">
+                        <dt>Standing</dt>
+                        <dd>
+                            Score {{ profile.reputation.score|number_format(1) }}
+                            {% if profile.reputation.next_rank %}
+                                · {{ profile.reputation.next_rank.points_needed }} pts to {{ profile.reputation.next_rank.label }}
+                            {% endif %}
+                        </dd>
+                        <dt>Breakdown</dt>
+                        <dd>
+                            Participation {{ profile.reputation.components.topics }} topics / {{ profile.reputation.components.replies }} replies ·
+                            Quality +{{ profile.reputation.components.capped_likes }}/−{{ profile.reputation.components.capped_dislikes }} ·
+                            Engagement {{ profile.reputation.components.topics_read_90d }} reads / {{ profile.reputation.components.watched_topics }} watched
+                        </dd>
+                    </dl>
+                {% endif %}
+                <div class="profile-public-actions">
+                    {% if can_message and direct_messages_enabled|default(false) %}
+                        <button
+                            type="button"
+                            class="btn btn-icon profile-message-btn"
+                            id="profile-message-btn"
+                            data-username="{{ profile.username }}"
+                            title="Send message"
+                            aria-label="Send message to {{ profile.username }}"
+                        >
+                            {% include 'partials/icon.twig' with { name: 'message', size: 20 } %}
+                        </button>
+                    {% endif %}
+                    {% if is_own_profile %}
+                        <a href="/profile" class="btn btn-small">Edit your profile</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% if profile.is_staff and profile.staff_label %}
+                {% set staff_glyph = profile.role == 'admin' ? 'A' : 'M' %}
+                <div
+                    class="profile-emblem profile-emblem--staff profile-emblem--{{ profile.role }}"
+                    title="{{ profile.staff_label }} — {% if profile.role == 'admin' %}Site administrator{% else %}Site staff member{% endif %}"
+                    aria-label="{{ profile.staff_label }}{% if profile.role == 'admin' %}, site administrator{% else %}, site staff member{% endif %}"
+                >
+                    <span class="profile-emblem-icon" aria-hidden="true">
+                        {% include 'partials/icon.twig' with { name: 'shield-filled', size: 56 } %}
+                        <span class="profile-emblem-glyph">{{ staff_glyph }}</span>
+                    </span>
+                </div>
+            {% elseif profile.reputation.is_member and profile.reputation.rank %}
+                <div
+                    class="profile-emblem profile-emblem--rank"
+                    title="Rank {{ profile.reputation.rank }} · {{ profile.reputation.label }} — Score {{ profile.reputation.score|number_format(1) }}{% if profile.reputation.next_rank %} · {{ profile.reputation.next_rank.points_needed }} pts to {{ profile.reputation.next_rank.label }}{% endif %}"
+                    aria-label="Member rank {{ profile.reputation.rank }} of 5, {{ profile.reputation.label }}, score {{ profile.reputation.score|number_format(1) }}"
+                >
+                    <span class="profile-emblem-icon" aria-hidden="true">
+                        {% include 'partials/icon.twig' with { name: 'shield-filled', size: 56 } %}
+                        <span class="profile-emblem-glyph">{{ profile.reputation.rank }}</span>
+                    </span>
+                </div>
+            {% endif %}
+        </header>
+    </section>
+
+    <section class="profile-activity">
+        <h2>Recent posts</h2>
+        {% if recent_posts is empty %}
+            <p class="empty muted">No public posts yet.</p>
+        {% else %}
+            <ul class="profile-activity-list" role="list">
+                {% for post in recent_posts %}
+                    <li class="profile-activity-item card">
+                        <p class="profile-activity-title">
+                            <a href="/topic/{{ post.topic_id }}#post-{{ post.id }}">{{ post.topic_title }}</a>
+                            <span class="muted">in <a href="/board/{{ post.board_slug }}">{{ post.board_name }}</a></span>
+                        </p>
+                        <p class="profile-activity-excerpt muted">{{ post.excerpt }}</p>
+                        <time class="profile-activity-date muted">{{ post.created_at|format_datetime }}</time>
+                        {% if post.quarantined_at and is_mod %}
+                            <span class="badge badge-quarantine">Quarantined</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+{% endblock %}

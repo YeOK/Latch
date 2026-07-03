@@ -1,0 +1,74 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}Post history — {{ topic.title }}{% endblock %}
+
+{% block content %}
+    <section class="page-header">
+        <p class="muted"><a href="/topic/{{ topic.id }}#post-{{ post.id }}">← Back to topic</a></p>
+        <h1>Post edit history</h1>
+        <p class="muted">
+            Post #{{ post.id }} by {% include 'partials/username_link.twig' with { username: post.author_name } %}
+            in <a href="/board/{{ board.slug }}">{{ board.name }}</a> —
+            <a href="/topic/{{ topic.id }}">{{ topic.title }}</a>
+        </p>
+    </section>
+
+    {% if revisions is empty %}
+        <p class="muted">No revisions stored for this post.</p>
+    {% else %}
+        <section class="card revision-timeline-card">
+            <h2>Edit timeline</h2>
+            <ol class="revision-timeline">
+                {% for entry in edit_timeline %}
+                    <li class="revision-timeline-item revision-timeline-{{ entry.kind }}">
+                        {% if entry.kind == 'created' %}
+                            <span class="revision-timeline-label">Posted by</span>
+                            {% include 'partials/username_link.twig' with { username: entry.username } %}
+                        {% else %}
+                            <span class="revision-timeline-label">Edited by</span>
+                            {% include 'partials/username_link.twig' with { username: entry.username } %}
+                        {% endif %}
+                        <time class="revision-timeline-time">{{ entry.at|format_datetime }}</time>
+                    </li>
+                {% endfor %}
+            </ol>
+        </section>
+
+        <div class="revision-list">
+            <section class="card revision-current">
+                <header class="revision-meta">
+                    <h2>Current version</h2>
+                    {% if last_editor %}
+                        <p class="muted revision-byline">
+                            Last edited by {% include 'partials/username_link.twig' with { username: last_editor.editor_username } %}
+                            {% if post.updated_at %}<time>{{ post.updated_at|format_datetime }}</time>{% endif %}
+                        </p>
+                    {% endif %}
+                </header>
+                <pre class="revision-body">{{ post.body }}</pre>
+            </section>
+
+            {% for revision in revisions %}
+                <section class="card revision-entry" id="revision-{{ revision.id }}">
+                    <header class="revision-meta">
+                        <h2>
+                            Edit by {% include 'partials/username_link.twig' with { username: revision.editor_username } %}
+                        </h2>
+                        <time>{{ revision.created_at|format_datetime }}</time>
+                    </header>
+                    <details class="revision-diff-details" open>
+                        <summary>Changes in this edit</summary>
+                        <pre class="revision-diff">{% for line in diffs[revision.id] %}{% if line.kind == 'remove' %}- {{ line.text }}
+{% elseif line.kind == 'add' %}+ {{ line.text }}
+{% else %}  {{ line.text }}
+{% endif %}{% endfor %}</pre>
+                    </details>
+                    <details class="revision-body-details">
+                        <summary>Body before this edit</summary>
+                        <pre class="revision-body">{{ revision.body }}</pre>
+                    </details>
+                </section>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

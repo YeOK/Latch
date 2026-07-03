@@ -1,0 +1,342 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}{{ topic.title }} — {{ site.name }}{% endblock %}
+
+{% block content %}
+    {% if is_mod %}
+        <div class="staff-action-feedback" id="staff-action-feedback" hidden role="status"></div>
+    {% endif %}
+    <section class="page-header">
+        <p class="breadcrumb">
+            <a href="/">Boards</a> /
+            <a href="/board/{{ board.slug }}">{{ board.name }}</a> /
+            {{ topic.title }}
+        </p>
+        {% if topic.deleted_at and is_mod %}
+            <p class="flash flash-error">This topic was removed from the board.</p>
+        {% endif %}
+        <div class="page-header-row">
+            <div class="page-header-title-wrap">
+                <h1>
+                <span class="badge" data-topic-pin-badge{% if not topic.is_pinned %} hidden{% endif %}>Pinned</span>
+                <span class="badge badge-muted" data-topic-lock-badge{% if not topic.is_locked %} hidden{% endif %}>Locked</span>
+                {% if topic.deleted_at %}<span class="badge badge-muted">Removed</span>{% endif %}
+                {{ topic.title }}
+                </h1>
+            </div>
+            <div class="page-header-actions">
+                {% if user and not topic.deleted_at %}
+                    <button type="button"
+                            class="btn btn-icon field-haze-btn topic-watch-btn{% if is_watching %} is-watching{% endif %}"
+                            id="topic-watch-btn"
+                            data-topic-id="{{ topic.id }}"
+                            data-watching="{{ is_watching ? '1' : '0' }}"
+                            title="{{ is_watching ? 'Unwatch topic' : 'Watch topic' }}"
+                            aria-label="{{ is_watching ? 'Unwatch topic' : 'Watch topic' }}"
+                            aria-pressed="{{ is_watching ? 'true' : 'false' }}">
+                        {% include 'partials/icon.twig' with { name: 'eye', size: 18 } %}
+                    </button>
+                {% endif %}
+                {% if is_mod and not topic.deleted_at %}
+                <div class="mod-actions staff-action-icons" data-staff-feedback>
+                    {% if is_mod_trash_board|default(false) %}
+                        <details class="staff-action-panel"
+                                 data-staff-post="/mod/topic/{{ topic.id }}/purge-trash"
+                                 data-staff-success="trash-item">
+                            <summary class="btn btn-small btn-icon btn-danger" title="Delete permanently" aria-label="Delete permanently">
+                                {% include 'partials/icon.twig' with { name: 'trash' } %}
+                            </summary>
+                            <div class="staff-action-popover">
+                                <p class="staff-action-confirm muted">Permanently delete this archived post? This cannot be undone.</p>
+                                <button type="button" class="btn btn-small btn-danger btn-icon" data-staff-action-submit title="Confirm delete" aria-label="Confirm permanent delete">
+                                    {% include 'partials/icon.twig' with { name: 'check' } %}
+                                </button>
+                            </div>
+                        </details>
+                    {% else %}
+                        <details class="staff-action-panel"
+                                 data-staff-post="/mod/topic/{{ topic.id }}/lock"
+                                 data-staff-success="topic-mod">
+                            <summary class="btn btn-small btn-icon" data-topic-lock-toggle
+                                      title="{{ topic.is_locked ? 'Unlock topic' : 'Lock topic' }}"
+                                      aria-label="{{ topic.is_locked ? 'Unlock topic' : 'Lock topic' }}">
+                                <span data-show-when-locked{% if not topic.is_locked %} hidden{% endif %}>
+                                    {% include 'partials/icon.twig' with { name: 'unlock' } %}
+                                </span>
+                                <span data-show-when-unlocked{% if topic.is_locked %} hidden{% endif %}>
+                                    {% include 'partials/icon.twig' with { name: 'lock' } %}
+                                </span>
+                            </summary>
+                            <div class="staff-action-popover">
+                                <p class="staff-action-confirm muted">{{ topic.is_locked ? 'Unlock this topic?' : 'Lock this topic?' }}</p>
+                                <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Confirm" aria-label="Confirm">
+                                    {% include 'partials/icon.twig' with { name: 'check' } %}
+                                </button>
+                            </div>
+                        </details>
+                        <details class="staff-action-panel"
+                                 data-staff-post="/mod/topic/{{ topic.id }}/pin"
+                                 data-staff-success="topic-mod">
+                            <summary class="btn btn-small btn-icon" data-topic-pin-toggle
+                                      title="{{ topic.is_pinned ? 'Unpin topic' : 'Pin topic' }}"
+                                      aria-label="{{ topic.is_pinned ? 'Unpin topic' : 'Pin topic' }}">
+                                {% include 'partials/icon.twig' with { name: 'pin' } %}
+                            </summary>
+                            <div class="staff-action-popover">
+                                <p class="staff-action-confirm muted">{{ topic.is_pinned ? 'Unpin this topic?' : 'Pin this topic?' }}</p>
+                                <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Confirm" aria-label="Confirm">
+                                    {% include 'partials/icon.twig' with { name: 'check' } %}
+                                </button>
+                            </div>
+                        </details>
+                        <details class="staff-action-panel"
+                                 data-staff-post="/mod/topic/{{ topic.id }}/delete"
+                                 data-staff-success="topic-mod">
+                            <summary class="btn btn-small btn-icon btn-danger" title="Remove topic" aria-label="Remove topic">
+                                {% include 'partials/icon.twig' with { name: 'trash' } %}
+                            </summary>
+                            <div class="staff-action-popover">
+                                <p class="staff-action-confirm muted">Remove this topic from the board?</p>
+                                <button type="button" class="btn btn-small btn-danger btn-icon" data-staff-action-submit title="Confirm" aria-label="Confirm remove">
+                                    {% include 'partials/icon.twig' with { name: 'check' } %}
+                                </button>
+                            </div>
+                        </details>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% include 'partials/topic_tags.html.twig' with { tags: tags } %}
+
+        {% if is_mod and not topic.deleted_at and not is_mod_trash_board|default(false) %}
+            {% include 'partials/mod_toolbar.html.twig' with {
+                topic: topic,
+                mod_boards_json: mod_boards_json|default('[]')
+            } %}
+        {% endif %}
+        {% if is_mod_trash_board|default(false) %}
+            <p class="muted mod-trash-board-note">Staff-only archive. Each topic holds one removed post. Restore it to the original thread or delete it permanently.</p>
+        {% endif %}
+
+        {% if can_edit_tags %}
+            <details class="card mod-topic-details{% if is_mod %} mod-tools-active-only{% endif %}">
+                <summary class="mod-topic-details-summary">
+                    {% include 'partials/icon.twig' with { name: 'edit', size: 16 } %}
+                    <span>{% if is_mod %}Edit topic{% else %}Edit tags{% endif %}</span>
+                    {% include 'partials/icon.twig' with { name: 'chevron-down', size: 16 } %}
+                </summary>
+                <div class="mod-topic-details-body">
+                    <form method="post" action="/mod/topic/{{ topic.id }}/details" class="mod-topic-details-form">
+                        {{ csrf_field() }}
+                        {% if is_mod %}
+                            <label>
+                                Title
+                                <input type="text" name="title" value="{{ topic.title }}" maxlength="{{ input_limits.topic_title_max }}" required>
+                            </label>
+                        {% endif %}
+                        <label>
+                            Tags
+                            <input type="text" name="tags" value="{{ tags|column('name')|join(', ') }}" maxlength="200" list="tag-suggestions" autocomplete="off">
+                        </label>
+                        <button type="submit" class="btn btn-small btn-primary btn-icon" title="Save changes" aria-label="Save topic changes">
+                            {% include 'partials/icon.twig' with { name: 'check' } %}
+                        </button>
+                    </form>
+                </div>
+            </details>
+            <datalist id="tag-suggestions"></datalist>
+        {% endif %}
+    </section>
+
+    <button type="button" class="scroll-top-btn" id="scroll-top" hidden title="Back to top" aria-label="Back to top">
+        {% include 'partials/icon.twig' with { name: 'arrow-up', size: 22 } %}
+    </button>
+
+    <div class="post-list" id="topic-post-list">
+        {% for post in posts %}
+            {% set quarantined = post.quarantined_at and not post.deleted_at %}
+            {% set pending = (post.approval_status is defined ? post.approval_status : 'approved') == 'pending' and not post.deleted_at %}
+            <article class="post{% if quarantined and not is_mod %} post-quarantined{% endif %}{% if quarantined and is_mod %} post-quarantined-staff{% endif %}{% if pending %} post-pending{% endif %}"
+                     id="post-{{ post.id }}"
+                     data-post-id="{{ post.id }}"
+                     data-post-op="{{ loop.first ? '1' : '0' }}"
+                     data-post-quarantined="{{ quarantined ? '1' : '0' }}">
+                {% if is_mod and not topic.deleted_at and not is_mod_trash_board|default(false) %}
+                    <label class="mod-post-check mod-tools-active-only">
+                        <input type="checkbox" class="mod-post-checkbox" value="{{ post.id }}" aria-label="Select post #{{ post.id }}">
+                    </label>
+                {% endif %}
+                <header class="post-meta">
+                    {% include 'partials/avatar.twig' with { username: post.author_name, avatar_src: post.avatar_src|default(''), avatar_hue: post.avatar_hue|default(210), size: 40 } %}
+                    <div class="post-meta-text">
+                        <strong>{% include 'partials/username_link.twig' with { username: post.author_name } %}</strong>
+                        <time>{{ post.created_at|format_datetime }}</time>
+                        {% if post.updated_at %}
+                            <span class="badge badge-muted post-edited-badge" title="Last edited {{ post.last_edited_at|default(post.updated_at)|format_datetime }}">
+                                Edited{% if post.last_editor_username %} by {% include 'partials/username_link.twig' with { username: post.last_editor_username } %}{% endif %}
+                            </span>
+                        {% endif %}
+                        {% if is_mod and post.revision_count > 0 %}
+                            <a class="badge badge-muted post-revision-link mod-tools-active-only" href="/mod/post/{{ post.id }}/revisions">History ({{ post.revision_count }})</a>
+                        {% endif %}
+                        {% if quarantined and is_mod %}<span class="badge badge-quarantine">Quarantined</span>{% endif %}
+                        {% if pending %}<span class="badge badge-pending">Pending approval</span>{% endif %}
+                        {% if is_mod_trash_board|default(false) and post.restore_board_name %}
+                            <span class="badge badge-muted">
+                                From
+                                <a href="/board/{{ post.restore_board_slug }}">{{ post.restore_board_name }}</a>
+                                {% if post.trash_restore_topic_id %}
+                                    · <a href="/topic/{{ post.trash_restore_topic_id }}">{{ post.restore_topic_title }}</a>
+                                {% endif %}
+                            </span>
+                        {% endif %}
+                    </div>
+                </header>
+                {% if quarantined and not is_mod %}
+                    <div class="post-body post-content post-body--quarantined" role="status" aria-label="Post under staff review">
+                        <div class="post-quarantine-blur" aria-hidden="true"></div>
+                        <div class="post-quarantine-overlay">
+                            <div class="post-quarantine-shield" aria-hidden="true">
+                                {% include 'partials/icon.twig' with { name: 'shield', size: 28 } %}
+                            </div>
+                            <p class="post-quarantine-label">Under review by staff</p>
+                            <p class="post-quarantine-hint muted">This post is hidden until moderation is complete.</p>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="post-body post-content">
+                        {{ post.body|format_post }}
+                    </div>
+                {% endif %}
+                <footer class="post-actions">
+                    {% include 'partials/post_votes.html.twig' %}
+                    <div class="post-action-icons" data-staff-feedback>
+                        {% if post.can_edit %}
+                            <details class="post-edit-details">
+                                <summary class="btn btn-small btn-icon" title="Edit post" aria-label="Edit post">
+                                    {% include 'partials/icon.twig' with { name: 'edit' } %}
+                                </summary>
+                                <form method="post" action="/post/{{ post.id }}/edit" class="form post-edit-form">
+                                    {{ csrf_field() }}
+                                    <label>
+                                        Edit message
+                                        {% include 'partials/composer.twig' with {
+                                            draft_key: 'edit-post-' ~ post.id,
+                                            required: true,
+                                            rows: 8,
+                                            value: post.body
+                                        } %}
+                                    </label>
+                                    <div class="post-edit-actions">
+                                        <button type="submit" class="btn btn-small btn-primary">Save changes</button>
+                                    </div>
+                                </form>
+                            </details>
+                        {% endif %}
+                        {% if user and not post.deleted_at and not quarantined and not pending %}
+                            <button type="button" class="btn btn-small btn-icon" title="Quote" aria-label="Quote {{ post.author_name }}"
+                                    data-quote-post data-quote-author="{{ post.author_name }}" data-quote-body="{{ post.body|slice(0, 2000)|e('html_attr') }}">
+                                {% include 'partials/icon.twig' with { name: 'quote' } %}
+                            </button>
+                            <details class="report-details">
+                                <summary class="btn btn-small btn-icon btn-report" title="Report" aria-label="Report post">
+                                    {% include 'partials/icon.twig' with { name: 'flag' } %}
+                                </summary>
+                                <form method="post" action="/report/post/{{ post.id }}" class="form report-form">
+                                    {{ csrf_field() }}
+                                    <label>
+                                        Reason (required)
+                                        <select name="reason_code" required>
+                                            <option value="">Select…</option>
+                                            {% for code, cat in report_categories %}
+                                                <option value="{{ code }}">{{ cat.label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </label>
+                                    <label>
+                                        Details (optional)
+                                        <textarea name="reason_detail" rows="2" maxlength="500" placeholder="Additional context"></textarea>
+                                    </label>
+                                    <button type="submit" class="btn btn-small btn-primary btn-icon" title="Submit report" aria-label="Submit report">
+                                        {% include 'partials/icon.twig' with { name: 'check' } %}
+                                    </button>
+                                </form>
+                            </details>
+                        {% endif %}
+                        {% if is_mod_trash_board|default(false) and is_mod and post.is_trashed_archive|default(false) %}
+                            <details class="staff-action-panel" data-staff-post="/mod/trash/{{ post.id }}/restore" data-staff-success="trash-item">
+                                <summary class="btn btn-small btn-icon" title="Restore post" aria-label="Restore post">
+                                    {% include 'partials/icon.twig' with { name: 'restore', size: 16 } %}
+                                </summary>
+                                <div class="staff-action-popover">
+                                    <p class="staff-action-confirm muted">Restore this post to its original topic?</p>
+                                    <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Confirm restore" aria-label="Confirm restore">
+                                        {% include 'partials/icon.twig' with { name: 'check' } %}
+                                    </button>
+                                </div>
+                            </details>
+                            <details class="staff-action-panel" data-staff-post="/mod/trash/{{ post.id }}/purge" data-staff-success="trash-item">
+                                <summary class="btn btn-small btn-icon btn-danger" title="Delete permanently" aria-label="Delete permanently">
+                                    {% include 'partials/icon.twig' with { name: 'trash' } %}
+                                </summary>
+                                <div class="staff-action-popover">
+                                    <p class="staff-action-confirm muted">Permanently delete this post? This cannot be undone.</p>
+                                    <button type="button" class="btn btn-small btn-danger btn-icon" data-staff-action-submit title="Confirm delete" aria-label="Confirm delete">
+                                        {% include 'partials/icon.twig' with { name: 'check' } %}
+                                    </button>
+                                </div>
+                            </details>
+                        {% endif %}
+
+                    </div>
+                </footer>
+            </article>
+        {% endfor %}
+    </div>
+
+    {% if user and can_reply|default(true) and (not topic.is_locked or is_mod) and not topic.deleted_at %}
+        <div class="reply-actions">
+            <button type="button" class="btn btn-primary" id="reply-toggle" aria-expanded="false" aria-controls="reply-panel">Reply</button>
+        </div>
+        <button type="button" class="scroll-reply-btn" id="scroll-reply" hidden>Reply</button>
+        <section class="reply-form" id="reply-panel" hidden>
+            <form method="post" action="/topic/{{ topic.id }}/reply" class="form form-compose">
+                {{ csrf_field() }}
+                <label>
+                    Your message
+                    {% include 'partials/composer.twig' with { draft_key: 'topic-' ~ topic.id, required: true, rows: 8 } %}
+                </label>
+                <div class="reply-form-actions">
+                    <button type="submit" class="btn btn-primary">Post reply</button>
+                    <button type="button" class="btn" id="reply-cancel">Cancel</button>
+                </div>
+            </form>
+        </section>
+    {% elseif topic.deleted_at %}
+        <p class="muted">This topic has been removed.</p>
+    {% elseif topic.is_locked %}
+        <p class="muted">This topic is locked. No new replies.</p>
+    {% elseif not can_reply|default(true) %}
+        <p class="muted">This board is read-only — you cannot post replies here.</p>
+    {% else %}
+        <p class="muted"><a href="/login">Sign in</a> to reply.</p>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    <link rel="stylesheet" href="/assets/css/highlight.css?v={{ asset_version }}">
+    <script src="/assets/js/highlight.min.js?v={{ asset_version }}" defer></script>
+    <script src="/assets/js/editor.js?v={{ asset_version }}" defer></script>
+
+    {% if can_edit_tags %}
+        <script src="/assets/js/tags.js?v={{ asset_version }}" defer></script>
+    {% endif %}
+    {% if user %}
+        <script src="/assets/js/post-votes.js?v={{ asset_version }}" defer></script>
+        <script src="/assets/js/topic-watch.js?v={{ asset_version }}" defer></script>
+    {% endif %}
+    {% if is_mod %}
+        <script src="/assets/js/mod-tools.js?v={{ asset_version }}" defer></script>
+    {% endif %}
+{% endblock %}

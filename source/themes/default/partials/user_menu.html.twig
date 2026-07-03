@@ -1,0 +1,42 @@
+{% if user %}
+    <div class="user-menu" id="user-menu">
+        <button type="button" class="user-menu-toggle" id="user-menu-toggle" aria-expanded="false" aria-controls="user-menu-panel" aria-haspopup="true">
+            {% include 'partials/avatar.twig' with {
+                username: user.username,
+                avatar_src: user.avatar_src|default(''),
+                avatar_hue: user.avatar_hue|default(210),
+                size: 28
+            } %}
+            <span class="user-menu-name">{{ user.username }}</span>
+            <span class="user-menu-chevron" aria-hidden="true"></span>
+        </button>
+        <div class="user-menu-panel" id="user-menu-panel" hidden>
+            {% if direct_messages_enabled|default(false) %}
+            <a class="user-menu-item" href="/messages" data-messages-panel data-account-bypass>{{ trans('user_menu.messages') }}{% if (messages_unread|default(0)) > 0 %} ({{ messages_unread }}){% endif %}</a>
+            {% endif %}
+            <a class="user-menu-item" href="/notifications" data-account-bypass>{{ trans('user_menu.notifications') }}{% if notification_unread > 0 %} ({{ notification_unread }}){% endif %}</a>
+            <a class="user-menu-item" href="/watched">{{ trans('user_menu.watched') }}{% if watched_unread > 0 %} ({{ watched_unread }}){% endif %}</a>
+            <a class="user-menu-item" href="/profile" data-account-panel>{{ trans('user_menu.profile') }}</a>
+            <a class="user-menu-item" href="/profile/2fa" data-account-panel>{{ trans('user_menu.two_factor') }}</a>
+            {% if is_mod %}
+                <a class="user-menu-item" href="/admin/reports" data-account-panel>{{ trans('user_menu.reports') }}</a>
+            {% endif %}
+            {% if is_admin %}
+                <div class="user-menu-group">
+                    <span class="user-menu-label">{{ trans('user_menu.admin') }}</span>
+                    <a class="user-menu-item" href="/admin" data-account-panel>{{ trans('user_menu.dashboard') }}</a>
+                    <a class="user-menu-item" href="/admin/users" data-account-panel>{{ trans('user_menu.users') }}</a>
+                    <a class="user-menu-item" href="/admin/boards" data-account-panel>{{ trans('user_menu.boards') }}</a>
+                    <a class="user-menu-item" href="/admin/settings" data-account-panel>{{ trans('user_menu.settings') }}</a>
+                    <a class="user-menu-item" href="/admin/reports" data-account-panel>{{ trans('user_menu.reports') }}</a>
+                    <a class="user-menu-item" href="/admin/approval" data-account-panel>{{ trans('user_menu.approval') }}</a>
+                    <a class="user-menu-item" href="/admin/audit" data-account-panel>{{ trans('user_menu.audit_log') }}</a>
+                </div>
+            {% endif %}
+            <form class="user-menu-item user-menu-signout" method="post" action="/logout">
+                {{ csrf_field() }}
+                <button type="submit" class="link-button">{{ trans('user_menu.sign_out') }}</button>
+            </form>
+        </div>
+    </div>
+{% endif %}

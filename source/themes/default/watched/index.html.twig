@@ -1,0 +1,33 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}Watched topics — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="page-header">
+        <h1>Watched topics</h1>
+        <p class="muted">
+            {% if unread_count > 0 %}
+                {{ unread_count }} with new posts since your last visit
+            {% else %}
+                No new posts in watched topics.
+            {% endif %}
+        </p>
+    </section>
+
+    {% if topics is empty %}
+        <p class="muted watched-empty">You are not watching any topics yet. Open a thread and use <strong>Watch</strong> to follow it, or post in a topic to watch it automatically.</p>
+    {% else %}
+        {% include 'partials/topic_list.html.twig' with { topics: topics } %}
+        {% if total_pages > 1 %}
+            <nav class="pagination" aria-label="Watched topic pages">
+                {% if page > 1 %}
+                    <a class="btn btn-small" href="/watched?page={{ page - 1 }}">← Newer</a>
+                {% endif %}
+                <span class="muted">Page {{ page }} of {{ total_pages }}</span>
+                {% if page < total_pages %}
+                    <a class="btn btn-small" href="/watched?page={{ page + 1 }}">Older →</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    {% endif %}
+{% endblock %}

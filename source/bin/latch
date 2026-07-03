@@ -1,0 +1,2313 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Latch CLI entry point.
+ */
+
+use Latch\Core\Cache;
+use Latch\Core\Config;
+use Latch\Core\CronService;
+use Latch\Core\Database;
+use Latch\Core\Mail;
+use Latch\Core\Migrator;
+use Latch\Core\RateLimiter;
+use Latch\Core\ReputationService;
+use Latch\Core\SecretCipher;
+use Latch\Core\SecurityHeaders;
+use Latch\Core\OAuthScopes;
+use Latch\Models\NotificationRepository;
+use Latch\Models\ApiAuditLogRepository;
+use Latch\Models\BoardRepository;
+use Latch\Models\OAuthClientRepository;
+use Latch\Models\OAuthTokenRepository;
+use Latch\Models\EmailChangeRepository;
+use Latch\Models\EmailVerificationRepository;
+use Latch\Models\PasswordResetRepository;
+use Latch\Models\PostRepository;
+use Latch\Models\SettingRepository;
+use Latch\Core\PostFormatter;
+use Latch\Core\RssFeed;
+use Latch\Models\RssRepository;
+use Latch\Models\SearchRepository;
+use Latch\Core\TopicTags;
+use Latch\Models\TagRepository;
+use Latch\Models\TopicRepository;
+use Latch\Models\UserRepository;
+use Latch\Models\UserSessionRepository;
+use Latch\Models\WebhookRepository;
+use Latch\Core\Webhooks\WebhookEvent;
+use Latch\Support\SiteLock;
+use Latch\Support\SiteMaintenance;
+use Latch\Support\Doctor;
+use Latch\Support\SiteMigrate;
+use Latch\Support\SiteRestore;
+use Latch\Support\SqliteIntegrity;
+use Latch\Support\UpdateOrchestrator;
+
+define('LATCH_ROOT', dirname(__DIR__));
+
+$autoload = LATCH_ROOT . '/vendor/autoload.php';
+if (!is_file($autoload)) {
+    fwrite(STDERR, "Run composer install from " . LATCH_ROOT . " first.\n");
+    exit(1);
+}
+
+require $autoload;
+
+$command = $argv[1] ?? 'help';
+
+match ($command) {
+    'help', '--help', '-h' => print_help(),
+    'install' => run_install($argv),
+    'migrate' => run_migrate(),
+    'audit' => run_audit(),
+    'backup' => run_backup(),
+    'cache-clear' => run_cache_clear(),
+    'maintenance' => run_maintenance($argv),
+    'lock' => run_lock($argv),
+    'cron' => run_cron($argv),
+    'benchmark' => run_benchmark($argv),
+    'test-mail' => run_test_mail($argv),
+    'security-bootstrap' => run_security_bootstrap(),
+    'search-reindex' => run_search_reindex(),
+    'test-rss' => run_test_rss(),
+    'test-profiles' => run_test_profiles(),
+    'test-spam' => run_test_spam(),
+    'test-webhooks' => run_test_webhooks(),
+    'post-announcements' => run_post_announcements($argv),
+    'purge-users' => run_purge_users($argv),
+    'api-client' => run_api_client($argv),
+    'test-api' => run_test_api($argv),
+    'test-api-messages' => run_test_api_messages($argv),
+    'reputation-recompute' => run_reputation_recompute($argv),
+    'plugin' => run_plugin($argv),
+    'plugin-audit' => run_plugin_audit($argv),
+    'db-check' => run_db_check($argv),
+    'restore' => run_restore($argv),
+    'update' => run_update($argv),
+    'doctor' => run_doctor($argv),
+    'test' => run_test($argv),
+    default => unknown_command($command),
+};
+
+function unknown_command(string $command): void
+{
+    fwrite(STDERR, "Unknown command: {$command}\n");
+    print_help();
+    exit(1);
+}
+
+function print_help(): void
+{
+    fwrite(STDOUT, <<<HELP
+Latch CLI
+
+  php bin/latch install        Create database, config, and initial admin
+  php bin/latch migrate        Apply SQLite schema migrations
+  php bin/latch audit          Security self-check
+  php bin/latch backup         Tarball database + local config (WAL-safe)
+  php bin/latch db-check       SQLite integrity + foreign-key check
+  php bin/latch restore        List or restore from storage/backups/
+  php bin/latch update         Lock → backup → migrate → db-check → unlock
+  php bin/latch doctor         Four-layer install preflight (PHP, vendor, DB, perms)
+  php bin/latch test           Run PHPUnit suite (or built-in fallback)
+  php bin/latch test --smoke   Operator smoke: unit slices + db-check + audit
+  php bin/latch test --security Security-focused unit tests + audit
+  php bin/latch cache-clear    Purge page cache and Twig compile files
+  php bin/latch cron hourly    Light scheduled tasks (rate limits, reputation queue)
+  php bin/latch cron daily     DB prunes + reputation (no cache purge)
+  php bin/latch cron weekly    ANALYZE, DM/topic_reads cleanup; --audit for audit_log
+  php bin/latch maintenance    Run cron daily + optional --clear-cache / --vacuum
+  php bin/latch lock on|off|status  Site maintenance lock (blocks web + API, no DB traffic)
+  php bin/latch benchmark      Curl timing report for key pages
+  php bin/latch test-mail      Send a test email (verify msmtp/SMTP)
+  php bin/latch security-bootstrap  Set encryption_key + re-wrap TOTP secrets (server ops)
+  php bin/latch search-reindex Rebuild FTS5 search index (topics, posts, tags)
+  php bin/latch reputation-recompute [--user=ID]  Recompute member ranks (all or one user)
+  php bin/latch test-rss       Run RSS unit tests + validate live feed XML
+  php bin/latch test-profiles  Run public profile unit tests
+  php bin/latch test-spam      Run spam control unit tests
+  php bin/latch test-webhooks  Run webhook repository unit tests
+  php bin/latch post-announcements  Post changelog replies to a topic (operator)
+  php bin/latch purge-users    Delete member accounts with no posts/topics (spam cleanup)
+  php bin/latch api-client     Create, list, or revoke OAuth API clients (admin)
+  php bin/latch test-api       Live smoke tests for REST API + OAuth (see tests/api/)
+  php bin/latch test-api-messages  Messages API + user OAuth (PKCE); see tests/api/
+  php bin/latch plugin list    List installed plugins and enabled state
+  php bin/latch plugin audit <path|slug>  Security scan (alias for plugin-audit)
+  php bin/latch plugin enable <slug> [--force]  Enable after audit pass
+  php bin/latch plugin disable <slug>  Disable a plugin
+  php bin/latch plugin-audit <path|slug>  Static security scan; JSON with --json
+  php bin/latch help           Show this message
+
+Test API options:
+  --url=URL                    Override base_url from config
+  --config=PATH                Config file (default: tests/api/config.local.php)
+
+API client options (api-client create):
+  --name=NAME                  Application name (required)
+  --redirect=URL               Redirect URI (repeatable; required for public clients)
+  --public                     Public client (PKCE, no client_secret)
+  --rate-limit=N               Requests per minute (default: 60)
+  --user=NAME                  Admin username creating the client (default: first admin)
+
+API client options (api-client revoke):
+  --client-id=ID               Client id to revoke (required)
+
+Post announcements options:
+  --topic=ID                   Topic ID (required)
+  --user=NAME                  Username to post as (required)
+  --file=PATH                  JSON file (default: data/changelog-announcements.json)
+  --dry-run                    Print what would be posted without writing
+
+Install options:
+  --url=URL                    Site URL (default: http://localhost)
+  --name=NAME                  Site name (default: Latch)
+  --admin-user=USER            Admin username (default: admin)
+  --admin-email=EMAIL          Admin email (default: admin@localhost)
+  --admin-pass=PASS            Admin password (prompted if omitted)
+  --no-seed-board              Skip creating the default General board
+
+Maintenance options:
+  --clear-cache                Purge guest page cache and Twig compile files
+  --vacuum                     Run SQLite VACUUM after cleanup
+
+Cron options:
+  --audit                      With cron weekly: also prune audit_log rows
+
+Benchmark options:
+  --url=URL                    Base URL (default: from config)
+  --iterations=N               Requests per path (default: 10)
+
+Test mail options:
+  --to=EMAIL                   Recipient (required)
+
+HELP);
+}
+
+function audit_world_readable(string $path): bool
+{
+    return (fileperms($path) & 0004) !== 0;
+}
+
+function audit_world_accessible_dir(string $path): bool
+{
+    $mode = fileperms($path) & 0777;
+
+    return ($mode & 0005) !== 0;
+}
+
+function require_pdo(): void
+{
+    if (class_exists(PDO::class)) {
+        return;
+    }
+
+    fwrite(STDERR, "PHP PDO is not installed (required for SQLite).\n\n");
+    fwrite(STDERR, "On Fedora/RHEL:\n");
+    fwrite(STDERR, "  sudo dnf install -y php-pdo php-mbstring\n\n");
+    fwrite(STDERR, "Then re-run this command.\n");
+    exit(1);
+}
+
+function run_migrate(): void
+{
+    require_pdo();
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $dbPath = (string) $config->get('database.path');
+
+    $db = new Database($dbPath);
+    $migrator = new Migrator($db, LATCH_ROOT . '/database/migrations');
+    $applied = $migrator->migrate();
+
+    fwrite(STDOUT, "Migrations applied: {$applied}\n");
+
+    maybe_auto_search_reindex($db);
+}
+
+/**
+ * @return list<string>
+ */
+function collect_audit_issues(Config $config): array
+{
+    $issues = [];
+    $storagePath = (string) $config->get('paths.storage');
+
+    if (!$config->isInstalled()) {
+        $issues[] = 'Database not installed';
+    }
+
+    $dbPath = (string) $config->get('database.path');
+    if (is_file($dbPath) && audit_world_readable($dbPath)) {
+        $issues[] = 'Database file is world-readable: ' . $dbPath
+            . ' (' . substr(sprintf('%o', fileperms($dbPath) & 0777), -4) . ')';
+    }
+
+    if (is_dir($storagePath) && audit_world_accessible_dir($storagePath)) {
+        $issues[] = 'storage/ is world-accessible: ' . $storagePath;
+    }
+
+    $publicPath = LATCH_ROOT . '/public';
+    $sensitive = ['../storage', '../config/local.php', '../vendor'];
+    foreach ($sensitive as $rel) {
+        $target = realpath($publicPath . '/' . $rel);
+        if ($target !== false && str_starts_with($target, realpath($publicPath) ?: $publicPath)) {
+            $issues[] = "Sensitive path reachable from public/: {$rel}";
+        }
+    }
+
+    if (!class_exists(SecurityHeaders::class)) {
+        $issues[] = 'SecurityHeaders class missing';
+    }
+
+    $fail2banFilter = dirname(LATCH_ROOT) . '/deploy/server/fail2ban-latch-login.conf';
+    if (!is_file($fail2banFilter)) {
+        $issues[] = 'fail2ban filter template missing at deploy/server/fail2ban-latch-login.conf';
+    }
+
+    if (ini_get('display_errors') === '1') {
+        $issues[] = 'display_errors is enabled (may leak debug info)';
+    }
+
+    $localPath = LATCH_ROOT . '/config/local.php';
+    if (is_file($localPath) && audit_world_readable($localPath)) {
+        $issues[] = 'config/local.php is world-readable: ' . $localPath
+            . ' (' . substr(sprintf('%o', fileperms($localPath) & 0777), -4) . ')';
+    }
+
+    if (trim((string) $config->get('security.encryption_key', '')) === '') {
+        $issues[] = 'security.encryption_key not set in local.php (TOTP uses derived fallback)';
+    }
+
+    if ($config->isInstalled()) {
+        $db = new Database($dbPath);
+        $settings = new SettingRepository($db);
+        $mail = new Mail($config, $settings);
+        if ($settings->getBool('require_email_verification') && !$mail->isConfigured()) {
+            $issues[] = 'Email verification enabled but outbound mail is not configured';
+        }
+    }
+
+    return $issues;
+}
+
+function run_audit(): void
+{
+    require_pdo();
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $issues = collect_audit_issues($config);
+
+    if ($issues === []) {
+        fwrite(STDOUT, "audit: OK — no issues found\n");
+        exit(0);
+    }
+
+    fwrite(STDERR, "audit: FAILED — " . count($issues) . " issue(s)\n");
+    foreach ($issues as $issue) {
+        fwrite(STDERR, "  - {$issue}\n");
+    }
+    exit(1);
+}
+
+function run_db_check(array $argv): void
+{
+    require_pdo();
+
+    $opts = parse_cli_options($argv);
+    $config = new Config(LATCH_ROOT . '/config');
+    $dbPath = (string) ($opts['db'] ?? $config->get('database.path'));
+
+    if (!is_file($dbPath)) {
+        fwrite(STDERR, "Database file not found: {$dbPath}\n");
+        exit(2);
+    }
+
+    $quickOnly = isset($opts['quick']);
+    $skipFk = isset($opts['no-fk']);
+
+    try {
+        $report = SqliteIntegrity::run($dbPath, $quickOnly, $skipFk);
+    } catch (\Throwable $e) {
+        fwrite(STDERR, $e->getMessage() . "\n");
+        if (str_contains(strtolower($e->getMessage()), 'readonly')
+            || str_contains(strtolower($e->getMessage()), 'read-only')) {
+            fwrite(STDERR, "Hint: sudo -u apache php bin/latch db-check\n");
+        }
+        exit(1);
+    }
+
+    if (isset($opts['json'])) {
+        fwrite(STDOUT, json_encode(SqliteIntegrity::toJson($dbPath, $report), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    } else {
+        fwrite(STDOUT, SqliteIntegrity::formatHuman($report) . "\n");
+    }
+
+    exit($report['ok'] ? 0 : 1);
+}
+
+function run_restore(array $argv): void
+{
+    require_pdo();
+
+    $opts = parse_cli_options($argv);
+    $config = new Config(LATCH_ROOT . '/config');
+    $storagePath = (string) $config->get('paths.storage');
+    $sub = strtolower(trim((string) ($argv[2] ?? '')));
+
+    if ($sub === 'list') {
+        $backups = SiteRestore::listBackups($storagePath);
+        if (isset($opts['json'])) {
+            fwrite(STDOUT, json_encode(['backups' => $backups], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+            exit(0);
+        }
+
+        fwrite(STDOUT, $storagePath . "/backups/\n");
+        foreach ($backups as $backup) {
+            $contents = '[' . implode(', ', $backup['contents']) . ']';
+            fwrite(STDOUT, sprintf(
+                "  %s  %s  %s  %s\n",
+                $backup['name'],
+                $backup['mtime_iso'],
+                SiteRestore::formatBytes($backup['size_bytes']),
+                $contents,
+            ));
+        }
+        exit(0);
+    }
+
+    try {
+        $archive = SiteRestore::resolveArchive(
+            $storagePath,
+            isset($opts['latest']) ? '1' : null,
+            $opts['name'] ?? null,
+            $opts['archive'] ?? null,
+        );
+    } catch (\Throwable $e) {
+        fwrite(STDERR, $e->getMessage() . "\n");
+        fwrite(STDERR, "Usage: php bin/latch restore list | restore --latest [--with-config] [--force]\n");
+        exit(1);
+    }
+
+    $sourceRoot = realpath(LATCH_ROOT) ?: LATCH_ROOT;
+
+    try {
+        $result = SiteRestore::restore([
+            'storage_path' => $storagePath,
+            'source_root' => $sourceRoot,
+            'db_path' => (string) $config->get('database.path'),
+            'local_config_path' => LATCH_ROOT . '/config/local.php',
+            'archive' => $archive,
+            'with_config' => isset($opts['with-config']),
+            'force' => isset($opts['force']),
+            'dry_run' => isset($opts['dry-run']),
+        ]);
+    } catch (\Throwable $e) {
+        $code = (int) $e->getCode();
+        if ($code < 1 || $code > 255) {
+            $code = 1;
+        }
+        fwrite(STDERR, $e->getMessage() . "\n");
+        exit($code);
+    }
+
+    if (isset($opts['json'])) {
+        fwrite(STDOUT, json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    } else {
+        fwrite(STDOUT, $result['message'] . "\n");
+    }
+    exit(0);
+}
+
+function run_update(array $argv): void
+{
+    require_pdo();
+
+    $opts = parse_cli_options($argv);
+    $config = new Config(LATCH_ROOT . '/config');
+
+    $orchestrator = new UpdateOrchestrator(
+        $config,
+        $opts,
+        static fn (): array => collect_audit_issues($config),
+        static fn (Database $db): CronService => build_cron_service($db),
+    );
+
+    exit($orchestrator->run());
+}
+
+function run_doctor(array $argv): void
+{
+    $opts = parse_cli_options($argv);
+    $config = new Config(LATCH_ROOT . '/config');
+    $report = Doctor::run($config);
+
+    if (isset($opts['json'])) {
+        fwrite(STDOUT, json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    } else {
+        fwrite(STDOUT, Doctor::formatHuman($report) . "\n");
+    }
+
+    exit($report['ok'] ? 0 : 1);
+}
+
+function run_test(array $argv): void
+{
+    $opts = parse_cli_options($argv);
+    $suite = strtolower(trim((string) ($argv[2] ?? '')));
+
+    if ($suite === '--smoke' || isset($opts['smoke'])) {
+        run_test_smoke();
+        return;
+    }
+
+    if ($suite === '--security' || isset($opts['security'])) {
+        run_test_security();
+        return;
+    }
+
+    if ($suite !== '' && !str_starts_with($suite, '--')) {
+        fwrite(STDERR, "Unknown test suite: {$suite}\n");
+        fwrite(STDERR, "Usage: php bin/latch test [--smoke|--security]\n");
+        exit(1);
+    }
+
+    run_test_phpunit(isset($opts['filter']) ? (string) $opts['filter'] : null);
+}
+
+function run_test_phpunit(?string $filter = null): void
+{
+    $phpunit = LATCH_ROOT . '/vendor/bin/phpunit';
+    if (!is_file($phpunit)) {
+        fwrite(STDERR, "PHPUnit not found. Run: composer install --dev\n");
+        exit(1);
+    }
+
+    if (!extension_loaded('dom') || !extension_loaded('xml')) {
+        fwrite(STDERR, "PHPUnit needs php-xml (dom + xml extensions).\n");
+        fwrite(STDERR, "Fallback: php bin/latch test --smoke\n");
+        exit(1);
+    }
+
+    $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($phpunit)
+        . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist');
+    if ($filter !== null && $filter !== '') {
+        $cmd .= ' --filter ' . escapeshellarg($filter);
+    }
+
+    passthru($cmd, $code);
+    exit($code);
+}
+
+function run_test_smoke(): void
+{
+    fwrite(STDOUT, "Smoke gate: operator-critical checks\n\n");
+
+    $steps = [
+        ['OAuthScopes', LATCH_ROOT . '/tests/OAuthScopesTest.php'],
+        ['SqliteIntegrity', LATCH_ROOT . '/tests/SqliteIntegrityTest.php'],
+        ['SiteLock', LATCH_ROOT . '/tests/SiteLockTest.php'],
+        ['TopicRepositoryHome', LATCH_ROOT . '/tests/TopicRepositoryHomeTest.php'],
+        ['PluginSystem', LATCH_ROOT . '/tests/PluginSystemTest.php'],
+        ['SiteRestore', LATCH_ROOT . '/tests/SiteRestoreTest.php'],
+    ];
+
+    if (extension_loaded('dom') && extension_loaded('xml') && is_file(LATCH_ROOT . '/vendor/bin/phpunit')) {
+        foreach ($steps as [$label, $file]) {
+            fwrite(STDOUT, "==> PHPUnit {$label}\n");
+            $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(LATCH_ROOT . '/vendor/bin/phpunit')
+                . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist')
+                . ' ' . escapeshellarg($file);
+            passthru($cmd, $code);
+            if ($code !== 0) {
+                fwrite(STDERR, "Smoke failed at {$label}\n");
+                exit($code);
+            }
+        }
+    } else {
+        fwrite(STDOUT, "==> Built-in (install php-xml for full PHPUnit)\n");
+        require_pdo();
+        $tmp = sys_get_temp_dir() . '/latch-smoke-' . bin2hex(random_bytes(4)) . '.sqlite';
+        $pdo = new PDO('sqlite:' . $tmp);
+        $pdo->exec('CREATE TABLE t (id INTEGER PRIMARY KEY)');
+        $report = SqliteIntegrity::run($tmp);
+        @unlink($tmp);
+        if (!$report['ok']) {
+            fwrite(STDERR, "SqliteIntegrity smoke failed\n");
+            exit(1);
+        }
+        fwrite(STDOUT, "SqliteIntegrity: ok\n");
+    }
+
+    if (class_exists(PDO::class)) {
+        fwrite(STDOUT, "==> db-check\n");
+        $config = new Config(LATCH_ROOT . '/config');
+        $dbPath = (string) $config->get('database.path');
+        if (is_file($dbPath)) {
+            $report = SqliteIntegrity::run($dbPath);
+            fwrite(STDOUT, SqliteIntegrity::formatHuman($report) . "\n");
+            if (!$report['ok']) {
+                exit(1);
+            }
+        } else {
+            fwrite(STDOUT, "Skipped (no database — fresh tree)\n");
+        }
+    }
+
+    fwrite(STDOUT, "==> audit\n");
+    $config = new Config(LATCH_ROOT . '/config');
+    $issues = collect_audit_issues($config);
+    if ($issues !== []) {
+        fwrite(STDERR, 'audit: FAILED — ' . count($issues) . " issue(s)\n");
+        foreach ($issues as $issue) {
+            fwrite(STDERR, "  - {$issue}\n");
+        }
+        exit(1);
+    }
+    fwrite(STDOUT, "audit: OK\n\nSmoke gate passed.\n");
+    exit(0);
+}
+
+function run_test_security(): void
+{
+    fwrite(STDOUT, "Security gate\n\n");
+
+    $files = [
+        LATCH_ROOT . '/tests/Phase15LeftoversTest.php',
+        LATCH_ROOT . '/tests/SiteLockTest.php',
+        LATCH_ROOT . '/tests/OidcServiceTest.php',
+        LATCH_ROOT . '/tests/RequestHttpsTest.php',
+        LATCH_ROOT . '/tests/BoardAclTest.php',
+        LATCH_ROOT . '/tests/PluginAuditorTest.php',
+    ];
+
+    if (extension_loaded('dom') && extension_loaded('xml') && is_file(LATCH_ROOT . '/vendor/bin/phpunit')) {
+        foreach ($files as $file) {
+            if (!is_file($file)) {
+                continue;
+            }
+            fwrite(STDOUT, '==> ' . basename($file) . "\n");
+            $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(LATCH_ROOT . '/vendor/bin/phpunit')
+                . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist')
+                . ' ' . escapeshellarg($file);
+            passthru($cmd, $code);
+            if ($code !== 0) {
+                exit($code);
+            }
+        }
+    } else {
+        fwrite(STDOUT, "PHPUnit unavailable — running audit only\n");
+    }
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $issues = collect_audit_issues($config);
+    if ($issues !== []) {
+        fwrite(STDERR, 'audit: FAILED — ' . count($issues) . " issue(s)\n");
+        foreach ($issues as $issue) {
+            fwrite(STDERR, "  - {$issue}\n");
+        }
+        exit(1);
+    }
+
+    fwrite(STDOUT, "audit: OK\n\nSecurity gate passed.\n");
+    exit(0);
+}
+
+function run_backup(): void
+{
+    require_pdo();
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $storagePath = (string) $config->get('paths.storage');
+    $result = SiteMaintenance::createBackup(
+        $storagePath,
+        (string) $config->get('database.path'),
+        LATCH_ROOT . '/config/local.php',
+    );
+
+    if (!$result['ok']) {
+        fwrite(STDERR, $result['message'] . "\n");
+        exit(1);
+    }
+
+    fwrite(STDOUT, $result['message'] . "\n");
+}
+
+function run_cache_clear(): void
+{
+    require_pdo();
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $storagePath = (string) $config->get('paths.storage');
+    $cleared = SiteMaintenance::clearCaches(new Cache($storagePath), $storagePath);
+
+    fwrite(STDOUT, "Purged page cache entries: {$cleared['page_cache']}\n");
+    fwrite(STDOUT, "Cleared Twig compile files: {$cleared['twig_files']}\n");
+}
+
+function build_cron_service(Database $db): CronService
+{
+    $settings = new SettingRepository($db);
+    return new CronService(
+        $db,
+        $settings,
+        new PasswordResetRepository($db),
+        new EmailVerificationRepository($db),
+        new EmailChangeRepository($db),
+        new UserSessionRepository($db),
+        new UserRepository($db),
+        new NotificationRepository($db),
+        new RateLimiter($db),
+        new OAuthTokenRepository($db),
+        new ApiAuditLogRepository($db),
+        new ReputationService($db, new UserRepository($db), $settings),
+    );
+}
+
+/**
+ * @param array<string, int|bool> $stats
+ */
+function print_cron_stats(array $stats): void
+{
+    foreach ($stats as $key => $value) {
+        fwrite(STDOUT, sprintf("%s: %s\n", $key, (string) $value));
+    }
+}
+
+function run_cron(array $argv): void
+{
+    require_pdo();
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $storagePath = (string) $config->get('paths.storage');
+    if (SiteLock::isLocked($storagePath)) {
+        fwrite(STDOUT, "Skipped: site lock is enabled (php bin/latch lock off).\n");
+        exit(0);
+    }
+
+    $job = $argv[2] ?? '';
+    $opts = parse_cli_options($argv);
+    $config = new Config(LATCH_ROOT . '/config');
+    $db = new Database((string) $config->get('database.path'));
+    $cron = build_cron_service($db);
+
+    try {
+        match ($job) {
+            'hourly' => print_cron_stats($cron->runHourly()),
+            'daily' => print_cron_stats($cron->runDaily()),
+            'weekly' => print_cron_stats($cron->runWeekly(isset($opts['audit']))),
+            default => cron_usage_and_exit($job),
+        };
+    } catch (\Throwable $e) {
+        fwrite(STDERR, 'Cron failed: ' . $e->getMessage() . "\n");
+        exit(1);
+    }
+}
+
+function cron_usage_and_exit(string $job): void
+{
+    if ($job !== '') {
+        fwrite(STDERR, "Unknown cron job: {$job}\n");
+    }
+
+    fwrite(STDERR, "Usage: php bin/latch cron hourly|daily|weekly [--audit]\n");
+    exit(1);
+}
+
+function run_lock(array $argv): void
+{
+    $action = strtolower(trim((string) ($argv[2] ?? 'status')));
+    $opts = parse_cli_options($argv);
+    $config = new Config(LATCH_ROOT . '/config');
+    $storagePath = (string) $config->get('paths.storage');
+
+    match ($action) {
+        'on', 'enable' => run_lock_on($storagePath, $opts),
+        'off', 'disable' => run_lock_off($storagePath),
+        'status' => run_lock_status($storagePath, $opts),
+        default => lock_usage_and_exit($action),
+    };
+}
+
+/**
+ * @param array<string, string> $opts
+ */
+function run_lock_on(string $storagePath, array $opts): void
+{
+    if (SiteLock::isLocked($storagePath)) {
+        fwrite(STDERR, "Site lock is already enabled.\n");
+        exit(1);
+    }
+
+    $message = trim((string) ($opts['message'] ?? 'Site maintenance in progress.'));
+    $result = SiteLock::enable($storagePath, $message, 'cli');
+
+    fwrite(STDOUT, "Site lock enabled.\n");
+    fwrite(STDOUT, "Unlock token: {$result['unlock_token']}\n");
+    fwrite(STDOUT, "Unlock URL: /maintenance/unlock\n");
+    fwrite(STDOUT, 'Or run: ' . SiteLock::cliUnlockHint() . "\n");
+}
+
+function run_lock_off(string $storagePath): void
+{
+    $result = SiteLock::disable($storagePath);
+
+    if ($result === 'not_locked') {
+        fwrite(STDOUT, "Site lock is not enabled.\n");
+        exit(0);
+    }
+
+    if ($result === 'denied') {
+        fwrite(STDERR, "Could not remove site lock (permission denied on storage/).\n");
+        fwrite(STDERR, "The lock file is usually owned by the web server user.\n");
+        fwrite(STDERR, 'Run: ' . SiteLock::cliUnlockHint() . "\n");
+        fwrite(STDERR, "Or POST your unlock token at /maintenance/unlock (no shell access needed).\n");
+        exit(1);
+    }
+
+    fwrite(STDOUT, "Site lock disabled — site is online.\n");
+}
+
+/**
+ * @param array<string, string> $opts
+ */
+function run_lock_status(string $storagePath, array $opts = []): void
+{
+    $state = SiteLock::read($storagePath);
+    if ($state === null) {
+        fwrite(STDOUT, "Site lock: off\n");
+        exit(0);
+    }
+
+    fwrite(STDOUT, "Site lock: on\n");
+    fwrite(STDOUT, 'Enabled at: ' . $state['enabled_at'] . "\n");
+    if ($state['enabled_by'] !== null) {
+        fwrite(STDOUT, 'Enabled by: ' . $state['enabled_by'] . "\n");
+    }
+    fwrite(STDOUT, 'Message: ' . $state['message'] . "\n");
+
+    if (isset($opts['show-token'])) {
+        fwrite(STDOUT, 'Unlock token: ' . $state['unlock_token'] . "\n");
+    }
+}
+
+function lock_usage_and_exit(string $action): void
+{
+    if ($action !== '') {
+        fwrite(STDERR, "Unknown lock action: {$action}\n");
+    }
+
+    fwrite(STDERR, "Usage: php bin/latch lock on|off|status [--message=\"Updating…\"] [--show-token]\n");
+    exit(1);
+}
+
+function run_maintenance(array $argv): void
+{
+    require_pdo();
+
+    $opts = parse_cli_options($argv);
+    $config = new Config(LATCH_ROOT . '/config');
+    $db = new Database((string) $config->get('database.path'));
+    $storagePath = (string) $config->get('paths.storage');
+
+    fwrite(STDOUT, "Running scheduled DB maintenance (cron daily)…\n");
+    print_cron_stats(build_cron_service($db)->runDaily());
+
+    if (isset($opts['clear-cache'])) {
+        $cleared = SiteMaintenance::clearCaches(new Cache($storagePath), $storagePath);
+        fwrite(STDOUT, "Purged page cache entries: {$cleared['page_cache']}\n");
+        fwrite(STDOUT, "Cleared Twig compile files: {$cleared['twig_files']}\n");
+    }
+
+    if (isset($opts['vacuum'])) {
+        $db->pdo()->exec('VACUUM');
+        fwrite(STDOUT, "SQLite VACUUM complete.\n");
+    }
+}
+
+function run_benchmark(array $argv): void
+{
+    $opts = parse_cli_options($argv);
+    $config = new Config(LATCH_ROOT . '/config');
+    $baseUrl = rtrim((string) ($opts['url'] ?? $config->get('site.url', 'http://localhost')), '/');
+    $iterations = max(1, (int) ($opts['iterations'] ?? 10));
+
+    $paths = ['/', '/health'];
+    $boards = new BoardRepository(new Database((string) $config->get('database.path')));
+    foreach ($boards->all() as $board) {
+        $paths[] = '/board/' . $board['slug'];
+        break;
+    }
+
+    fwrite(STDOUT, "Benchmarking {$baseUrl} ({$iterations} iterations per path)\n\n");
+
+    foreach ($paths as $path) {
+        $times = [];
+        for ($i = 0; $i < $iterations; $i++) {
+            $start = microtime(true);
+            $ch = curl_init($baseUrl . $path);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_NOBODY => false,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_FOLLOWLOCATION => false,
+            ]);
+            curl_exec($ch);
+            $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            $elapsed = (microtime(true) - $start) * 1000;
+            if ($httpCode >= 200 && $httpCode < 400) {
+                $times[] = $elapsed;
+            }
+        }
+
+        if ($times === []) {
+            fwrite(STDOUT, sprintf("%-20s  no successful responses\n", $path));
+            continue;
+        }
+
+        sort($times);
+        $p50 = $times[(int) floor(count($times) * 0.5)];
+        $p95 = $times[(int) floor(count($times) * 0.95)];
+
+        fwrite(STDOUT, sprintf("%-20s  p50=%.1fms  p95=%.1fms  n=%d\n", $path, $p50, $p95, count($times)));
+    }
+}
+
+function run_install(array $argv): void
+{
+    require_pdo();
+
+    $opts = parse_cli_options($argv);
+    $configDir = LATCH_ROOT . '/config';
+    $localPath = $configDir . '/local.php';
+    $hasLocal = is_file($localPath);
+    $config = new Config($configDir);
+    $hasDb = $config->isInstalled();
+
+    if ($hasDb) {
+        $db = new Database((string) $config->get('database.path'));
+        $existingUsers = (new UserRepository($db))->all();
+        if ($existingUsers !== []) {
+            fwrite(STDERR, "Already installed (users exist). Use migrate for schema updates.\n");
+            exit(1);
+        }
+
+        fwrite(STDOUT, "Seeding install (database exists but has no users yet).\n");
+    }
+
+    if ($hasLocal) {
+        if (!$hasDb) {
+            fwrite(STDOUT, "Resuming install (config/local.php exists, database not created yet).\n");
+        }
+        $siteName = (string) $config->get('site.name', 'Latch');
+        $siteUrl = (string) $config->get('site.url', 'http://localhost');
+    } else {
+        $siteUrl = (string) ($opts['url'] ?? prompt('Site URL', 'http://localhost'));
+        $siteName = (string) ($opts['name'] ?? prompt('Site name', 'Latch'));
+
+        $local = [
+            'site' => [
+                'name' => $siteName,
+                'url' => rtrim($siteUrl, '/'),
+            ],
+        ];
+
+        write_local_config($localPath, $local);
+        fwrite(STDOUT, "Wrote {$localPath}\n");
+    }
+
+    $adminUser = (string) ($opts['admin-user'] ?? prompt('Admin username', 'admin'));
+    $adminEmail = (string) ($opts['admin-email'] ?? prompt('Admin email', 'admin@localhost'));
+    $adminPass = (string) ($opts['admin-pass'] ?? prompt_password('Admin password (min 8 chars)'));
+
+    if (strlen($adminPass) < 8) {
+        fwrite(STDERR, "Password must be at least 8 characters.\n");
+        exit(1);
+    }
+
+    run_migrate();
+
+    $config = new Config($configDir);
+    $db = new Database((string) $config->get('database.path'));
+    $users = new UserRepository($db);
+    $boards = new BoardRepository($db);
+    $settings = new SettingRepository($db);
+
+    if ($users->findByUsername($adminUser) === null) {
+        $admin = $users->create($adminUser, $adminEmail, $adminPass, 'admin');
+        $users->markEmailVerified((int) $admin['id']);
+        fwrite(STDOUT, "Admin user created: {$adminUser}\n");
+    }
+
+    $settings->set('site_name', $siteName);
+    $settings->set('site_tagline', 'Fast, secure discussions');
+    $settings->setBool('members_only', false);
+    $settings->setBool('allow_registration', true);
+    $settings->setBool('cache_enabled', true);
+    $settings->set('cache_ttl_seconds', '120');
+    $settings->set('max_tags_per_topic', '5');
+
+    if (!isset($opts['no-seed-board']) && $boards->all() === []) {
+        $board = $boards->create('General', 'Welcome to your new forum.');
+        fwrite(STDOUT, "Default board created: {$board['name']} (/board/{$board['slug']})\n");
+    }
+
+    fwrite(STDOUT, "\nInstall complete. Point your web server at:\n  " . LATCH_ROOT . "/public\n");
+    fwrite(STDOUT, "\nSchedule maintenance (required for production):\n");
+    fwrite(STDOUT, "  bash " . dirname(LATCH_ROOT) . "/scripts/install-cron.sh\n");
+    fwrite(STDOUT, "  Or copy deploy/cron/latch.cron.example into your system crontab.\n");
+}
+
+/**
+ * @return array<string, string>
+ */
+function parse_cli_options(array $argv): array
+{
+    $opts = [];
+
+    foreach (array_slice($argv, 2) as $arg) {
+        if (!str_starts_with($arg, '--')) {
+            continue;
+        }
+
+        $arg = substr($arg, 2);
+        if (str_contains($arg, '=')) {
+            [$key, $value] = explode('=', $arg, 2);
+            $opts[$key] = $value;
+        } else {
+            $opts[$arg] = '1';
+        }
+    }
+
+    return $opts;
+}
+
+function prompt(string $label, string $default): string
+{
+    if (!function_exists('readline') || !stream_isatty(STDIN)) {
+        return $default;
+    }
+
+    $value = readline("{$label} [{$default}]: ");
+
+    return trim($value) !== '' ? trim($value) : $default;
+}
+
+function prompt_password(string $label): string
+{
+    if (!stream_isatty(STDIN)) {
+        fwrite(STDERR, "{$label} required via --admin-pass when not interactive.\n");
+        exit(1);
+    }
+
+    fwrite(STDOUT, "{$label}: ");
+    system('stty -echo');
+    $password = trim((string) fgets(STDIN));
+    system('stty echo');
+    fwrite(STDOUT, "\n");
+
+    return $password;
+}
+
+function run_test_rss(): void
+{
+    require_pdo();
+
+    $ranPhpunit = false;
+    $phpunit = LATCH_ROOT . '/vendor/bin/phpunit';
+    if (is_file($phpunit) && extension_loaded('dom') && extension_loaded('xml')) {
+        $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($phpunit)
+            . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist')
+            . ' ' . escapeshellarg(LATCH_ROOT . '/tests/RssFeedTest.php')
+            . ' ' . escapeshellarg(LATCH_ROOT . '/tests/RssRepositoryTest.php');
+        passthru($cmd, $code);
+        if ($code !== 0) {
+            fwrite(STDERR, "RSS PHPUnit tests failed.\n");
+            exit($code);
+        }
+        fwrite(STDOUT, "RSS PHPUnit tests passed.\n");
+        $ranPhpunit = true;
+    }
+
+    if (!$ranPhpunit) {
+        fwrite(STDOUT, "Running built-in RSS checks (install php-xml for full PHPUnit suite).\n");
+        rss_run_builtin_tests();
+    }
+
+    $config = new Config(LATCH_ROOT . '/config');
+    if (!$config->isInstalled()) {
+        fwrite(STDERR, "Database not installed — skipping live feed validation.\n");
+        exit(1);
+    }
+
+    rss_run_live_validation($config);
+}
+
+function latch_db_writable_for_cli(string $dbPath): bool
+{
+    if (is_writable($dbPath)) {
+        return true;
+    }
+
+    $dir = dirname($dbPath);
+
+    return is_dir($dir) && is_writable($dir);
+}
+
+function rss_run_live_validation(Config $config): void
+{
+    $dbPath = (string) $config->get('database.path');
+    if (!latch_db_writable_for_cli($dbPath)) {
+        fwrite(STDOUT, "Database not writable for this user — validating feeds via HTTP.\n");
+        rss_validate_live_feeds_via_http($config);
+
+        return;
+    }
+
+    try {
+        rss_validate_live_feeds_from_db($config, Database::openReadOnly($dbPath));
+    } catch (Throwable $e) {
+        fwrite(STDOUT, 'Live DB validation skipped (' . $e->getMessage() . ") — validating feeds via HTTP.\n");
+        rss_validate_live_feeds_via_http($config);
+    }
+}
+
+function rss_validate_live_feeds_from_db(Config $config, Database $db): void
+{
+    $rss = new RssRepository($db, new PostFormatter());
+    $settings = new SettingRepository($db);
+    $boards = new BoardRepository($db);
+    $topicTags = new TopicTags();
+    $tags = new TagRepository($db, $topicTags);
+
+    $siteUrl = rtrim((string) $config->get('site.url', 'http://localhost'), '/');
+    $siteName = $settings->get('site_name', (string) $config->get('site.name', 'Latch'));
+    $membersOnly = $settings->getBool('members_only');
+
+    if ($membersOnly) {
+        fwrite(STDOUT, "members_only is enabled — skipping live guest feed validation.\n");
+
+        return;
+    }
+
+    $siteTopics = $rss->recentTopicsForSite(50, false, false);
+    $siteFeed = new RssFeed(
+        $siteName . ' — All boards',
+        $siteUrl . '/',
+        'Recent topics across ' . $siteName,
+        $siteUrl . '/feed.xml',
+    );
+    foreach ($siteTopics as $topic) {
+        $topicTagsMap = $tags->forTopics([(int) $topic['id']]);
+        $tagNames = array_map(
+            static fn (array $tag): string => (string) $tag['name'],
+            $topicTagsMap[(int) $topic['id']] ?? [],
+        );
+        $description = $rss->plainExcerpt((string) ($topic['first_post_body'] ?? ''));
+        if ($tagNames !== []) {
+            $description .= "\n\nTags: " . implode(', ', $tagNames);
+        }
+        $topicUrl = $siteUrl . '/topic/' . $topic['id'];
+        $siteFeed->addItem(
+            (string) $topic['title'],
+            $topicUrl,
+            $topicUrl,
+            (string) $topic['last_post_at'],
+            $description,
+            (string) $topic['author_name'],
+            $tagNames,
+        );
+    }
+    rss_assert_valid_xml($siteFeed->render(), '/feed.xml', count($siteTopics));
+
+    foreach ($boards->all() as $board) {
+        if (!empty($board['requires_login_to_read'])) {
+            continue;
+        }
+
+        $boardTopics = $rss->recentTopicsForBoard((int) $board['id'], 50);
+        $boardFeed = new RssFeed(
+            (string) $board['name'] . ' — ' . $siteName,
+            $siteUrl . '/board/' . $board['slug'],
+            (string) ($board['description'] !== '' ? $board['description'] : 'Topics in ' . $board['name']),
+            $siteUrl . '/board/' . $board['slug'] . '/feed.xml',
+        );
+        foreach ($boardTopics as $topic) {
+            $topicUrl = $siteUrl . '/topic/' . $topic['id'];
+            $boardFeed->addItem(
+                (string) $topic['title'],
+                $topicUrl,
+                $topicUrl,
+                (string) $topic['last_post_at'],
+                $rss->plainExcerpt((string) ($topic['first_post_body'] ?? '')),
+                (string) $topic['author_name'],
+            );
+        }
+        rss_assert_valid_xml(
+            $boardFeed->render(),
+            '/board/' . $board['slug'] . '/feed.xml',
+            count($boardTopics),
+        );
+    }
+
+    fwrite(STDOUT, "Live RSS feed XML validation passed.\n");
+}
+
+function run_post_announcements(array $argv): void
+{
+    require_pdo();
+
+    $opts = parse_cli_options($argv);
+    $topicId = (int) ($opts['topic'] ?? 0);
+    $username = trim((string) ($opts['user'] ?? ''));
+    $file = (string) ($opts['file'] ?? (LATCH_ROOT . '/data/changelog-announcements.json'));
+    $dryRun = isset($opts['dry-run']);
+
+    if ($topicId <= 0 || $username === '') {
+        fwrite(STDERR, "Usage: php bin/latch post-announcements --topic=ID --user=NAME [--file=PATH] [--dry-run]\n");
+        exit(1);
+    }
+
+    if (!is_file($file)) {
+        fwrite(STDERR, "Announcements file not found: {$file}\n");
+        exit(1);
+    }
+
+    $raw = file_get_contents($file);
+    $items = json_decode(is_string($raw) ? $raw : '', true);
+    if (!is_array($items)) {
+        fwrite(STDERR, "Invalid JSON in {$file}\n");
+        exit(1);
+    }
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $db = new Database((string) $config->get('database.path'));
+    $users = new UserRepository($db);
+    $posts = new PostRepository($db);
+    $topics = new TopicRepository($db, $posts);
+    $search = build_search_repository($db);
+
+    $user = $users->findByUsername($username);
+    if ($user === null) {
+        fwrite(STDERR, "User not found: {$username}\n");
+        exit(1);
+    }
+
+    $topic = $topics->findById($topicId);
+    if ($topic === null) {
+        fwrite(STDERR, "Topic not found: {$topicId}\n");
+        exit(1);
+    }
+
+    $existingMarkers = [];
+    $stmt = $db->pdo()->prepare('SELECT body FROM posts WHERE topic_id = :topic_id AND deleted_at IS NULL');
+    $stmt->execute(['topic_id' => $topicId]);
+    foreach ($stmt->fetchAll() as $row) {
+        if (preg_match('/<!-- latch-announcement:([a-z0-9-]+) -->/', (string) $row['body'], $m)) {
+            $existingMarkers[$m[1]] = true;
+        }
+    }
+
+    $posted = 0;
+    $skipped = 0;
+    $baseTime = time();
+
+    foreach ($items as $i => $item) {
+        if (!is_array($item) || empty($item['body'])) {
+            fwrite(STDERR, "Skipping invalid item at index {$i}\n");
+            continue;
+        }
+
+        $id = (string) ($item['id'] ?? 'item-' . $i);
+        $marker = '<!-- latch-announcement:' . $id . ' -->';
+        if (isset($existingMarkers[$id])) {
+            $skipped++;
+            fwrite(STDOUT, "Skip (exists): {$id}\n");
+            continue;
+        }
+
+        $body = $marker . "\n\n" . trim((string) $item['body']);
+
+        if ($dryRun) {
+            fwrite(STDOUT, "Would post [{$id}] " . substr($body, 0, 60) . "…\n");
+            $posted++;
+            continue;
+        }
+
+        $createdAt = gmdate('c', $baseTime + $i);
+        $posts->create($topicId, (int) $user['id'], $body, $createdAt);
+        $posted++;
+        fwrite(STDOUT, "Posted: {$id}\n");
+    }
+
+    if ($dryRun) {
+        fwrite(STDOUT, "Dry run — {$posted} post(s) would be created, {$skipped} skipped.\n");
+        return;
+    }
+
+    if ($posted === 0) {
+        fwrite(STDOUT, "Nothing new to post ({$skipped} already present).\n");
+        return;
+    }
+
+    $topics->touchLastPost($topicId);
+    if ($search->isEnabled()) {
+        $search->indexTopic($topicId);
+    }
+
+    $storagePath = (string) $config->get('paths.storage');
+    $cache = new Cache($storagePath);
+    $cache->invalidateTag(Cache::tagTopic($topicId));
+    $cache->invalidateTag(Cache::tagBoard((int) $topic['board_id']));
+    $cache->invalidateTag(Cache::tagUser((int) $user['id']));
+    $cache->invalidateTag(Cache::tagSite());
+
+    fwrite(STDOUT, "Done — {$posted} post(s) created, {$skipped} skipped.\n");
+}
+
+function run_purge_users(array $argv): void
+{
+    require_pdo();
+
+    $opts = parse_cli_options($argv);
+    $idsRaw = trim((string) ($opts['ids'] ?? ''));
+    $dryRun = isset($opts['dry-run']);
+
+    if ($idsRaw === '') {
+        fwrite(STDERR, "Usage: php bin/latch purge-users --ids=4,5,6 [--dry-run]\n");
+        exit(1);
+    }
+
+    $ids = array_values(array_filter(array_map('intval', explode(',', $idsRaw)), static fn (int $id): bool => $id > 0));
+    if ($ids === []) {
+        fwrite(STDERR, "No valid user IDs provided.\n");
+        exit(1);
+    }
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $db = new Database((string) $config->get('database.path'));
+    $input = new Latch\Core\InputValidator($config);
+    $users = new Latch\Models\UserRepository($db, $input);
+
+    foreach ($ids as $id) {
+        if ($dryRun) {
+            fwrite(STDOUT, "Would purge user #{$id}\n");
+            continue;
+        }
+
+        try {
+            $users->purge($id);
+            fwrite(STDOUT, "Purged user #{$id}\n");
+        } catch (Throwable $e) {
+            fwrite(STDERR, "Skip user #{$id}: {$e->getMessage()}\n");
+        }
+    }
+}
+
+function run_test_spam(): void
+{
+    $phpunit = LATCH_ROOT . '/vendor/bin/phpunit';
+    if (!is_file($phpunit)) {
+        fwrite(STDERR, "PHPUnit not found. Run composer install.\n");
+        exit(1);
+    }
+
+    $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($phpunit)
+        . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist')
+        . ' ' . escapeshellarg(LATCH_ROOT . '/tests/SpamGuardTest.php');
+    passthru($cmd, $code);
+    if ($code !== 0) {
+        fwrite(STDERR, "Spam control PHPUnit tests failed.\n");
+        exit($code);
+    }
+
+    fwrite(STDOUT, "Spam control PHPUnit tests passed.\n");
+}
+
+function run_test_webhooks(): void
+{
+    $phpunit = LATCH_ROOT . '/vendor/bin/phpunit';
+    if (is_file($phpunit) && extension_loaded('dom') && extension_loaded('xml')) {
+        $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($phpunit)
+            . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist')
+            . ' ' . escapeshellarg(LATCH_ROOT . '/tests/WebhookRepositoryTest.php');
+        passthru($cmd, $code);
+        if ($code !== 0) {
+            fwrite(STDERR, "Webhook PHPUnit tests failed.\n");
+            exit($code);
+        }
+
+        fwrite(STDOUT, "Webhook PHPUnit tests passed.\n");
+
+        return;
+    }
+
+    webhook_run_builtin_tests();
+}
+
+function webhook_run_builtin_tests(): void
+{
+    $path = sys_get_temp_dir() . '/latch-webhook-cli-' . bin2hex(random_bytes(4)) . '.sqlite';
+    $db = new Database($path);
+    $db->pdo()->exec(
+        'CREATE TABLE webhooks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT NOT NULL,
+            secret TEXT NOT NULL,
+            events TEXT NOT NULL DEFAULT "[]",
+            description TEXT,
+            enabled INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL,
+            last_delivery_at TEXT,
+            last_status INTEGER
+         );
+         CREATE TABLE webhook_deliveries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            webhook_id INTEGER NOT NULL,
+            event TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            response_code INTEGER,
+            error TEXT,
+            delivered_at TEXT NOT NULL,
+            duration_ms INTEGER
+         );'
+    );
+
+    $webhooks = new WebhookRepository($db);
+    $id = $webhooks->create(
+        'https://example.com/hook',
+        'secret',
+        [WebhookEvent::POST_CREATED],
+        'CLI test',
+    );
+
+    if ($id <= 0) {
+        @unlink($path);
+        fwrite(STDERR, "Webhook create failed.\n");
+        exit(1);
+    }
+
+    $matched = $webhooks->listEnabledForEvent(WebhookEvent::POST_CREATED);
+    if (count($matched) !== 1 || ($matched[0]['url'] ?? '') !== 'https://example.com/hook') {
+        @unlink($path);
+        fwrite(STDERR, "listEnabledForEvent check failed.\n");
+        exit(1);
+    }
+
+    $webhooks->setEnabled($id, false);
+    if ($webhooks->listEnabledForEvent(WebhookEvent::POST_CREATED) !== []) {
+        @unlink($path);
+        fwrite(STDERR, "setEnabled check failed.\n");
+        exit(1);
+    }
+
+    $payload = '{"event":"post.created","data":{}}';
+    $webhooks->recordDelivery($id, WebhookEvent::POST_CREATED, $payload, 204, null, 12);
+    $row = $webhooks->findById($id);
+    if ($row === null || (int) ($row['last_status'] ?? 0) !== 204) {
+        @unlink($path);
+        fwrite(STDERR, "recordDelivery check failed.\n");
+        exit(1);
+    }
+
+    $secret = 'test-secret';
+    $body = '{"event":"user.registered","sent_at":"2026-07-03T00:00:00+00:00","data":{"user_id":1}}';
+    $expected = 'sha256=' . hash_hmac('sha256', $body, $secret);
+    if ($expected !== 'sha256=' . hash_hmac('sha256', $body, $secret)) {
+        @unlink($path);
+        fwrite(STDERR, "HMAC signature check failed.\n");
+        exit(1);
+    }
+
+    @unlink($path);
+    fwrite(STDOUT, "Built-in webhook checks passed.\n");
+}
+
+function run_test_profiles(): void
+{
+    require_pdo();
+
+    $ranPhpunit = false;
+    $phpunit = LATCH_ROOT . '/vendor/bin/phpunit';
+    if (is_file($phpunit) && extension_loaded('dom') && extension_loaded('xml')) {
+        $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($phpunit)
+            . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist')
+            . ' ' . escapeshellarg(LATCH_ROOT . '/tests/UserProfileTest.php');
+        passthru($cmd, $code);
+        if ($code !== 0) {
+            fwrite(STDERR, "Public profile PHPUnit tests failed.\n");
+            exit($code);
+        }
+        fwrite(STDOUT, "Public profile PHPUnit tests passed.\n");
+        $ranPhpunit = true;
+    }
+
+    if (!$ranPhpunit) {
+        fwrite(STDOUT, "Running built-in public profile checks (install php-xml for full PHPUnit suite).\n");
+        profile_run_builtin_tests();
+    }
+}
+
+function profile_run_builtin_tests(): void
+{
+    $path = sys_get_temp_dir() . '/latch-profile-cli-' . bin2hex(random_bytes(4)) . '.sqlite';
+    $db = new Database($path);
+    $db->pdo()->exec(
+        'CREATE TABLE boards (
+            id INTEGER PRIMARY KEY, slug TEXT, name TEXT, requires_login_to_read INTEGER DEFAULT 0,
+            acl_read TEXT NOT NULL DEFAULT "guest", acl_topic TEXT NOT NULL DEFAULT "member",
+            acl_reply TEXT NOT NULL DEFAULT "member"
+         );
+         CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, email TEXT, bio TEXT, role TEXT DEFAULT "member", created_at TEXT);
+         CREATE TABLE topics (id INTEGER PRIMARY KEY, board_id INTEGER, user_id INTEGER, title TEXT, slug TEXT, deleted_at TEXT, last_post_at TEXT);
+         CREATE TABLE posts (
+            id INTEGER PRIMARY KEY, topic_id INTEGER, user_id INTEGER, body TEXT,
+            created_at TEXT, deleted_at TEXT, quarantined_at TEXT, approval_status TEXT NOT NULL DEFAULT "approved"
+         );
+         INSERT INTO boards (id, slug, name, requires_login_to_read, acl_read) VALUES
+            (1, "news", "News", 0, "guest"), (2, "staff", "Staff", 1, "member");
+         INSERT INTO users (id, username, email, created_at, role) VALUES
+            (1, "yeok", "yeok@test", "2026-01-01T00:00:00+00:00", "admin"),
+            (2, "deleted_2", "deleted_2@deleted.local", "2026-01-02T00:00:00+00:00", "member");
+         INSERT INTO topics (id, board_id, user_id, title, slug, last_post_at) VALUES
+            (1, 1, 1, "Public topic", "public-topic", "2026-06-29T10:00:00+00:00"),
+            (2, 2, 1, "Staff topic", "staff-topic", "2026-06-29T11:00:00+00:00");
+         INSERT INTO posts (id, topic_id, user_id, body, created_at, quarantined_at) VALUES
+            (1, 1, 1, "Hello world", "2026-06-29T10:00:00+00:00", NULL),
+            (2, 2, 1, "Staff only post", "2026-06-29T11:00:00+00:00", NULL),
+            (3, 1, 1, "Quarantined reply", "2026-06-29T12:00:00+00:00", "2026-06-29T12:05:00+00:00");'
+    );
+
+    $users = new UserRepository($db);
+    $posts = new PostRepository($db);
+    $active = $users->findById(1);
+    $deleted = $users->findById(2);
+
+    if ($active === null || $deleted === null || $users->isAnonymised($active) || !$users->isAnonymised($deleted)) {
+        @unlink($path);
+        fwrite(STDERR, "isAnonymised check failed.\n");
+        exit(1);
+    }
+
+    $guestStats = $users->profileStats(1, false, false);
+    if ($guestStats['post_count'] !== 1 || $guestStats['topic_count'] !== 1) {
+        @unlink($path);
+        fwrite(STDERR, "Guest profileStats check failed.\n");
+        exit(1);
+    }
+
+    $guestPosts = $posts->recentPublicByUser(1, 10, false, false);
+    if (count($guestPosts) !== 1 || ($guestPosts[0]['body'] ?? '') !== 'Hello world') {
+        @unlink($path);
+        fwrite(STDERR, "Guest recentPublicByUser check failed.\n");
+        exit(1);
+    }
+
+    @unlink($path);
+    fwrite(STDOUT, "Built-in public profile checks passed.\n");
+}
+
+function rss_run_builtin_tests(): void
+{
+    if (RssFeed::escape('<a>&"\'') !== '&lt;a&gt;&amp;&quot;&apos;') {
+        fwrite(STDERR, "RssFeed::escape failed.\n");
+        exit(1);
+    }
+
+    $feed = new RssFeed('T', 'https://example.test/', 'D', 'https://example.test/feed.xml');
+    $feed->addItem('Item', 'https://example.test/t/1', 'https://example.test/t/1', '2026-06-29T10:00:00+00:00', 'Body');
+    $xml = $feed->render();
+
+    if (!str_starts_with($xml, '<?xml') || !str_contains($xml, '<rss version="2.0"')) {
+        fwrite(STDERR, "RSS render structure check failed.\n");
+        exit(1);
+    }
+
+    if (substr_count($xml, '<item>') !== 1) {
+        fwrite(STDERR, "RSS item count check failed.\n");
+        exit(1);
+    }
+
+    $path = sys_get_temp_dir() . '/latch-rss-cli-' . bin2hex(random_bytes(4)) . '.sqlite';
+    $db = new Database($path);
+    $db->pdo()->exec(
+        'CREATE TABLE boards (id INTEGER PRIMARY KEY, slug TEXT, name TEXT, description TEXT DEFAULT "", requires_login_to_read INTEGER DEFAULT 0);
+         CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, email TEXT, avatar_url TEXT);
+         CREATE TABLE topics (id INTEGER PRIMARY KEY, board_id INTEGER, user_id INTEGER, title TEXT, slug TEXT, deleted_at TEXT, last_post_at TEXT);
+         CREATE TABLE posts (id INTEGER PRIMARY KEY, topic_id INTEGER, user_id INTEGER, body TEXT, created_at TEXT, deleted_at TEXT, quarantined_at TEXT);
+         INSERT INTO boards (id, slug, name) VALUES (1, "news", "News");
+         INSERT INTO users (id, username, email) VALUES (1, "tester", "t@test");
+         INSERT INTO topics (id, board_id, user_id, title, slug, last_post_at) VALUES (1, 1, 1, "Hello", "hello", "2026-06-29T10:00:00+00:00");
+         INSERT INTO posts (id, topic_id, user_id, body, created_at) VALUES (1, 1, 1, "Post body", "2026-06-29T10:00:00+00:00");'
+    );
+    $rss = new RssRepository($db, new PostFormatter());
+    if (count($rss->recentTopicsForSite(10, false, false)) !== 1) {
+        @unlink($path);
+        fwrite(STDERR, "RssRepository site query failed.\n");
+        exit(1);
+    }
+    @unlink($path);
+
+    fwrite(STDOUT, "Built-in RSS checks passed.\n");
+}
+
+function rss_assert_valid_xml(string $xml, string $label, ?int $expectedItems = null): void
+{
+    if (extension_loaded('dom')) {
+        $doc = new DOMDocument();
+        if (!$doc->loadXML($xml)) {
+            fwrite(STDERR, "Invalid XML for {$label}\n");
+            exit(1);
+        }
+
+        $items = $doc->getElementsByTagName('item')->length;
+    } else {
+        if (!str_starts_with(trim($xml), '<?xml') || !str_contains($xml, '<rss version="2.0"')) {
+            fwrite(STDERR, "Invalid RSS structure for {$label}\n");
+            exit(1);
+        }
+
+        $items = substr_count($xml, '<item>');
+    }
+
+    if ($expectedItems !== null && $items !== $expectedItems) {
+        fwrite(STDERR, "Expected {$expectedItems} item(s) in {$label}, got {$items}\n");
+        exit(1);
+    }
+
+    fwrite(STDOUT, "  ✓ {$label} — {$items} item(s)\n");
+}
+
+function rss_validate_live_feeds_via_http(Config $config): void
+{
+    $siteUrl = rtrim((string) $config->get('site.url', 'http://localhost'), '/');
+    $feedUrl = $siteUrl . '/feed.xml';
+
+    $context = stream_context_create([
+        'http' => [
+            'timeout' => 15,
+            'ignore_errors' => true,
+            'header' => "User-Agent: Latch-CLI-RSS-Test/1.0\r\n",
+        ],
+    ]);
+
+    $xml = @file_get_contents($feedUrl, false, $context);
+    if (!is_string($xml) || $xml === '') {
+        fwrite(STDERR, "Could not fetch {$feedUrl}\n");
+        exit(1);
+    }
+
+    rss_assert_valid_xml($xml, '/feed.xml');
+    fwrite(STDOUT, "Live RSS feed HTTP validation passed.\n");
+}
+
+function plugin_auditor_from_config(Config $config): \Latch\Core\Plugins\PluginAuditor
+{
+    return new \Latch\Core\Plugins\PluginAuditor(
+        LATCH_ROOT,
+        (string) $config->get('paths.plugins'),
+        (string) $config->get('paths.storage'),
+    );
+}
+
+function plugin_find_manifest(Config $config, string $slug): ?\Latch\Core\Plugins\PluginManifest
+{
+    foreach (\Latch\Core\Plugins\PluginRegistry::discoverInDirectory((string) $config->get('paths.plugins')) as $manifest) {
+        if ($manifest->slug === $slug) {
+            return $manifest;
+        }
+    }
+
+    return null;
+}
+
+function latch_cli_database(Config $config): Database
+{
+    try {
+        return new Database((string) $config->get('database.path'));
+    } catch (RuntimeException $e) {
+        $msg = strtolower($e->getMessage());
+        if (str_contains($msg, 'read-only') || str_contains($msg, 'readonly')) {
+            fwrite(STDERR, $e->getMessage() . "\n");
+            fwrite(STDERR, "Hint: the SQLite file is usually owned by the web server user. Try:\n");
+            fwrite(STDERR, "  sudo -u apache php bin/latch ...\n");
+            exit(1);
+        }
+
+        throw $e;
+    }
+}
+
+function emit_plugin_audit_report(\Latch\Core\Plugins\PluginAuditReport $report, bool $asJson): void
+{
+    if ($asJson) {
+        fwrite(STDOUT, json_encode($report->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    } else {
+        fwrite(STDOUT, $report->toHuman());
+    }
+}
+
+function run_plugin_audit(array $argv): void
+{
+    $opts = parse_cli_options($argv);
+    $target = '';
+    foreach (array_slice($argv, 2) as $arg) {
+        if (str_starts_with($arg, '--')) {
+            continue;
+        }
+        $target = trim($arg);
+        break;
+    }
+
+    if ($target === '') {
+        fwrite(STDERR, "Usage: php bin/latch plugin-audit <path|slug> [--json]\n");
+        exit(1);
+    }
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $auditor = plugin_auditor_from_config($config);
+
+    try {
+        $report = $auditor->auditTarget($target);
+    } catch (\Throwable $e) {
+        fwrite(STDERR, $e->getMessage() . "\n");
+        exit(1);
+    }
+
+    emit_plugin_audit_report($report, isset($opts['json']));
+    if (!$report->passed()) {
+        exit(1);
+    }
+}
+
+function run_plugin(array $argv): void
+{
+    require_pdo();
+
+    $opts = parse_cli_options($argv);
+    $action = $argv[2] ?? 'list';
+    $slug = trim((string) ($argv[3] ?? ''));
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $latchVersion = (string) $config->get('app.version', '0.3.0');
+    $auditor = plugin_auditor_from_config($config);
+
+    if ($action === 'audit') {
+        if ($slug === '') {
+            fwrite(STDERR, "Usage: php bin/latch plugin audit <path|slug> [--json]\n");
+            exit(1);
+        }
+
+        try {
+            $report = $auditor->auditTarget($slug);
+        } catch (\Throwable $e) {
+            fwrite(STDERR, $e->getMessage() . "\n");
+            exit(1);
+        }
+
+        emit_plugin_audit_report($report, isset($opts['json']));
+        if (!$report->passed()) {
+            exit(1);
+        }
+
+        return;
+    }
+
+    if ($action === 'enable') {
+        if ($slug === '') {
+            fwrite(STDERR, "Usage: php bin/latch plugin enable <slug> [--force]\n");
+            exit(1);
+        }
+
+        $manifest = plugin_find_manifest($config, $slug);
+        if ($manifest === null) {
+            fwrite(STDERR, "Plugin not found: {$slug}\n");
+            exit(1);
+        }
+
+        if (!$manifest->isCompatibleWith($latchVersion)) {
+            fwrite(STDERR, "Plugin {$slug} requires Latch >= {$manifest->minLatchVersion} (running {$latchVersion})\n");
+            exit(1);
+        }
+
+        try {
+            $report = $auditor->auditPath($manifest->pluginDir);
+        } catch (\Throwable $e) {
+            fwrite(STDERR, $e->getMessage() . "\n");
+            exit(1);
+        }
+
+        if (!$report->passed()) {
+            fwrite(STDERR, $report->toHuman());
+            if (!isset($opts['force'])) {
+                fwrite(STDERR, "Audit failed. Fix findings or re-run with --force (logged to audit_log when DB is writable).\n");
+                exit(1);
+            }
+
+            fwrite(STDERR, "Enabling anyway (--force). Review findings above.\n");
+        }
+
+        $db = latch_cli_database($config);
+        $settings = new \Latch\Models\SettingRepository($db);
+        $registry = new \Latch\Core\Plugins\PluginRegistry(
+            (string) $config->get('paths.plugins'),
+            $settings,
+        );
+
+        if (!$report->passed() && isset($opts['force'])) {
+            try {
+                $auditLog = new \Latch\Models\AuditLogRepository($db);
+                $auditLog->record(
+                    0,
+                    'plugin.enable_forced',
+                    'plugin',
+                    null,
+                    'cli',
+                    [
+                        'slug' => $slug,
+                        'critical' => $report->criticalCount(),
+                        'warn' => $report->warnCount(),
+                        'findings' => array_map(
+                            static fn (\Latch\Core\Plugins\PluginAuditFinding $f): array => $f->toArray(),
+                            $report->findings,
+                        ),
+                    ],
+                );
+            } catch (\Throwable) {
+                // Best-effort when audit_log write fails.
+            }
+        }
+
+        $enabled = $registry->enabledSlugs();
+        if (!in_array($slug, $enabled, true)) {
+            $enabled[] = $slug;
+        }
+
+        $registry->setEnabledSlugs($enabled);
+        fwrite(STDOUT, "Enabled plugin: {$slug}\n");
+        fwrite(STDOUT, "Clear page/Twig cache if the site was already running.\n");
+
+        return;
+    }
+
+    $db = latch_cli_database($config);
+    $settings = new \Latch\Models\SettingRepository($db);
+    $registry = new \Latch\Core\Plugins\PluginRegistry(
+        (string) $config->get('paths.plugins'),
+        $settings,
+    );
+
+    if ($action === 'list') {
+        $rows = $registry->listWithStatus();
+        if ($rows === []) {
+            fwrite(STDOUT, "No plugins found in " . $config->get('paths.plugins') . "\n");
+            return;
+        }
+
+        foreach ($rows as $row) {
+            $manifest = $row['manifest'];
+            $state = $row['enabled'] ? 'enabled' : 'disabled';
+            $compat = $manifest->isCompatibleWith($latchVersion) ? 'ok' : 'incompatible';
+            fwrite(STDOUT, sprintf(
+                "%-14s v%-7s %-10s %-12s %s\n",
+                $manifest->slug,
+                $manifest->version,
+                $state,
+                $compat,
+                $manifest->name,
+            ));
+        }
+
+        return;
+    }
+
+    if ($action === 'disable') {
+        if ($slug === '') {
+            fwrite(STDERR, "Usage: php bin/latch plugin disable <slug>\n");
+            exit(1);
+        }
+
+        if (plugin_find_manifest($config, $slug) === null) {
+            fwrite(STDERR, "Plugin not found: {$slug}\n");
+            exit(1);
+        }
+
+        $enabled = array_values(array_filter(
+            $registry->enabledSlugs(),
+            static fn (string $s): bool => $s !== $slug,
+        ));
+        $registry->setEnabledSlugs($enabled);
+        fwrite(STDOUT, "Disabled plugin: {$slug}\n");
+        fwrite(STDOUT, "Clear page/Twig cache if the site was already running.\n");
+
+        return;
+    }
+
+    fwrite(STDERR, "Usage: php bin/latch plugin list|audit <path|slug>|enable <slug>|disable <slug>\n");
+    exit(1);
+}
+
+function run_reputation_recompute(array $argv): void
+{
+    require_pdo();
+
+    $opts = parse_cli_options($argv);
+    $config = new Config(LATCH_ROOT . '/config');
+    $db = new Database((string) $config->get('database.path'));
+    $users = new \Latch\Models\UserRepository($db);
+    $settings = new \Latch\Models\SettingRepository($db);
+    $service = new \Latch\Core\ReputationService($db, $users, $settings);
+
+    if (isset($opts['user'])) {
+        $userId = (int) $opts['user'];
+        $result = $service->computeForUser($userId);
+        fwrite(STDOUT, "User #{$userId}: rank " . ($result['rank'] ?? 'n/a')
+            . ', score ' . round($result['score'], 2) . "\n");
+
+        return;
+    }
+
+    $count = $service->recomputeAll();
+    fwrite(STDOUT, "Recomputed reputation for {$count} member(s).\n");
+}
+
+function run_search_reindex(): void
+{
+    require_pdo();
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $db = new Database((string) $config->get('database.path'));
+    $result = SiteMaintenance::reindexSearch(build_search_repository($db));
+
+    if (!$result['ok']) {
+        fwrite(STDERR, $result['message'] . "\n");
+        exit(1);
+    }
+
+    fwrite(STDOUT, $result['message'] . "\n");
+}
+
+function maybe_auto_search_reindex(Database $db): void
+{
+    $search = build_search_repository($db);
+    if (!$search->isEnabled()) {
+        return;
+    }
+
+    $count = (int) $db->pdo()->query('SELECT COUNT(*) FROM search_index')->fetchColumn();
+    $topics = (int) $db->pdo()->query('SELECT COUNT(*) FROM topics WHERE deleted_at IS NULL')->fetchColumn();
+    if ($count > 0 || $topics === 0) {
+        return;
+    }
+
+    $indexed = $search->reindexAll();
+    fwrite(STDOUT, "Search index auto-built for {$indexed} topic(s).\n");
+}
+
+function build_search_repository(Database $db): SearchRepository
+{
+    $topicTags = new TopicTags();
+
+    return new SearchRepository($db, new PostFormatter(), new TagRepository($db, $topicTags));
+}
+
+function run_security_bootstrap(): void
+{
+    require_pdo();
+
+    $configDir = LATCH_ROOT . '/config';
+    $localPath = $configDir . '/local.php';
+    if (!is_file($localPath)) {
+        fwrite(STDERR, "config/local.php not found.\n");
+        exit(1);
+    }
+
+    $local = require $localPath;
+    if (!is_array($local)) {
+        fwrite(STDERR, "config/local.php must return an array.\n");
+        exit(1);
+    }
+
+    if (trim((string) ($local['security']['encryption_key'] ?? '')) !== '') {
+        fwrite(STDOUT, "security.encryption_key already set — nothing to do.\n");
+        exit(0);
+    }
+
+    $config = new Config($configDir);
+    $db = new Database((string) $config->get('database.path'));
+    $users = new UserRepository($db);
+    $derivedCipher = new SecretCipher($config);
+
+    $plaintextSecrets = [];
+    foreach ($users->listTotpEnabled() as $row) {
+        $plain = $derivedCipher->decrypt((string) $row['totp_secret_enc']);
+        if ($plain === null) {
+            fwrite(STDERR, "Could not decrypt TOTP secret for user #{$row['id']}. Aborting.\n");
+            exit(1);
+        }
+        $plaintextSecrets[(int) $row['id']] = $plain;
+    }
+
+    $newKey = base64_encode(random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
+    $rawKey = base64_decode($newKey, true);
+    if ($rawKey === false || strlen($rawKey) !== SODIUM_CRYPTO_SECRETBOX_KEYBYTES) {
+        fwrite(STDERR, "Failed to generate encryption key.\n");
+        exit(1);
+    }
+
+    $cipher = new SecretCipher($config, $rawKey);
+    foreach ($plaintextSecrets as $userId => $plain) {
+        $users->updateTotpSecretEnc($userId, $cipher->encrypt($plain));
+    }
+
+    $local['security']['encryption_key'] = $newKey;
+    write_local_config($localPath, $local);
+    fwrite(STDOUT, "Wrote security.encryption_key to config/local.php\n");
+
+    if ($plaintextSecrets !== []) {
+        fwrite(STDOUT, 'Re-wrapped TOTP secrets for ' . count($plaintextSecrets) . " user(s).\n");
+    }
+
+    fwrite(STDOUT, "Security bootstrap complete.\n");
+}
+
+function run_test_mail(array $argv): void
+{
+    require_pdo();
+
+    $opts = parse_cli_options($argv);
+    $to = trim((string) ($opts['to'] ?? ''));
+
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        fwrite(STDERR, "Usage: php bin/latch test-mail --to=email@example.com\n");
+        exit(1);
+    }
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $db = new Database((string) $config->get('database.path'));
+    $settings = new SettingRepository($db);
+    $mail = new Mail($config, $settings);
+
+    $status = $mail->status();
+    fwrite(STDOUT, "Mail status:\n");
+    foreach ($status as $key => $value) {
+        if (is_bool($value)) {
+            $value = $value ? 'yes' : 'no';
+        }
+        fwrite(STDOUT, "  {$key}: {$value}\n");
+    }
+
+    if (!$mail->isConfigured()) {
+        fwrite(STDERR, "\nMail is not configured. See source/docs/EMAIL.md or deploy/msmtp.conf.example\n");
+        exit(1);
+    }
+
+    $siteName = (string) $config->get('site.name', 'Latch');
+    $subject = "{$siteName} test email";
+    $body = "This is a test message from Latch sent at " . gmdate('c') . " UTC.\n\n"
+        . "If you received this, outbound mail is working.";
+
+    fwrite(STDOUT, "\nSending test email to {$to}...\n");
+
+    if (!$mail->send($to, $subject, $body)) {
+        fwrite(STDERR, "Send failed: " . ($mail->lastError() ?? 'unknown error') . "\n");
+        exit(1);
+    }
+
+    fwrite(STDOUT, "Test email sent successfully.\n");
+}
+
+function run_api_client(array $argv): void
+{
+    require_pdo();
+
+    $sub = $argv[2] ?? 'help';
+    $opts = parse_cli_options($argv);
+    $config = new Config(LATCH_ROOT . '/config');
+    $db = new Database((string) $config->get('database.path'));
+    $clients = new OAuthClientRepository($db);
+    $users = new UserRepository($db);
+
+    match ($sub) {
+        'create' => api_client_create($clients, $users, $opts),
+        'add-redirect' => api_client_add_redirect($clients, $opts),
+        'list' => api_client_list($clients),
+        'revoke' => api_client_revoke($clients, $opts),
+        'help', '--help', '-h' => api_client_help(),
+        default => api_client_unknown($sub),
+    };
+}
+
+function api_client_help(): void
+{
+    fwrite(STDOUT, <<<HELP
+Latch OAuth API clients
+
+  php bin/latch api-client create --name="My App" [--redirect=URL] [--scopes=read,messages:read,messages:write] [--public] [--rate-limit=60]
+  php bin/latch api-client add-redirect --client-id=latch_... --redirect=URL
+  php bin/latch api-client list
+  php bin/latch api-client revoke --client-id=latch_...
+
+HELP);
+}
+
+function api_client_unknown(string $sub): void
+{
+    fwrite(STDERR, "Unknown api-client subcommand: {$sub}\n");
+    api_client_help();
+    exit(1);
+}
+
+/**
+ * @param array<string, string> $opts
+ */
+function api_client_create(OAuthClientRepository $clients, UserRepository $users, array $opts): void
+{
+    $name = trim((string) ($opts['name'] ?? ''));
+    if ($name === '') {
+        fwrite(STDERR, "--name is required.\n");
+        exit(1);
+    }
+
+    $isPublic = isset($opts['public']);
+    $redirects = [];
+    foreach ($opts as $key => $value) {
+        if (str_starts_with($key, 'redirect') && $value !== '') {
+            $redirects[] = (string) $value;
+        }
+    }
+
+    $creator = null;
+    $creatorName = trim((string) ($opts['user'] ?? ''));
+    if ($creatorName !== '') {
+        $creator = $users->findByUsername($creatorName);
+    } else {
+        foreach ($users->all() as $user) {
+            if (($user['role'] ?? '') === 'admin') {
+                $creator = $user;
+                break;
+            }
+        }
+    }
+
+    if ($creator === null || ($creator['role'] ?? '') !== 'admin') {
+        fwrite(STDERR, "Admin user required (--user=admin).\n");
+        exit(1);
+    }
+
+    $rateLimit = max(10, min(600, (int) ($opts['rate-limit'] ?? 60)));
+
+    $scopeInput = trim((string) ($opts['scopes'] ?? OAuthScopes::READ));
+    $scopes = OAuthScopes::normalize(
+        $scopeInput !== ''
+            ? array_map('trim', explode(',', $scopeInput))
+            : [OAuthScopes::READ],
+    );
+
+    try {
+        $result = $clients->create(
+            $name,
+            $redirects,
+            $scopes,
+            !$isPublic,
+            (int) $creator['id'],
+            $rateLimit,
+        );
+    } catch (\Throwable $e) {
+        fwrite(STDERR, $e->getMessage() . "\n");
+        exit(1);
+    }
+
+    $client = $result['client'];
+    fwrite(STDOUT, "OAuth client created.\n");
+    fwrite(STDOUT, "  name:       {$client['name']}\n");
+    fwrite(STDOUT, "  client_id:  {$client['client_id']}\n");
+    if ($result['client_secret'] !== null) {
+        fwrite(STDOUT, "  secret:     {$result['client_secret']}\n");
+        fwrite(STDOUT, "  (store the secret now — it cannot be shown again)\n");
+    } else {
+        fwrite(STDOUT, "  type:       public (PKCE)\n");
+    }
+    fwrite(STDOUT, '  scopes:     ' . OAuthScopes::toString($scopes) . "\n");
+    fwrite(STDOUT, "  rate limit: {$rateLimit}/min\n");
+}
+
+/**
+ * @param array<string, string> $opts
+ */
+function api_client_add_redirect(OAuthClientRepository $clients, array $opts): void
+{
+    $clientId = trim((string) ($opts['client-id'] ?? ''));
+    $redirect = trim((string) ($opts['redirect'] ?? ''));
+    if ($clientId === '' || $redirect === '') {
+        fwrite(STDERR, "--client-id and --redirect are required.\n");
+        exit(1);
+    }
+
+    if (!$clients->addRedirectUri($clientId, $redirect)) {
+        fwrite(STDERR, "Failed to add redirect URI (unknown client or DB error).\n");
+        exit(1);
+    }
+
+    fwrite(STDOUT, "Redirect URI added for {$clientId}:\n  {$redirect}\n");
+}
+
+function api_client_list(OAuthClientRepository $clients): void
+{
+    $rows = $clients->listAll();
+    if ($rows === []) {
+        fwrite(STDOUT, "No OAuth clients.\n");
+
+        return;
+    }
+
+    foreach ($rows as $row) {
+        $status = ($row['revoked_at'] ?? null) !== null ? 'revoked' : 'active';
+        $type = (int) ($row['is_confidential'] ?? 1) === 1 ? 'confidential' : 'public';
+        fwrite(STDOUT, sprintf(
+            "%s  %s  %s  by %s  %s\n",
+            $row['client_id'],
+            $status,
+            $type,
+            $row['created_by_username'] ?? '?',
+            $row['name'],
+        ));
+    }
+}
+
+/**
+ * @param array<string, string> $opts
+ */
+function run_test_api_messages(array $argv): void
+{
+    $opts = parse_cli_options($argv);
+    $sub = $argv[2] ?? '';
+    if ($sub === '' || str_starts_with($sub, '--')) {
+        $sub = 'all';
+    }
+
+    $configPath = (string) ($opts['config'] ?? LATCH_ROOT . '/tests/api/config.local.php');
+    $examplePath = LATCH_ROOT . '/tests/api/config.example.php';
+
+    if (!is_file($configPath)) {
+        fwrite(STDERR, "API test config not found: {$configPath}\n");
+        fwrite(STDERR, "Copy {$examplePath} to tests/api/config.local.php\n");
+        fwrite(STDERR, "Create a production OAuth client (on the server):\n");
+        fwrite(STDERR, "  sudo -u apache php bin/latch api-client create --name=\"Local API Harness\" \\\n");
+        fwrite(STDERR, "    --redirect=https://latch.network/oauth/cli-callback \\\n");
+        fwrite(STDERR, "    --scopes=read,messages:read,messages:write\n");
+        exit(1);
+    }
+
+    $config = require $configPath;
+    if (!is_array($config)) {
+        fwrite(STDERR, "Invalid config: must return an array.\n");
+        exit(1);
+    }
+
+    if (isset($opts['url']) && $opts['url'] !== '') {
+        $config['base_url'] = $opts['url'];
+    }
+
+    require LATCH_ROOT . '/tests/api/MessagesApiHarness.php';
+
+    $harness = new MessagesApiHarness($config);
+    $base = rtrim((string) ($config['base_url'] ?? ''), '/');
+    fwrite(STDOUT, "Latch messages API harness → {$base}\n\n");
+
+    if (in_array($sub, ['help', '--help', '-h'], true)) {
+        exit(messages_api_harness_help());
+    }
+
+    if (!in_array($sub, ['authorize', 'auth', 'run', 'all'], true)) {
+        fwrite(STDERR, "Unknown subcommand: {$sub}\n");
+        exit(messages_api_harness_help());
+    }
+
+    $exit = match ($sub) {
+        'authorize', 'auth' => $harness->authorizeInteractive(),
+        'run' => $harness->run(),
+        'all' => $harness->runAll(),
+    };
+
+    exit($exit);
+}
+
+function messages_api_harness_help(): int
+{
+    fwrite(STDOUT, <<<HELP
+Messages API harness (user-delegated OAuth + PKCE)
+
+  php bin/latch test-api-messages authorize   Open browser flow; saves user token
+  php bin/latch test-api-messages run         Run tests with cached token
+  php bin/latch test-api-messages             Authorize if needed, then run
+
+Config: tests/api/config.local.php (see config.example.php)
+Token cache: tests/api/user-token.local.json (gitignored)
+
+HELP);
+
+    return 0;
+}
+
+function run_test_api(array $argv): void
+{
+    $opts = parse_cli_options($argv);
+    $configPath = (string) ($opts['config'] ?? LATCH_ROOT . '/tests/api/config.local.php');
+    $examplePath = LATCH_ROOT . '/tests/api/config.example.php';
+
+    if (!is_file($configPath)) {
+        fwrite(STDERR, "API test config not found: {$configPath}\n");
+        fwrite(STDERR, "Copy {$examplePath} to tests/api/config.local.php and add OAuth client credentials.\n");
+        exit(1);
+    }
+
+    $config = require $configPath;
+    if (!is_array($config)) {
+        fwrite(STDERR, "Invalid config: must return an array.\n");
+        exit(1);
+    }
+
+    if (isset($opts['url']) && $opts['url'] !== '') {
+        $config['base_url'] = $opts['url'];
+    }
+
+    require LATCH_ROOT . '/tests/api/ApiHarness.php';
+
+    fwrite(STDOUT, "Latch API harness → " . rtrim((string) ($config['base_url'] ?? ''), '/') . "\n\n");
+
+    $harness = new ApiHarness($config);
+    exit($harness->run());
+}
+
+function api_client_revoke(OAuthClientRepository $clients, array $opts): void
+{
+    $clientId = trim((string) ($opts['client-id'] ?? ''));
+    if ($clientId === '') {
+        fwrite(STDERR, "--client-id is required.\n");
+        exit(1);
+    }
+
+    if (!$clients->revoke($clientId)) {
+        fwrite(STDERR, "Client not found or already revoked.\n");
+        exit(1);
+    }
+
+    fwrite(STDOUT, "Revoked {$clientId}\n");
+}
+
+function write_local_config(string $path, array $config): void
+{
+    $export = var_export($config, true);
+    $php = "<?php\n\ndeclare(strict_types=1);\n\nreturn {$export};\n";
+
+    if (file_put_contents($path, $php) === false) {
+        fwrite(STDERR, "Could not write {$path}\n");
+        exit(1);
+    }
+}

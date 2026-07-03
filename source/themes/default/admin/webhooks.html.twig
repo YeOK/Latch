@@ -1,0 +1,119 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Webhooks — Admin{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <h1>Webhooks</h1>
+        <p class="muted">
+            Outbound HTTPS POST notifications for forum events. Payloads are signed with HMAC-SHA256
+            in the <code>X-Latch-Signature</code> header. See <code>docs/WEBHOOKS.md</code>.
+        </p>
+    </section>
+
+    {% if new_secret %}
+        <div class="flash flash-success" role="status">
+            <p><strong>Signing secret (copy now):</strong></p>
+            <p><code class="webhook-secret">{{ new_secret }}</code></p>
+            <p class="muted">This secret is shown once. Regenerate by creating a new webhook.</p>
+        </div>
+    {% endif %}
+
+    <section class="admin-panel">
+        <h2>Add webhook</h2>
+        <form method="post" action="/admin/webhooks" class="form form-wide">
+            {{ csrf_field() }}
+            <label>
+                Endpoint URL
+                <input type="url" name="url" required placeholder="https://example.com/hooks/latch" maxlength="2048">
+                <span class="muted">HTTPS only. 5 second timeout per delivery.</span>
+            </label>
+            <label>
+                Description
+                <input type="text" name="description" maxlength="200" placeholder="Optional label for this endpoint">
+            </label>
+            <fieldset>
+                <legend>Events</legend>
+                {% for event in event_catalog %}
+                    <label class="checkbox">
+                        <input type="checkbox" name="events[]" value="{{ event }}">
+                        <code>{{ event }}</code>
+                    </label>
+                {% endfor %}
+            </fieldset>
+            <button type="submit" class="btn btn-primary">Create webhook</button>
+        </form>
+    </section>
+
+    <section class="admin-panel">
+        <h2>Configured endpoints</h2>
+        {% if webhooks is empty %}
+            <p class="empty">No webhooks yet.</p>
+        {% else %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Endpoint</th>
+                        <th>Events</th>
+                        <th>Status</th>
+                        <th>Last delivery</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in webhooks %}
+                        {% set hook = row.webhook %}
+                        <tr>
+                            <td>
+                                {% if hook.description %}
+                                    <strong>{{ hook.description }}</strong><br>
+                                {% endif %}
+                                <code>{{ hook.url }}</code>
+                                <div class="muted">#{{ hook.id }} · created {{ hook.created_at|date('Y-m-d') }}</div>
+                            </td>
+                            <td>
+                                {% for event in row.events %}
+                                    <code>{{ event }}</code>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% if hook.enabled %}
+                                    <span class="badge">Enabled</span>
+                                {% else %}
+                                    <span class="badge badge-muted">Disabled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if hook.last_delivery_at %}
+                                    <span>{{ hook.last_delivery_at|date('Y-m-d H:i') }} UTC</span>
+                                    {% if hook.last_status %}
+                                        <div class="muted">HTTP {{ hook.last_status }}</div>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="post" action="/admin/webhooks/{{ hook.id }}/toggle" class="inline-form">
+                                    {{ csrf_field() }}
+                                    <button type="submit" class="btn btn-small">
+                                        {{ hook.enabled ? 'Disable' : 'Enable' }}
+                                    </button>
+                                </form>
+                                <form
+                                    method="post"
+                                    action="/admin/webhooks/{{ hook.id }}/delete"
+                                    class="inline-form"
+                                    data-confirm="Delete this webhook? Deliveries will be removed."
+                                >
+                                    {{ csrf_field() }}
+                                    <button type="submit" class="btn btn-small btn-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </section>
+{% endblock %}

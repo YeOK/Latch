@@ -1,0 +1,103 @@
+#!/bin/bash
+# Build a sanitized public release tarball (no secrets, DB, or operator deploy scripts).
+#
+# Usage:
+#   ./scripts/build-release.sh
+#   ./scripts/build-release.sh --allow-dirty
+#
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SOURCE="${REPO_ROOT}/source"
+DIST="${REPO_ROOT}/dist"
+ALLOW_DIRTY=0
+
+for arg in "$@"; do
+    case "$arg" in
+        --allow-dirty) ALLOW_DIRTY=1 ;;
+        -h|--help)
+            sed -n '2,8p' "$0"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $arg" >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [[ ! -f "${REPO_ROOT}/VERSION" ]]; then
+    echo "Error: VERSION file missing" >&2
+    exit 1
+fi
+
+VERSION="$(tr -d '[:space:]' < "${REPO_ROOT}/VERSION")"
+STAGE="${DIST}/latch-${VERSION}-stage"
+ARCHIVE="${DIST}/latch-${VERSION}.tar.gz"
+
+if command -v git >/dev/null 2>&1 && git -C "${REPO_ROOT}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if [[ "${ALLOW_DIRTY}" != "1" ]] && [[ -n "$(git -C "${REPO_ROOT}" status --porcelain 2>/dev/null)" ]]; then
+        echo "Error: working tree not clean. Commit or pass --allow-dirty." >&2
+        exit 1
+    fi
+fi
+
+echo "==> Composer (no-dev)"
+(
+    cd "${SOURCE}"
+    if command -v composer >/dev/null 2>&1; then
+        composer install --no-dev --optimize-autoloader --no-interaction
+    elif [[ -f composer.phar ]]; then
+        php composer.phar install --no-dev --optimize-autoloader --no-interaction
+    else
+        echo "Warning: composer not found — using existing vendor/" >&2
+    fi
+)
+
+rm -rf "${STAGE}"
+mkdir -p "${STAGE}" "${DIST}"
+
+echo "==> Stage release tree"
+rsync -a \
+    --exclude='.git' \
+    --exclude='.DS_Store' \
+    --exclude='source/storage/database/*.sqlite' \
+    --exclude='source/storage/database/*.sqlite-*' \
+    --exclude='source/storage/logs/*' \
+    --exclude='source/storage/cache/*' \
+    --exclude='source/config/local.php' \
+    --exclude='source/tests/api/config.local.php' \
+    --exclude='source/tests/api/user-token.local.json' \
+    --exclude='source/tests/api/pkce.local.json' \
+    --exclude='scripts/sync-latch.sh' \
+    --exclude='scripts/publish-latch-server.sh' \
+    --exclude='scripts/publish-latch-nopass.sh' \
+    --exclude='scripts/publish-forum-db.sh' \
+    --exclude='scripts/post-forum-updates.sh' \
+    --exclude='scripts/post-documentation.php' \
+    --exclude='scripts/post-security-news.php' \
+    --exclude='scripts/update-roadmap-post.php' \
+    --exclude='dist/' \
+    "${REPO_ROOT}/" "${STAGE}/"
+
+echo "==> Secret scrub"
+if grep -RInE '(BEGIN (RSA |EC )?PRIVATE KEY|client_secret["\x27]\s*=>|encryption_key["\x27]\s*=>\s*["\x27][^"\x27]{8,})' \
+    "${STAGE}/source" --exclude-dir=vendor 2>/dev/null | grep -v 'docs/' | grep -v 'tests/' ; then
+    echo "Error: possible secret in staged tree (see above)" >&2
+    exit 1
+fi
+
+echo "==> Archive"
+tar -czf "${ARCHIVE}" -C "${DIST}" "latch-${VERSION}-stage"
+(
+    cd "${DIST}"
+    sha256sum "$(basename "${ARCHIVE}")" > "SHA256SUMS"
+)
+
+BYTES="$(wc -c < "${ARCHIVE}")"
+echo ""
+echo "Release: ${ARCHIVE} (${BYTES} bytes)"
+echo "Checksum: ${DIST}/SHA256SUMS"
+echo "Install:  tar -xzf $(basename "${ARCHIVE}") && cd latch-${VERSION}-stage && bash scripts/update.sh"
+echo "          (fresh install: cd source && php bin/latch install)"

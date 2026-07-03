@@ -1,0 +1,53 @@
+{% if user %}
+    <div class="inbox-cluster" id="inbox-cluster">
+        {% if direct_messages_enabled|default(false) %}
+        <a
+            href="/messages"
+            class="inbox-cluster-btn inbox-cluster-messages{% if (messages_unread|default(0)) > 0 %} has-unread{% endif %}{% if current_path starts with '/messages' %} is-active{% endif %}"
+            title="Messages{% if (messages_unread|default(0)) > 0 %} ({{ messages_unread }} unread){% endif %}"
+            aria-label="Messages{% if (messages_unread|default(0)) > 0 %} ({{ messages_unread }} unread){% endif %}"
+            id="messages-nav-link"
+            data-messages-panel
+            aria-haspopup="dialog"
+            aria-controls="messages-overlay"
+        >
+            <svg class="inbox-cluster-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2Zm0 4-8 5-8-5V6l8 5 8-5v2Z"/>
+            </svg>
+            <span class="inbox-cluster-badge{% if (messages_unread|default(0)) <= 0 %} is-hidden{% endif %}" id="messages-nav-badge"{% if (messages_unread|default(0)) <= 0 %} hidden{% endif %}>{{ messages_unread > 99 ? '99+' : messages_unread }}</span>
+        </a>
+
+        <span class="inbox-cluster-sep" aria-hidden="true"></span>
+        {% endif %}
+
+        <div class="notification-bell-wrap" id="notification-bell-wrap">
+            <button
+                type="button"
+                class="inbox-cluster-btn inbox-cluster-notifications notification-bell{% if notification_unread > 0 %} has-unread{% endif %}"
+                id="notification-bell-btn"
+                aria-expanded="false"
+                aria-haspopup="dialog"
+                aria-controls="notification-panel"
+                title="Notifications{% if notification_unread > 0 %} ({{ notification_unread }} unread){% endif %}"
+                aria-label="Notifications{% if notification_unread > 0 %} ({{ notification_unread }} unread){% endif %}"
+            >
+                <svg class="inbox-cluster-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M12 22a2.2 2.2 0 0 0 2.1-1.5H9.9A2.2 2.2 0 0 0 12 22Zm7-5V11a7 7 0 1 0-14 0v6l-2 2v1h18v-1l-2-2Z"/>
+                </svg>
+                <span class="inbox-cluster-badge notification-bell-badge{% if notification_unread <= 0 %} is-hidden{% endif %}" id="notification-bell-badge"{% if notification_unread <= 0 %} hidden{% endif %}>{{ notification_unread > 99 ? '99+' : notification_unread }}</span>
+            </button>
+            <div class="notification-panel" id="notification-panel" role="dialog" aria-label="Notifications" hidden>
+                <div class="notification-panel-header">
+                    <h2 class="notification-panel-title">Notifications</h2>
+                    <button type="button" class="link-button notification-panel-mark-all" id="notification-mark-all" hidden>Mark all read</button>
+                </div>
+                <div class="notification-panel-body" id="notification-panel-body">
+                    <p class="notification-panel-status muted" id="notification-panel-status">Loading…</p>
+                </div>
+                <div class="notification-panel-footer">
+                    <a class="notification-panel-view-all" href="/notifications">View all notifications</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}

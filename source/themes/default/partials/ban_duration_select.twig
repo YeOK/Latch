@@ -1,0 +1,15 @@
+<select name="ban_duration" class="ban-duration-select" aria-label="Ban duration">
+    <option value="permanent">Permanent</option>
+    <option value="1d">1 day</option>
+    <option value="7d">7 days</option>
+    <option value="30d">30 days</option>
+    <option value="custom">Custom…</option>
+</select>
+<label class="ban-custom-days" hidden>
+    Custom duration (days)
+    <input type="number" name="ban_custom_days" min="1" max="365" value="14">
+</label>
+<label class="ban-reason-field">
+    Reason note (optional, staff only)
+    <input type="text" name="ban_reason" maxlength="500" placeholder="Policy violation, spam, etc.">
+</label>

@@ -1,0 +1,39 @@
+# Composer
+source/vendor/
+
+# Runtime / secrets
+source/storage/database/*.sqlite
+source/storage/database/*.sqlite-*
+source/storage/uploads/*
+source/storage/cache/*
+source/storage/logs/*
+!source/storage/**/.gitkeep
+
+# Local config (created by installer)
+source/config/local.php
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Tests / build
+source/tests/.phpunit.cache/
+source/tests/api/config.local.php
+source/tests/api/user-token.local.json
+source/tests/api/pkce.local.json
+phpunit.xml
+dist/
+
+# Operator-only (excluded from release tarball; keep local)
+PLAN.md
+deploy/
+scripts/sync-latch.sh
+scripts/publish-latch-server.sh
+scripts/publish-latch-nopass.sh
+scripts/publish-forum-db.sh
+scripts/post-forum-updates.sh
+scripts/post-documentation.php
+scripts/post-security-news.php
+scripts/update-roadmap-post.php

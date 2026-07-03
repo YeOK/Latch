@@ -1,0 +1,106 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}{{ site.name }} — Boards{% endblock %}
+
+{% block main_class %} page-home{% endblock %}
+
+{% block content %}
+    <section class="page-header page-header-home">
+        <h1>Boards</h1>
+        {% if members_only and not user %}
+            <p class="lead-muted">This forum is for members. Browse the list below after you <a href="/login">sign in</a>{% if allow_registration %} or <a href="/register">create an account</a>{% endif %}.</p>
+        {% endif %}
+    </section>
+
+    {% if boards is empty %}
+        {% if members_only and not user %}
+            <div class="callout-card">
+                <h2>Welcome</h2>
+                <p>Boards and discussions are visible to signed-in members only.</p>
+                <p><a class="btn btn-primary" href="/login">Sign in</a> <a class="btn" href="/register">Register</a></p>
+            </div>
+        {% else %}
+            <p class="empty">No boards yet. An admin can create one from the admin panel.</p>
+        {% endif %}
+    {% else %}
+        <div class="board-panels">
+            {% for board in boards %}
+                <section class="board-panel card" aria-labelledby="board-{{ board.slug }}-title">
+                    <header class="board-panel-header">
+                        <a href="/board/{{ board.slug }}" class="board-panel-main">
+                            <span class="board-icon board-panel-icon" aria-hidden="true">{{ board.icon_svg|raw }}</span>
+                            <span class="board-panel-intro">
+                                <h2 id="board-{{ board.slug }}-title" class="board-panel-title">
+                                    {{ board.name }}
+                                    {% if board.unread_count is defined and board.unread_count > 0 %}
+                                        <span class="board-unread-badge" title="{{ board.unread_count }} unread topic{{ board.unread_count == 1 ? '' : 's' }}">{{ board.unread_count }}</span>
+                                    {% endif %}
+                                    {% if board.acl_topic|default('member') in ['mod', 'admin'] %}
+                                        <span class="badge badge-muted">Staff topics</span>
+                                    {% endif %}
+                                    {% if board.acl_read|default('guest') in ['mod', 'admin'] %}
+                                        <span class="badge badge-muted">Staff read</span>
+                                    {% endif %}
+                                </h2>
+                                {% if board.description %}
+                                    <p class="board-panel-description">{{ board.description }}</p>
+                                {% endif %}
+                            </span>
+                        </a>
+                        <dl class="board-panel-stats">
+                            <div class="board-panel-stat">
+                                <dt>Topics</dt>
+                                <dd>{{ board.topic_count|default(0) }}</dd>
+                            </div>
+                            <div class="board-panel-stat">
+                                <dt>Posts</dt>
+                                <dd>{{ board.post_count|default(0) }}</dd>
+                            </div>
+                            <div class="board-panel-stat board-panel-stat-activity">
+                                <dt>Last activity</dt>
+                                <dd>
+                                    {% if board.last_activity_at %}
+                                        <time datetime="{{ board.last_activity_at }}">{{ board.last_activity_at|format_datetime }}</time>
+                                    {% else %}
+                                        <span class="muted">No posts yet</span>
+                                    {% endif %}
+                                </dd>
+                            </div>
+                        </dl>
+                    </header>
+
+                    {% if board.recent_topics is defined and board.recent_topics is not empty %}
+                        <ul class="board-panel-topics" role="list">
+                            {% for topic in board.recent_topics %}
+                                <li class="board-panel-topic">
+                                    <a href="/topic/{{ topic.id }}" class="board-panel-topic-link{% if topic.is_unread is defined and topic.is_unread %} topic-unread-link{% endif %}">
+                                        {% if topic.is_unread is defined and topic.is_unread %}<span class="badge badge-unread" title="New posts">New</span>{% endif %}
+                                        {% if topic.is_pinned %}<span class="badge">Pinned</span>{% endif %}
+                                        <span class="board-panel-topic-title">{{ topic.title }}</span>
+                                    </a>
+                                    <span class="board-panel-topic-meta muted">
+                                        {{ topic.post_count }} post{{ topic.post_count == 1 ? '' : 's' }}
+                                        · <time datetime="{{ topic.last_post_at }}">{{ topic.last_post_at|format_datetime }}</time>
+                                    </span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="board-panel-empty muted">No topics yet.</p>
+                    {% endif %}
+
+                    <footer class="board-panel-footer">
+                        <a class="board-panel-view-all" href="/board/{{ board.slug }}">
+                            View all topics in {{ board.name }}
+                            {% include 'partials/icon.twig' with { name: 'chevron-right' } %}
+                        </a>
+                    </footer>
+                </section>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% for html in plugin_home_after_boards_html|default([]) %}
+        {{ html|raw }}
+    {% endfor %}
+{% endblock %}

@@ -1,0 +1,19 @@
+# Latch — route all requests through index.php (Apache + mod_rewrite)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Block access to hidden files
+    RewriteRule (^|/)\. - [F]
+
+    # Existing files (css, js, images) are served as-is
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Deny if rewrite is unavailable (extra safety)
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>

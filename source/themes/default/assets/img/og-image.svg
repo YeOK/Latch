@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#f4f6f8"/>
+  <rect width="1200" height="10" fill="#2f6fed"/>
+  <circle cx="1040" cy="520" r="220" fill="#e8f0ff"/>
+  <circle cx="180" cy="120" r="140" fill="#e8f0ff"/>
+  <g transform="translate(140 185) scale(2.4)" fill="#2f6fed" stroke="#2f6fed">
+    <path d="M20 40h76" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <path d="M20 64h60" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <path d="M20 88h44" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <path d="M88 28v28l18-9-18-9z"/>
+    <rect x="80" y="72" width="32" height="40" rx="6" stroke-width="8" fill="none"/>
+    <path d="M88 72V54a8 8 0 0 1 16 0v18" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <circle cx="96" cy="90" r="4"/>
+  </g>
+  <text x="430" y="300" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="108" font-weight="700" fill="#1a1f2e">Latch</text>
+  <text x="432" y="380" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="40" fill="#5c667a">Fast, secure discussions</text>
+  <text x="432" y="430" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="28" fill="#2f6fed">latch.network</text>
+</svg>

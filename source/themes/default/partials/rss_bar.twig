@@ -1,0 +1,20 @@
+{# Context-aware RSS icon — site, board, or topic feed based on current path. #}
+{% if not members_only or user %}
+    {% if not (current_path starts with '/admin') %}
+        {% set parts = current_path|split('/') %}
+        {% set rss_href = '/feed.xml' %}
+        {% set rss_label = 'RSS feed for ' ~ site.name %}
+
+        {% if parts[1] == 'topic' and parts[2] is not empty %}
+            {% set rss_href = '/topic/' ~ parts[2] ~ '/feed.xml' %}
+            {% set rss_label = 'RSS feed for this topic' %}
+        {% elseif parts[1] == 'board' and parts[2] is not empty and parts[3]|default('') != 'new' %}
+            {% set rss_href = '/board/' ~ parts[2] ~ '/feed.xml' %}
+            {% set rss_label = 'RSS feed for this board' %}
+        {% endif %}
+
+        <div class="container rss-bar">
+            {% include 'partials/rss_link.twig' with { href: rss_href, label: rss_label } %}
+        </div>
+    {% endif %}
+{% endif %}

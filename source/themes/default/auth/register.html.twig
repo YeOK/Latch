@@ -1,0 +1,49 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}{{ trans('auth.register_title') }} — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="auth-card">
+        <h1>{{ trans('auth.create_account_title') }}</h1>
+        <form method="post" action="/register" class="form">
+            {{ csrf_field() }}
+            <div class="composer-honeypot" aria-hidden="true">
+                <label>
+                    Website
+                    <input type="text" name="website" tabindex="-1" autocomplete="off">
+                </label>
+            </div>
+            <label>
+                {{ trans('auth.username') }}
+                <input type="text" name="username" required minlength="{{ input_limits.username_min }}" maxlength="{{ input_limits.username_max }}" pattern="[a-zA-Z0-9][a-zA-Z0-9_-]*" autocomplete="username" autofocus>
+                <span class="muted">{{ trans('auth.username_hint') }}</span>
+            </label>
+            <label>
+                {{ trans('auth.email') }}
+                <input type="email" name="email" required maxlength="254" autocomplete="email">
+            </label>
+            <label>
+                {{ trans('auth.password') }}
+                <input type="password" name="password" required minlength="8" maxlength="{{ input_limits.password_max }}" autocomplete="new-password">
+            </label>
+            <label>
+                {{ trans('auth.confirm_password') }}
+                <input type="password" name="password_confirm" required minlength="8" maxlength="{{ input_limits.password_max }}" autocomplete="new-password">
+            </label>
+            {% if registration_turnstile_required %}
+                <div class="turnstile-wrap">
+                    <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>
+                </div>
+            {% endif %}
+            <button type="submit" class="btn btn-primary">{{ trans('auth.register') }}</button>
+        </form>
+        {% include 'partials/oidc_buttons.html.twig' %}
+        <p class="muted"><a href="/login">{{ trans('auth.already_have_account') }}</a></p>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {% if registration_turnstile_required %}
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    {% endif %}
+{% endblock %}

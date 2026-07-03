@@ -1,0 +1,109 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Reports — Moderation{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <h1>Moderation queue</h1>
+        <p class="muted">Sorted by severity (critical first), then oldest.</p>
+    </section>
+
+    <div class="staff-action-feedback" id="staff-action-feedback" hidden role="status"></div>
+
+    {% if reports is empty %}
+        <p class="muted">No open reports.</p>
+    {% else %}
+        <ul class="report-list" data-staff-feedback>
+            {% for report in reports %}
+                <li class="report-item severity-{{ report.severity }}">
+                    <div class="report-item-header">
+                        <span class="severity-badge severity-{{ report.severity }}">{{ report.severity }}</span>
+                        <strong>
+                            {{ reason_labels[report.reason_code].label|default(report.reason_code) }}
+                        </strong>
+                        <span class="muted">· {{ report.target_type }} #{{ report.target_id }}</span>
+                    </div>
+                    <p class="muted">
+                        Reported by {{ report.reporter_username }}
+                        · {{ report.created_at|format_datetime }}
+                        {% if report.quarantine_applied %} · <em>quarantine applied</em>{% endif %}
+                    </p>
+                    {% if report.reason_detail %}
+                        <p>{{ report.reason_detail }}</p>
+                    {% elseif report.reason and report.reason != report.reason_code %}
+                        <p>{{ report.reason }}</p>
+                    {% endif %}
+                    {% if report.target_type == 'post' and report.post_topic_id %}
+                        <p><a href="/topic/{{ report.post_topic_id }}#post-{{ report.target_id }}">View post</a>
+                        {% if report.post_author_username %} · author: {% include 'partials/username_link.twig' with { username: report.post_author_username } %}{% endif %}</p>
+                    {% elseif report.target_type == 'user' and report.target_username %}
+                        <p>User: {% include 'partials/username_link.twig' with { username: report.target_username } %}</p>
+                    {% endif %}
+                    <div class="staff-action-icons">
+                        <details class="staff-action-panel"
+                                 data-staff-post="/admin/reports/{{ report.id }}/triage"
+                                 data-staff-action="clear"
+                                 data-staff-success="remove-item">
+                            <summary class="btn btn-small btn-icon" title="Clear report" aria-label="Clear report">
+                                {% include 'partials/icon.twig' with { name: 'dismiss' } %}
+                            </summary>
+                            <div class="staff-action-popover">
+                                <p class="staff-action-confirm muted">Dismiss this report?</p>
+                                <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Confirm" aria-label="Confirm clear">
+                                    {% include 'partials/icon.twig' with { name: 'check' } %}
+                                </button>
+                            </div>
+                        </details>
+                        <details class="staff-action-panel"
+                                 data-staff-post="/admin/reports/{{ report.id }}/triage"
+                                 data-staff-action="warn"
+                                 data-staff-success="remove-item">
+                            <summary class="btn btn-small btn-icon" title="Warn user" aria-label="Warn user">
+                                {% include 'partials/icon.twig' with { name: 'warn' } %}
+                            </summary>
+                            <div class="staff-action-popover">
+                                <p class="staff-action-confirm muted">Issue a warning and resolve?</p>
+                                <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Confirm" aria-label="Confirm warn">
+                                    {% include 'partials/icon.twig' with { name: 'check' } %}
+                                </button>
+                            </div>
+                        </details>
+                        {% if report.target_type == 'post' %}
+                            <details class="staff-action-panel"
+                                     data-staff-post="/admin/reports/{{ report.id }}/triage"
+                                     data-staff-action="delete"
+                                     data-staff-success="remove-item">
+                                <summary class="btn btn-small btn-icon btn-danger" title="Delete post" aria-label="Delete post">
+                                    {% include 'partials/icon.twig' with { name: 'trash' } %}
+                                </summary>
+                                <div class="staff-action-popover">
+                                    <p class="staff-action-confirm muted">Delete the reported post?</p>
+                                    <button type="button" class="btn btn-small btn-danger btn-icon" data-staff-action-submit title="Confirm" aria-label="Confirm delete">
+                                        {% include 'partials/icon.twig' with { name: 'check' } %}
+                                    </button>
+                                </div>
+                            </details>
+                        {% endif %}
+                        <details class="staff-action-panel"
+                                 data-staff-post="/admin/reports/{{ report.id }}/triage"
+                                 data-staff-action="ban"
+                                 data-staff-success="remove-item">
+                            <summary class="btn btn-small btn-icon btn-danger" title="Ban user" aria-label="Ban user">
+                                {% include 'partials/icon.twig' with { name: 'ban' } %}
+                            </summary>
+                            <div class="staff-action-popover">
+                                <label class="staff-action-label">
+                                    Ban duration
+                                    {% include 'partials/ban_duration_select.twig' %}
+                                </label>
+                                <button type="button" class="btn btn-small btn-danger btn-icon" data-staff-action-submit title="Confirm ban" aria-label="Confirm ban">
+                                    {% include 'partials/icon.twig' with { name: 'check' } %}
+                                </button>
+                            </div>
+                        </details>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

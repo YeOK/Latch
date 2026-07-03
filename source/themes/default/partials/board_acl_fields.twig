@@ -1,0 +1,31 @@
+{# Expects: board_acl_labels, board_acl_read_options, board_acl_topic_options, board_acl_reply_options, board (optional for edit) #}
+<fieldset class="board-acl-fieldset">
+    <legend>Permissions</legend>
+    <div class="board-acl-grid">
+        <label>
+            Who can read
+            <select name="acl_read">
+                {% for role in board_acl_read_options %}
+                    <option value="{{ role }}"{% if (board.acl_read|default('guest')) == role %} selected{% endif %}>{{ board_acl_labels[role] }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Who can start topics
+            <select name="acl_topic">
+                {% for role in board_acl_topic_options %}
+                    <option value="{{ role }}"{% if (board.acl_topic|default('member')) == role %} selected{% endif %}>{{ board_acl_labels[role] }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Who can reply
+            <select name="acl_reply">
+                {% for role in board_acl_reply_options %}
+                    <option value="{{ role }}"{% if (board.acl_reply|default('member')) == role %} selected{% endif %}>{{ board_acl_labels[role] }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+    <p class="muted board-acl-hint">Higher roles always include lower ones. Posting still requires sign-in.</p>
+</fieldset>

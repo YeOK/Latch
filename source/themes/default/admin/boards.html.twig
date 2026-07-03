@@ -1,0 +1,161 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Boards — Admin{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header board-admin-header">
+        <div class="page-header-row">
+            <div>
+                <h1>Boards</h1>
+                <p class="muted">Boards appear on the home page in the order shown below. Use the arrow controls in the Order column to rearrange them.</p>
+            </div>
+            <details class="board-create-details">
+                <summary class="btn btn-primary btn-icon" title="New board" aria-label="New board">
+                    {% include 'partials/icon.twig' with { name: 'plus' } %}
+                </summary>
+                <form method="post" action="/admin/boards" class="form board-create-form">
+                    {{ csrf_field() }}
+                    <div class="board-create-fields">
+                        <label>
+                            Name
+                            <input type="text" name="name" required maxlength="{{ input_limits.board_name_max }}">
+                        </label>
+                        <label>
+                            Description
+                            <textarea name="description" rows="3" maxlength="{{ input_limits.board_description_max }}"></textarea>
+                        </label>
+                        {% include 'partials/board_acl_fields.twig' %}
+                        {% include 'partials/board_min_rank_fields.twig' %}
+                    </div>
+                    <fieldset class="board-icon-picker">
+                        <legend>Board icon (optional)</legend>
+                        <p class="muted">Leave Auto selected to match from the board name.</p>
+                        <div class="board-icon-grid">
+                            <label class="board-icon-option">
+                                <input type="radio" name="icon_key" value="" checked>
+                                <span class="board-icon-tile" title="Auto-match from name">
+                                    <span class="board-icon-auto">Auto</span>
+                                </span>
+                            </label>
+                            {% for key in board_icon_keys %}
+                                <label class="board-icon-option">
+                                    <input type="radio" name="icon_key" value="{{ key }}">
+                                    <span class="board-icon-tile" title="{{ key }}">
+                                        {{ board_icon_svgs[key]|raw }}
+                                    </span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+                    <div class="board-create-actions">
+                        <button type="submit" class="btn btn-primary">Create board</button>
+                    </div>
+                </form>
+            </details>
+        </div>
+    </section>
+
+    <section class="board-admin-section">
+        {% if boards is empty %}
+            <p class="empty">No boards yet. Use the <strong>+</strong> button above to add one.</p>
+        {% else %}
+            <table class="data-table board-admin-table">
+                <thead>
+                    <tr>
+                        <th class="board-col-order">Order</th>
+                        <th class="board-col-board">Board</th>
+                        <th class="board-col-topics">Topics</th>
+                        <th class="board-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for board in boards %}
+                        <tr>
+                            <td class="board-order-cell">
+                                <span class="board-position" aria-label="Position {{ loop.index }}">{{ loop.index }}</span>
+                                <div class="board-order-actions">
+                                    {% if not loop.first %}
+                                        <form class="inline-form" method="post" action="/admin/boards/{{ board.id }}/move">
+                                            {{ csrf_field() }}
+                                            <input type="hidden" name="direction" value="up">
+                                            <button type="submit" class="btn btn-small btn-icon" title="Move up" aria-label="Move {{ board.name }} up">
+                                                {% include 'partials/icon.twig' with { name: 'chevron-up' } %}
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    {% if not loop.last %}
+                                        <form class="inline-form" method="post" action="/admin/boards/{{ board.id }}/move">
+                                            {{ csrf_field() }}
+                                            <input type="hidden" name="direction" value="down">
+                                            <button type="submit" class="btn btn-small btn-icon" title="Move down" aria-label="Move {{ board.name }} down">
+                                                {% include 'partials/icon.twig' with { name: 'chevron-down' } %}
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="board-col-board">
+                                <form method="post" action="/admin/boards/{{ board.id }}/update" class="form board-edit-form">
+                                    {{ csrf_field() }}
+                                    <div class="board-edit-fields">
+                                        <label>
+                                            Name
+                                            <input type="text" name="name" value="{{ board.name }}" required maxlength="{{ input_limits.board_name_max }}">
+                                        </label>
+                                        <label>
+                                            URL slug
+                                            <input type="text" name="slug" value="{{ board.slug }}" required
+                                                   pattern="[a-z0-9][a-z0-9\-]*" spellcheck="false"
+                                                   autocapitalize="off" autocomplete="off">
+                                        </label>
+                                        <label class="board-edit-description">
+                                            Description
+                                            <textarea name="description" rows="2" maxlength="{{ input_limits.board_description_max }}">{{ board.description }}</textarea>
+                                        </label>
+                                    </div>
+                                    <p class="muted board-slug-hint">Board URL: /board/<strong>{{ board.slug }}</strong>. Changing the slug breaks old links.</p>
+                                    {% include 'partials/board_acl_fields.twig' with { board: board } %}
+                                    {% if board.slug != 'mod-trash' %}
+                                        {% include 'partials/board_min_rank_fields.twig' with { board: board } %}
+                                    {% endif %}
+                                    <fieldset class="board-icon-picker">
+                                        <legend>Board icon</legend>
+                                        <div class="board-icon-grid">
+                                            <label class="board-icon-option">
+                                                <input type="radio" name="icon_key" value=""{% if board.icon_key|default('') == '' %} checked{% endif %}>
+                                                <span class="board-icon-tile" title="Auto-match from name">
+                                                    <span class="board-icon-auto">Auto</span>
+                                                </span>
+                                            </label>
+                                            {% for key in board_icon_keys %}
+                                                <label class="board-icon-option">
+                                                    <input type="radio" name="icon_key" value="{{ key }}"{% if board.icon_key|default('') == key %} checked{% endif %}>
+                                                    <span class="board-icon-tile" title="{{ key }}">
+                                                        {{ board_icon_svgs[key]|raw }}
+                                                    </span>
+                                                </label>
+                                            {% endfor %}
+                                        </div>
+                                    </fieldset>
+                                    <button type="submit" class="btn btn-small btn-primary btn-icon" title="Save changes" aria-label="Save changes to {{ board.name }}">
+                                        {% include 'partials/icon.twig' with { name: 'check' } %}
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="board-col-topics">{{ board.topic_count }}</td>
+                            <td class="actions-cell board-col-actions">
+                                <form class="inline-form" method="post" action="/admin/boards/{{ board.id }}/delete"
+                                      data-confirm="Delete board “{{ board.name }}”?{% if board.topic_count %} This will permanently remove {{ board.topic_count }} topic{{ board.topic_count == 1 ? '' : 's' }}.{% endif %}">
+                                    {{ csrf_field() }}
+                                    <button type="submit" class="btn btn-small btn-danger btn-icon" title="Delete board" aria-label="Delete {{ board.name }}">
+                                        {% include 'partials/icon.twig' with { name: 'trash' } %}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </section>
+{% endblock %}

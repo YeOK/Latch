@@ -1,0 +1,72 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}Two-factor authentication — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="page-header">
+        <h1>Two-factor authentication</h1>
+        <p class="muted"><a href="/profile" data-account-panel>← Back to profile</a></p>
+    </section>
+
+    {% if recovery_codes %}
+        <section class="form-section">
+            <h2>Recovery codes</h2>
+            <p class="flash flash-error">Save these codes somewhere safe. Each can be used once if you lose your authenticator.</p>
+            <pre class="recovery-codes">{{ recovery_codes }}</pre>
+        </section>
+    {% endif %}
+
+    <section class="form-section">
+        {% if totp_enabled %}
+            <p><span class="badge">Enabled</span>
+                {% if recovery_codes_remaining > 0 %}
+                    · {{ recovery_codes_remaining }} recovery code{{ recovery_codes_remaining == 1 ? '' : 's' }} remaining
+                {% else %}
+                    · <strong>No recovery codes left</strong> — regenerate below
+                {% endif %}
+            </p>
+
+            {% if not totp_mandatory %}
+                <form method="post" action="/profile/2fa/disable" class="form form-wide">
+                    {{ csrf_field() }}
+                    <h2>Disable two-factor</h2>
+                    <label>
+                        Password
+                        <input type="password" name="password" required autocomplete="current-password">
+                    </label>
+                    <label>
+                        Authentication code
+                        <input type="text" name="code" inputmode="numeric" maxlength="6" required>
+                    </label>
+                    <button type="submit" class="btn btn-danger">Disable</button>
+                </form>
+            {% else %}
+                <p class="muted">Two-factor authentication is required for administrators.</p>
+            {% endif %}
+
+            <form method="post" action="/profile/2fa/recovery" class="form form-wide">
+                {{ csrf_field() }}
+                <h2>Regenerate recovery codes</h2>
+                <p class="muted">This replaces all existing recovery codes.</p>
+                <label>
+                    Password
+                    <input type="password" name="password" required autocomplete="current-password">
+                </label>
+                <label>
+                    Authentication code
+                    <input type="text" name="code" inputmode="numeric" maxlength="6" required>
+                </label>
+                <button type="submit" class="btn btn-primary">Generate new codes</button>
+            </form>
+        {% else %}
+            <p class="muted">Protect your account with a 6-digit code from an authenticator app.</p>
+            {% if totp_mandatory %}
+                <p class="flash flash-error">Required for your role before you can use admin features.</p>
+            {% endif %}
+            <form method="post" action="/profile/2fa/enable">
+                {{ csrf_field() }}
+                <button type="submit" class="btn btn-primary">Enable two-factor authentication</button>
+            </form>
+        {% endif %}
+    </section>
+{% endblock %}

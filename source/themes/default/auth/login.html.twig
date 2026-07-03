@@ -1,0 +1,26 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}{{ trans('auth.sign_in_title') }} — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="auth-card">
+        <h1>{{ trans('auth.sign_in_title') }}</h1>
+        <form method="post" action="/login" class="form">
+            {{ csrf_field() }}
+            <label>
+                {{ trans('auth.username') }}
+                <input type="text" name="username" required autocomplete="username" autofocus>
+            </label>
+            <label>
+                {{ trans('auth.password') }}
+                <input type="password" name="password" required autocomplete="current-password">
+            </label>
+            <button type="submit" class="btn btn-primary">{{ trans('auth.sign_in') }}</button>
+        </form>
+        {% include 'partials/oidc_buttons.html.twig' %}
+        <p class="muted">
+            <a href="/forgot-password">{{ trans('auth.forgot_password') }}</a> ·
+            <a href="/register">{{ trans('auth.create_account') }}</a>
+        </p>
+    </section>
+{% endblock %}

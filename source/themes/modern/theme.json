@@ -1,0 +1,11 @@
+{
+    "name": "Latch Modern",
+    "version": "1.0.0",
+    "author": "Latch",
+    "description": "Alternate theme pack — teal accent, rounded cards; proves theme engine + asset fallback",
+    "supports_color_modes": true,
+    "assets": {
+        "css": ["css/theme.css"],
+        "js": ["js/theme.js", "js/editor.js"]
+    }
+}

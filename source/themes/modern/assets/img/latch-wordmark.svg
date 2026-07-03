@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 32" fill="none" aria-hidden="true">
+  <g class="wordmark-mark" transform="translate(0,2) scale(0.22)">
+    <path d="M20 40h76" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+    <path d="M20 64h60" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+    <path d="M20 88h44" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+    <path d="M88 28v28l18-9-18-9z" fill="currentColor"/>
+    <rect x="80" y="72" width="32" height="40" rx="6" stroke="currentColor" stroke-width="8"/>
+    <path d="M88 72V54a8 8 0 0 1 16 0v18" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="96" cy="90" r="4" fill="currentColor"/>
+  </g>
+  <text x="36" y="22" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="18" font-weight="700" fill="currentColor">Latch</text>
+</svg>

@@ -1,0 +1,6 @@
+{% if flash_error %}
+    <div class="flash flash-error" role="alert">{{ flash_error }}</div>
+{% endif %}
+{% if flash_success %}
+    <div class="flash flash-success" role="status">{{ flash_success }}</div>
+{% endif %}

@@ -1,0 +1,30 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Maintenance enabled — Admin{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <h1>Maintenance mode enabled</h1>
+        <p class="muted">Web and API traffic is now blocked. The database is not accessed for public requests.</p>
+    </section>
+
+    <section class="form-section admin-alert" role="alert">
+        {% if token_expired|default(false) %}
+            <h2>Unlock token already shown</h2>
+            <p>This page only displays the token once, immediately after enabling maintenance mode.</p>
+            <p class="muted">If you did not copy it, unlock on the server with <code>{{ site_lock_cli_hint|default('sudo -u apache php bin/latch lock off') }}</code>, or read <code>storage/site-lock.json</code> as a user with access to <code>storage/</code>.</p>
+        {% else %}
+            <h2>Save your unlock token</h2>
+            <p>You will not be able to use the admin panel until the site is unlocked. Copy this token now.</p>
+            <p><code class="recovery-codes site-lock-token">{{ unlock_token }}</code></p>
+            <p class="muted">Unlock via <a href="/maintenance/unlock">/maintenance/unlock</a> (token above, no database), or on the server: <code>{{ site_lock_cli_hint|default('sudo -u apache php bin/latch lock off') }}</code> (same user as migrate).</p>
+            {% if message %}
+                <p>Public message: {{ message }}</p>
+            {% endif %}
+        {% endif %}
+    </section>
+
+    {% if not token_expired|default(false) %}
+        <p class="muted">Recommended next steps: <code>php bin/latch backup</code> → deploy/update → <code>php bin/latch migrate</code> → <code>php bin/latch lock off</code></p>
+    {% endif %}
+{% endblock %}

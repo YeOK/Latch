@@ -1,0 +1,5 @@
+/* Breathing room between the last board panel and the stats row */
+.forum-stats {
+    margin-top: 3rem;
+    margin-bottom: 0;
+}

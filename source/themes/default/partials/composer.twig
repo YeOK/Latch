@@ -1,0 +1,46 @@
+{# Expects: name (textarea name), rows, required, placeholder, draft_key, value (optional) #}
+<div class="composer" data-editor data-preview-url="/preview" data-draft-key="{{ draft_key|default('') }}">
+    <div class="composer-honeypot" aria-hidden="true">
+        <label>
+            Website
+            <input type="text" name="website" tabindex="-1" autocomplete="off">
+        </label>
+    </div>
+    <div class="composer-tabs" role="tablist">
+        <button type="button" class="composer-tab is-active" data-tab="write" role="tab" aria-selected="true">Write</button>
+        <button type="button" class="composer-tab" data-tab="preview" role="tab" aria-selected="false">Preview</button>
+    </div>
+    <div class="composer-toolbar" aria-label="Formatting">
+        <button type="button" class="composer-btn" data-action="bold" title="Bold"><strong>B</strong></button>
+        <button type="button" class="composer-btn" data-action="italic" title="Italic"><em>I</em></button>
+        <button type="button" class="composer-btn" data-action="link" title="Link">Link</button>
+        <button type="button" class="composer-btn" data-action="quote" title="Quote">Quote</button>
+        <button type="button" class="composer-btn" data-action="code" title="Code block">Code</button>
+        <button type="button" class="composer-btn" data-action="inline-code" title="Inline code">{ }</button>
+        <button type="button" class="composer-btn" data-action="spoiler" title="Spoiler">Spoiler</button>
+        {% for html in plugin_composer_toolbar %}
+            {{ html|raw }}
+        {% endfor %}
+        <div class="composer-emote-picker">
+            <button type="button" class="composer-btn composer-emote-toggle" aria-expanded="false" aria-haspopup="true" title="Emotes">😊</button>
+            <div class="composer-emote-panel" hidden>
+                {% for code, emoji in post_smileys() %}
+                    <button type="button" class="composer-emote-item" data-emote="{{ code }}" title="{{ code }}">{{ emoji }}</button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="composer-panel" data-panel="write">
+        <textarea
+            name="{{ name|default('body') }}"
+            rows="{{ rows|default(8) }}"
+            maxlength="{{ input_limits.post_body_max }}"
+            {% if required|default(false) %}required{% endif %}
+            placeholder="{{ placeholder|default('') }}"
+            class="composer-textarea"
+        >{{ value|default('') }}</textarea>
+    </div>
+    <div class="composer-panel is-hidden" data-panel="preview" role="tabpanel">
+        <div class="composer-preview post-content muted">Preview will appear here.</div>
+    </div>
+</div>

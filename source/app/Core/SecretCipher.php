@@ -1,0 +1,90 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Latch\Core;
+
+/**
+ * Encrypts small secrets (e.g. TOTP keys) at rest using libsodium secretbox.
+ */
+final class SecretCipher
+{
+    public function __construct(
+        private readonly Config $config,
+        /** Raw 32-byte key for bootstrap re-wrap before local.php is updated. */
+        private readonly ?string $overrideKey = null,
+    ) {
+    }
+
+    public function encrypt(string $plaintext): string
+    {
+        $key = $this->key();
+        $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+        $cipher = sodium_crypto_secretbox($plaintext, $nonce, $key);
+
+        return base64_encode($nonce . $cipher);
+    }
+
+    public function decrypt(string $encoded): ?string
+    {
+        $raw = base64_decode($encoded, true);
+        if ($raw === false || strlen($raw) < SODIUM_CRYPTO_SECRETBOX_NONCEBYTES + SODIUM_CRYPTO_SECRETBOX_MACBYTES) {
+            return null;
+        }
+
+        $nonce = substr($raw, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+        $cipher = substr($raw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+
+        $plain = sodium_crypto_secretbox_open($cipher, $nonce, $this->configuredKey());
+        if ($plain !== false) {
+            return $plain;
+        }
+
+        // Legacy: secret may still be wrapped with the derived key if bootstrap wrote
+        // encryption_key before re-wrapping (or re-wrap failed).
+        if ($this->configuredKey() !== null) {
+            $plain = sodium_crypto_secretbox_open($cipher, $nonce, $this->derivedKey());
+            if ($plain !== false) {
+                return $plain;
+            }
+        }
+
+        return null;
+    }
+
+    private function key(): string
+    {
+        if ($this->overrideKey !== null) {
+            return $this->overrideKey;
+        }
+
+        return $this->configuredKey() ?? $this->derivedKey();
+    }
+
+    private function configuredKey(): ?string
+    {
+        $configured = trim((string) $this->config->get('security.encryption_key', ''));
+        if ($configured === '') {
+            return null;
+        }
+
+        $decoded = base64_decode($configured, true);
+        if ($decoded === false || strlen($decoded) !== SODIUM_CRYPTO_SECRETBOX_KEYBYTES) {
+            return null;
+        }
+
+        return $decoded;
+    }
+
+    private function derivedKey(): string
+    {
+        $dbPath = (string) $this->config->get('database.path', 'latch');
+        $siteUrl = (string) $this->config->get('site.url', 'latch');
+
+        return sodium_crypto_generichash(
+            'latch-totp:' . $dbPath . ':' . $siteUrl,
+            '',
+            SODIUM_CRYPTO_SECRETBOX_KEYBYTES,
+        );
+    }
+}

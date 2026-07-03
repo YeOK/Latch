@@ -1,0 +1,215 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}Profile — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="page-header">
+        <h1>{{ trans('profile.title') }}</h1>
+        <p class="muted">{{ trans('profile.signed_in_as') }} <strong>{{ user.username }}</strong> · <a href="/user/{{ user.username }}">{{ trans('profile.public_profile') }}</a></p>
+    </section>
+
+    <section class="form-section">
+        <h2>Profile</h2>
+        <form method="post" action="/profile/save" class="form form-wide">
+            {{ csrf_field() }}
+            <div class="profile-avatar-row">
+                {% include 'partials/avatar.twig' with { username: user.username, avatar_src: avatar_src, avatar_hue: user.avatar_hue|default(210), size: 64 } %}
+                <div>
+                    <p class="muted">
+                        {% if site.use_gravatar %}
+                            Your avatar comes from <a href="https://gravatar.com" rel="noopener noreferrer">Gravatar</a> (linked to your account email) or a generated identicon when Gravatar is disabled site-wide.
+                        {% else %}
+                            Your avatar is a generated identicon from your username. An admin can enable Gravatar in site settings.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <label>
+                Bio
+                <textarea name="bio" rows="3" maxlength="{{ input_limits.bio_max }}">{{ bio }}</textarea>
+            </label>
+            <button type="submit" class="btn btn-primary">Save profile</button>
+        </form>
+    </section>
+
+    {% if direct_messages_enabled|default(false) %}
+    <section class="form-section">
+        <h2>Messages</h2>
+        <p class="muted">Allow other members to send you private messages. Staff can always contact you for moderation (warnings appear in your inbox).</p>
+        <form method="post" action="/profile/accept-messages" class="form form-wide">
+            {{ csrf_field() }}
+            <label class="checkbox">
+                <input type="checkbox" name="accept_messages" value="1"{% if accept_messages %} checked{% endif %}>
+                Accept messages from other forum members
+            </label>
+            <button type="submit" class="btn btn-primary">Save message preference</button>
+        </form>
+    </section>
+    {% endif %}
+
+    <section class="form-section">
+        <h2>{{ trans('profile.appearance') }}</h2>
+        <form method="post" action="/profile/theme" class="form form-wide">
+            {{ csrf_field() }}
+            <label>
+                {{ trans('profile.color_theme') }}
+                <select name="theme_mode">
+                    <option value="system"{% if theme_mode == 'system' %} selected{% endif %}>{{ trans('profile.theme_system') }}</option>
+                    <option value="light"{% if theme_mode == 'light' %} selected{% endif %}>{{ trans('profile.theme_light') }}</option>
+                    <option value="dark"{% if theme_mode == 'dark' %} selected{% endif %}>{{ trans('profile.theme_dark') }}</option>
+                </select>
+            </label>
+            <button type="submit" class="btn btn-primary">{{ trans('profile.save_theme') }}</button>
+        </form>
+        <form method="post" action="/profile/locale" class="form form-wide" style="margin-top: 1rem;">
+            {{ csrf_field() }}
+            <label>
+                {{ trans('profile.language') }}
+                <select name="locale">
+                    {% for code, meta in locale_catalog %}
+                        <option value="{{ code }}"{% if user_locale == code %} selected{% endif %}>{{ meta.native }} ({{ meta.name }})</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="submit" class="btn btn-primary">{{ trans('profile.save_language') }}</button>
+        </form>
+    </section>
+
+    {% if mail_enabled %}
+    <section class="form-section">
+        <h2>Email address</h2>
+        <p class="muted">Current: <strong>{{ user.email }}</strong></p>
+        <form method="post" action="/profile/email-change" class="form form-wide">
+            {{ csrf_field() }}
+            <label>
+                New email
+                <input type="email" name="new_email" required autocomplete="email" maxlength="{{ input_limits.email_max }}">
+            </label>
+            <label>
+                Current password (required)
+                <input type="password" name="current_password" required autocomplete="current-password">
+            </label>
+            <p class="muted">We send a confirmation link to the <strong>new</strong> address. Your email will not change until you confirm.</p>
+            <button type="submit" class="btn btn-primary">Request email change</button>
+        </form>
+    </section>
+
+    <section class="form-section">
+        <h2>Email notifications</h2>
+        <p class="muted">Receive optional email copies when someone replies, mentions you, or staff acts on your content.</p>
+        <form method="post" action="/profile/notify-email" class="form form-wide">
+            {{ csrf_field() }}
+            <label class="checkbox">
+                <input type="checkbox" name="notify_email" value="1"{% if notify_email %} checked{% endif %}>
+                Send email copies of notifications
+            </label>
+            <button type="submit" class="btn btn-primary">Save notification preference</button>
+        </form>
+    </section>
+    {% endif %}
+
+    <section class="form-section">
+        <h2>Security</h2>
+        <p><a href="/profile/2fa" class="btn btn-small" data-account-panel>Two-factor authentication</a></p>
+    </section>
+
+    <section class="form-section">
+        <h2>Change password</h2>
+        <form method="post" action="/profile/password" class="form form-wide">
+            {{ csrf_field() }}
+            <label>
+                Current password
+                <input type="password" name="current_password" required autocomplete="current-password">
+            </label>
+            <label>
+                New password
+                <input type="password" name="new_password" required autocomplete="new-password">
+            </label>
+            <label>
+                Confirm new password
+                <input type="password" name="new_password_confirm" required autocomplete="new-password">
+            </label>
+            <button type="submit" class="btn btn-primary">Update password</button>
+        </form>
+    </section>
+
+    <section class="form-section">
+        <h2>Authorized applications</h2>
+        <p class="muted">Third-party apps you approved via OAuth can access your account within the scopes shown. Revoke access here if you no longer trust an app.</p>
+        {% if authorized_apps is empty %}
+            <p class="muted">No applications are connected to your account.</p>
+        {% else %}
+            <ul class="oauth-app-list">
+                {% for app in authorized_apps %}
+                    <li class="oauth-app-item">
+                        <div class="oauth-app-details">
+                            <strong>{{ app.client_name }}</strong>
+                            <span class="muted">Authorized {{ app.authorized_at|format_datetime }}</span>
+                            <ul class="oauth-app-scopes">
+                                {% for scope in app.scopes %}
+                                    <li>{{ app.scope_labels[scope] ?? scope }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <form class="inline-form" method="post" action="/profile/oauth-apps/{{ app.client_id }}/revoke">
+                            {{ csrf_field() }}
+                            <button type="submit" class="btn btn-small btn-icon oauth-app-revoke" title="Revoke access" aria-label="Revoke access for {{ app.client_name }}">
+                                {% include 'partials/icon.twig' with { name: 'unlink' } %}
+                            </button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+
+    <section class="form-section">
+        <h2>Active sessions</h2>
+        {% if sessions is empty %}
+            <p class="muted">No tracked sessions yet.</p>
+        {% else %}
+            <ul class="session-list">
+                {% for session in sessions %}
+                    <li>
+                        <span>{{ session.user_agent|slice(0, 60) }}</span>
+                        <span class="muted">{{ session.ip_address }} · {{ session.last_seen_at|format_datetime }}</span>
+                        {% if session.id == current_session_id %}
+                            <span class="badge">Current</span>
+                        {% else %}
+                            <form class="inline-form" method="post" action="/profile/sessions/{{ session.id }}/revoke">
+                                {{ csrf_field() }}
+                                <button type="submit" class="link-button">Revoke</button>
+                            </form>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+            <form method="post" action="/profile/sessions/revoke-all" class="inline-form">
+                {{ csrf_field() }}
+                <button type="submit" class="btn btn-small">Revoke all other sessions</button>
+            </form>
+        {% endif %}
+    </section>
+
+    <section class="form-section">
+        <h2>Data export</h2>
+        <p><a href="/profile/export" class="btn btn-small" data-account-bypass>Download JSON export</a></p>
+    </section>
+
+    <section class="form-section danger-zone">
+        <h2>Delete account</h2>
+        {% if anonymise_posts_on_delete %}
+            <p class="muted">Your posts and topics will be replaced with <code>[deleted]</code> before the account is removed.</p>
+        {% else %}
+            <p class="muted">Your posts and topics will remain with your username on record.</p>
+        {% endif %}
+        <form method="post" action="/profile/delete" class="form">
+            {{ csrf_field() }}
+            <label>
+                Confirm with your password
+                <input type="password" name="password" required autocomplete="current-password">
+            </label>
+            <button type="submit" class="btn btn-danger">Delete my account</button>
+        </form>
+    </section>
+{% endblock %}

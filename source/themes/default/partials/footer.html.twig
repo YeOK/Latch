@@ -1,0 +1,59 @@
+<footer class="site-footer">
+    <div class="container footer-inner">
+        <div class="footer-grid">
+            <section class="footer-about">
+                {% if site.name|lower == 'latch' %}
+                    {% include 'partials/brand_latch.html.twig' with { brand_variant: 'footer' } %}
+                {% else %}
+                    {% include 'partials/brand_custom.html.twig' with { brand_variant: 'footer' } %}
+                {% endif %}
+                <p>Fast, secure, self-hosted forum software. MIT-licensed — PHP 8.2+, SQLite, Twig themes, and built-in moderation tools.</p>
+                <p class="footer-tagline muted">Designed for simple ops: one database file, WAL mode, guest caching, and fail2ban-ready auth.</p>
+            </section>
+            <section class="footer-links">
+                <h2 class="footer-heading">{{ trans('footer.explore') }}</h2>
+                <ul>
+                    <li><a href="/">{{ trans('common.boards') }}</a></li>
+                    <li><a href="/search">{{ trans('common.search') }}</a></li>
+                    {% if not members_only or user %}<li><a href="/feed.xml">{{ trans('footer.rss') }}</a></li>{% endif %}
+                    {% if user %}
+                        <li><a href="/profile">{{ trans('footer.your_profile') }}</a></li>
+                    {% else %}
+                        <li><a href="/login">{{ trans('footer.sign_in') }}</a></li>
+                        {% if allow_registration %}<li><a href="/register">{{ trans('footer.register') }}</a></li>{% endif %}
+                    {% endif %}
+                </ul>
+                {% include 'partials/locale_switcher.html.twig' with { variant: 'footer' } %}
+            </section>
+            <section class="footer-links">
+                <h2 class="footer-heading">{% if gdpr_enabled %}{{ trans('footer.privacy_gdpr') }}{% else %}{{ trans('footer.privacy') }}{% endif %}</h2>
+                <ul>
+                    <li><a href="/privacy">{{ trans('footer.privacy_policy') }}</a></li>
+                    <li><a href="/cookies">{{ trans('footer.cookie_policy') }}</a></li>
+                    {% if user %}
+                        <li><a href="/profile/export">{{ trans('footer.download_data') }}</a></li>
+                        <li><a href="/profile">{{ trans('footer.manage_account') }}</a></li>
+                    {% endif %}
+                </ul>
+                {% if gdpr_enabled %}
+                    <p class="footer-gdpr-note muted">EU hosting mode: essential cookies only until you accept. Session and preference data are processed to run this forum.</p>
+                {% endif %}
+            </section>
+            <section class="footer-links">
+                <h2 class="footer-heading">{{ trans('footer.operator') }}</h2>
+                <p class="footer-operator">{{ privacy_operator_name }}</p>
+                {% if privacy_contact_email %}
+                    <p><a href="mailto:{{ privacy_contact_email }}">{{ privacy_contact_email }}</a></p>
+                {% endif %}
+                <p class="muted"><a href="https://latch.network" rel="noopener">latch.network</a></p>
+            </section>
+        </div>
+        {% for html in plugin_footer_html|default([]) %}
+            {{ html|raw }}
+        {% endfor %}
+        <p class="footer-meta">
+            © {{ "now"|date("Y") }} {{ privacy_operator_name }} · Powered by <a href="https://latch.network" rel="noopener">Latch</a>
+            {% if gdpr_enabled %} · <button type="button" class="link-button" id="footer-cookie-settings">Cookie settings</button>{% endif %}
+        </p>
+    </div>
+</footer>

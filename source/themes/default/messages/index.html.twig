@@ -1,0 +1,17 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}Messages — {{ site.name }}{% endblock %}
+
+{% block main_class %} page-messages{% endblock %}
+
+{% block content %}
+    <section class="page-header messages-page-header">
+        <h1>Messages</h1>
+        <p class="muted">Private conversations with other members. Staff can always reach you for moderation.</p>
+    </section>
+
+    {% include 'partials/messages_app.html.twig' with {
+        active_conversation_id: active_conversation_id,
+        active_conversation: active_conversation
+    } %}
+{% endblock %}

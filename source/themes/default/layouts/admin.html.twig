@@ -1,0 +1,31 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block content %}
+    <div class="admin-shell">
+        <aside class="admin-sidebar" aria-label="Admin navigation">
+            <p class="admin-sidebar-title">Admin</p>
+            <nav class="admin-sidebar-nav">
+                <a class="admin-sidebar-link{% if current_path == '/admin' %} is-active{% endif %}" href="/admin">Dashboard</a>
+                <a class="admin-sidebar-link{% if current_path starts with '/admin/users' %} is-active{% endif %}" href="/admin/users">Users</a>
+                <a class="admin-sidebar-link{% if current_path == '/admin/boards' %} is-active{% endif %}" href="/admin/boards">Boards</a>
+                <a class="admin-sidebar-link{% if current_path == '/admin/settings' %} is-active{% endif %}" href="/admin/settings">Settings</a>
+                <a class="admin-sidebar-link{% if current_path == '/admin/plugins' %} is-active{% endif %}" href="/admin/plugins">Plugins</a>
+                <a class="admin-sidebar-link{% if current_path starts with '/admin/webhooks' %} is-active{% endif %}" href="/admin/webhooks">Webhooks</a>
+                <a class="admin-sidebar-link{% if current_path == '/admin/reports' %} is-active{% endif %}" href="/admin/reports">Reports</a>
+                <a class="admin-sidebar-link{% if current_path == '/admin/quarantine' %} is-active{% endif %}" href="/admin/quarantine">Quarantine</a>
+                <a class="admin-sidebar-link{% if current_path == '/admin/approval' %} is-active{% endif %}" href="/admin/approval">Approval</a>
+                <a class="admin-sidebar-link{% if current_path starts with '/board/mod-trash' %} is-active{% endif %}" href="/board/mod-trash">Moderation trash</a>
+                <a class="admin-sidebar-link{% if current_path == '/admin/audit' %} is-active{% endif %}" href="/admin/audit">Audit log</a>
+                {% for item in plugin_admin_menu_items %}
+                    <a class="admin-sidebar-link{% if item.match is defined and current_path starts with item.match %} is-active{% elseif current_path == item.href %} is-active{% endif %}" href="{{ item.href }}">{{ item.label }}</a>
+                {% endfor %}
+            </nav>
+            <a class="admin-sidebar-back" href="/">← Back to forum</a>
+        </aside>
+        <div class="admin-main">
+            <p class="flash admin-spa-flash" id="admin-spa-flash" hidden></p>
+            {% include 'partials/flash.html.twig' %}
+            {% block admin_content %}{% endblock %}
+        </div>
+    </div>
+{% endblock %}
