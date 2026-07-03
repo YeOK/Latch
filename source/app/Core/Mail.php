@@ -116,8 +116,6 @@ final class Mail
         }
 
         $candidates[] = dirname(LATCH_ROOT) . '/deploy/msmtp.conf';
-        $candidates[] = '/var/www/henpen/deploy/msmtp.conf';
-        $candidates[] = dirname(LATCH_ROOT, 2) . '/henpen.dev/deploy/msmtp.conf';
 
         foreach ($candidates as $path) {
             if ($path !== '' && is_readable($path)) {

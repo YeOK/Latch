@@ -51,10 +51,10 @@ Create the database, write `config/local.php`, and create the first admin accoun
 
 ```bash
 php bin/latch install \
-  --url=https://latch.network \
-  --name=Latch \
-  --admin-user=yeok \
-  --admin-email=you@example.com
+  --url=https://forum.example.com \
+  --name="My Forum" \
+  --admin-user=admin \
+  --admin-email=admin@example.com
 ```
 
 | Option | Default | Description |
@@ -475,7 +475,7 @@ Post Software Updates or changelog entries from a JSON file (idempotent HTML com
 ```bash
 php bin/latch post-announcements \
   --topic=4 \
-  --user=yeok \
+  --user=admin \
   --file=data/changelog-announcements.json
 ```
 

@@ -18,12 +18,12 @@ sudo dnf install -y php-pdo php-mbstring
 
 ## Release install (v0.3.0+)
 
-Download from **[GitHub Releases](https://github.com/YeOK/Latch/releases)** (`latch-0.3.0.1.tar.gz` + `SHA256SUMS`):
+Download from **[GitHub Releases](https://github.com/YeOK/Latch/releases)** (`latch-0.3.0.2.tar.gz` + `SHA256SUMS`):
 
 ```bash
 sha256sum -c SHA256SUMS
-tar -xzf latch-0.3.0.1.tar.gz
-cd latch-0.3.0.1-stage/source
+tar -xzf latch-0.3.0.2.tar.gz
+cd latch-0.3.0.2-stage/source
 composer install --no-dev
 php bin/latch install --url=https://forum.example.com --name="My Forum"
 ```
@@ -65,28 +65,26 @@ php bin/latch install \
   --admin-pass='change-me-now'
 ```
 
-## Production (latch.network)
+## Production deployment
 
-Deploy to the home server with Cloudflare in front (same as henpen.dev):
+Typical layout: install under `/var/www/latch` (or your vhost path), web root at `source/public`, database and logs in `storage/`.
 
-1. **Cloudflare DNS** — add `A`/`AAAA` records for `latch.network` and `www` pointing at your origin IP; enable the proxy (orange cloud).
-2. **SSL/TLS mode** — Flexible or Full is fine; Apache listens on port 80 only and Cloudflare terminates HTTPS.
-3. **Deploy** — from the project root:
-
-```bash
-./scripts/sync-latch.sh
-```
-
-On first deploy, if no database exists on the server yet:
+1. **DNS & TLS** — point your domain at the origin. A reverse proxy (Cloudflare, Caddy, nginx) can terminate HTTPS; Apache/nginx on the host can listen on port 80 or behind the proxy.
+2. **First deploy** — copy or extract the release tree to the server, then:
 
 ```bash
-ssh yeok@192.168.1.6
 cd /var/www/latch/source
-php bin/latch migrate
-php bin/latch install --url=https://latch.network --admin-user=yeok --admin-email=yeok@henpen.org
+composer install --no-dev
+php bin/latch install \
+  --url=https://forum.example.com \
+  --name="My Forum" \
+  --admin-user=admin \
+  --admin-email=admin@example.com
 ```
 
-Subsequent deploys preserve `storage/database/latch.sqlite` and `config/local.php`.
+3. **Upgrades** — replace application files, then run `sudo bash scripts/update.sh` from the install root (see [UPGRADE.md](UPGRADE.md)). Existing `storage/database/latch.sqlite` and `config/local.php` are preserved.
+
+A reference install runs at **[latch.network](https://latch.network)**. Example vhost: `deploy/latch.conf` or `deploy/latch.network.conf`.
 
 ## Web server
 
@@ -122,7 +120,7 @@ location ~ \.php$ {
 Add your deploy user to the `apache` group so you can run CLI commands without sudo:
 
 ```bash
-sudo usermod -aG apache yeok
+sudo usermod -aG apache your-deploy-user
 # then log out and back in, or: newgrp apache
 ```
 

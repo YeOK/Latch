@@ -1,6 +1,6 @@
 # Upgrading Latch
 
-One-page operator runbook for self-hosted forums. **Private deploy** (`sync-latch.sh` on latch.network) and **public install** (`scripts/update.sh` or release tarball) follow the same safety sequence.
+One-page operator runbook for self-hosted forums. Whether you deploy from a release tarball or a git checkout, use the same safety sequence on the server.
 
 ## Quick path (recommended)
 
@@ -130,6 +130,6 @@ Or run `sudo bash scripts/fix-latch-storage-perms.sh` from the repo root.
 
 See [CLI.md](CLI.md) for full `db-check`, `restore`, and `update` options.
 
-## Private operator note (latch.network)
+## Operator note
 
-`scripts/sync-latch.sh` publishes code from your dev machine; run `scripts/update.sh` on the server after publish. Site lock + backup + db-check are not optional for production SQLite under write load.
+Site lock, backup, and `db-check` are not optional for production SQLite under write load. Run `scripts/update.sh` on the server after new files land.

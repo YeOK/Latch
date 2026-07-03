@@ -59,9 +59,7 @@ Settings are resolved in this order (later wins):
 If `mail_msmtp_config` is empty, Latch checks (first readable wins):
 
 - Path from `config/local.php` → `mail.msmtp_config`
-- `{install_root}/deploy/msmtp.conf` (e.g. `/var/www/latch/deploy/msmtp.conf`)
-- `/var/www/henpen/deploy/msmtp.conf` (shared relay on yeok's server)
-- `{parent}/henpen.dev/deploy/msmtp.conf`
+- `{install_root}/../deploy/msmtp.conf` (e.g. `/var/www/latch/deploy/msmtp.conf` when `source/` is the install root)
 
 ## Alternative: PHP mail()
 
@@ -83,14 +81,6 @@ msmtp also writes to the `logfile` in `msmtp.conf`.
 ## Security audit
 
 `php bin/latch audit` warns if **Require email verification** is on but mail is not configured.
-
-## latch.network (production)
-
-Latch shares the Google Workspace SMTP relay used by HenPen:
-
-- Config: `/var/www/latch/deploy/msmtp.conf`
-- From: `noreply@henpen.org` (relay allowlist is IP-based)
-- Admin from name: `Latch`
 
 ## Troubleshooting
 
