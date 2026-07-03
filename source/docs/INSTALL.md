@@ -18,12 +18,12 @@ sudo dnf install -y php-pdo php-mbstring
 
 ## Release install (v0.3.0+)
 
-Download from **[GitHub Releases](https://github.com/YeOK/Latch/releases)** (`latch-0.3.0.tar.gz` + `SHA256SUMS`):
+Download from **[GitHub Releases](https://github.com/YeOK/Latch/releases)** (`latch-0.3.0.1.tar.gz` + `SHA256SUMS`):
 
 ```bash
 sha256sum -c SHA256SUMS
-tar -xzf latch-0.3.0.tar.gz
-cd latch-0.3.0-stage/source
+tar -xzf latch-0.3.0.1.tar.gz
+cd latch-0.3.0.1-stage/source
 composer install --no-dev
 php bin/latch install --url=https://forum.example.com --name="My Forum"
 ```

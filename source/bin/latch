@@ -1208,7 +1208,7 @@ function run_post_announcements(array $argv): void
     $stmt = $db->pdo()->prepare('SELECT body FROM posts WHERE topic_id = :topic_id AND deleted_at IS NULL');
     $stmt->execute(['topic_id' => $topicId]);
     foreach ($stmt->fetchAll() as $row) {
-        if (preg_match('/<!-- latch-announcement:([a-z0-9-]+) -->/', (string) $row['body'], $m)) {
+        if (preg_match('/<!-- latch-announcement:([a-z0-9._-]+) -->/', (string) $row['body'], $m)) {
             $existingMarkers[$m[1]] = true;
         }
     }

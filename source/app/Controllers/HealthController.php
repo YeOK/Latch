@@ -17,7 +17,7 @@ final class HealthController
     {
         Response::json([
             'status' => 'ok',
-            'version' => '1.5.0',
+            'version' => (string) $this->app->config()->get('app.version', '0.0.0'),
             'cache_enabled' => $this->app->cacheEnabled(),
         ]);
     }
