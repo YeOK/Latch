@@ -16,7 +16,30 @@ sudo dnf install -y php-pdo php-mbstring
 - Composer (or use the bundled `composer.phar`)
 - Apache with `mod_rewrite`, or nginx with equivalent routing
 
-## Quick install
+## Release install (v0.3.0+)
+
+Download from **[GitHub Releases](https://github.com/YeOK/Latch/releases)** (`latch-0.3.0.tar.gz` + `SHA256SUMS`):
+
+```bash
+sha256sum -c SHA256SUMS
+tar -xzf latch-0.3.0.tar.gz
+cd latch-0.3.0-stage/source
+composer install --no-dev
+php bin/latch install --url=https://forum.example.com --name="My Forum"
+```
+
+Or clone the public repo:
+
+```bash
+git clone https://github.com/YeOK/Latch.git
+cd Latch/source
+composer install --no-dev
+php bin/latch install
+```
+
+Point the web server **only** at `public/`. Keep `storage/` and `config/local.php` private.
+
+## Quick install (from source tree)
 
 ```bash
 cd source
