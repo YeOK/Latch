@@ -18,6 +18,18 @@ Most forums ask you to run a database server, a cache, a job queue, and a dozen 
 
 **Probably not yet if you:** need multi-million-post scale on clustered Postgres today (SQLite has limits); want a fully hosted, zero-ops solution.
 
+### Screenshots
+
+From the live install at **[latch.network](https://latch.network)**:
+
+**Boards home** — pinned topics, full-text search, light/dark theme, and forum stats.
+
+![Latch boards home — dark theme with pinned topics and forum stats](docs/images/boards-home.jpg)
+
+**Admin dashboard** — site lock for safe upgrades, one-click backup, search rebuild, and moderation queues at a glance.
+
+![Latch admin dashboard — maintenance mode, backups, and forum overview](docs/images/admin-dashboard.jpg)
+
 Try it in minutes — download a release tarball, run `php bin/latch install`, point your web server at `source/public/`. See [source/docs/INSTALL.md](source/docs/INSTALL.md).
 
 - **Plan:** [PLAN.md](PLAN.md)
