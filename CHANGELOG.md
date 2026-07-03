@@ -112,4 +112,5 @@ php bin/latch install --url=https://forum.example.com --name="My Forum"
 cd /var/www/latch && sudo bash scripts/update.sh
 ```
 
-[0.3.0]: https://github.com/YeOK/Latch/releases/tag/v0.3.0
+[0.3.0.1]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.1
+[0.3.0]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.1
