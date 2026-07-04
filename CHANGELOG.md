@@ -7,6 +7,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0.12] — 2026-07-04
+
 ### Added
 - **phpBB import (Phase 6 v1)** — `bin/latch import phpbb` with `--dry-run` / `--confirm` (JSON bundle) and `--export --from-mysql=` (requires `pdo_mysql`); `BbcodeConverter`, `import_map` migration `031`, fixture bundles under `scripts/fixtures/phpbb/`.
 - **Phase 5 test gates** — `bin/latch test --smoke` and `test --security` run dedicated PHPUnit suites (`phpunit.xml.dist`), then `db-check` / `audit`; optional live HTTP probes with `--url=` or `tests/smoke/config.local.php`; smoke also runs `tests/api/` harness when API config exists.
@@ -179,5 +181,6 @@ php bin/latch install --url=https://forum.example.com --name="My Forum"
 cd /var/www/latch && sudo bash scripts/update.sh
 ```
 
+[0.3.0.12]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.12
 [0.3.0.1]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.1
 [0.3.0]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.1

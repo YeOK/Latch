@@ -32,14 +32,13 @@ From the live install at **[latch.network](https://latch.network)**:
 
 Try it in minutes — download a release tarball, run `php bin/latch install`, point your web server at `source/public/`. See [source/docs/INSTALL.md](source/docs/INSTALL.md).
 
-- **Plan:** [PLAN.md](PLAN.md)
 - **License:** MIT (see [LICENSE](LICENSE))
 - **Source:** all code under [`source/`](source/)
 
 ## Status
 
-**v0.3.0.3** — public release (Phases 1–4 core + Phase 5 operator tooling).  
-Live demo: **[latch.network](https://latch.network)** · Release notes: [CHANGELOG.md](CHANGELOG.md) · [v0.3.0](docs/RELEASE-v0.3.0.md)
+**v0.3.0.12** — public release (Phases 1–5 operator tooling + Phase 6 phpBB import v1).  
+Live demo: **[latch.network](https://latch.network)** · Release notes: [CHANGELOG.md](CHANGELOG.md)
 
 ## Quick paths
 
@@ -57,12 +56,12 @@ Production: **https://latch.network** (Cloudflare proxy → home server Apache v
 ## Install (release tarball)
 
 ```bash
-tar -xzf latch-0.3.0.3.tar.gz && cd latch-0.3.0.3-stage/source
+tar -xzf latch-0.3.0.12.tar.gz && cd latch-0.3.0.12-stage/source
 composer install --no-dev
 php bin/latch install --url=https://forum.example.com --name="My Forum"
 ```
 
-Download: [GitHub Releases](https://github.com/YeOK/Latch/releases) · Build locally: `./scripts/build-release.sh` → `dist/latch-0.3.0.3.tar.gz`
+Download: [GitHub Releases](https://github.com/YeOK/Latch/releases) · Build locally: `./scripts/build-release.sh` → `dist/latch-0.3.0.12.tar.gz`
 
 **Fedora/RHEL:** COPR RPM — see [source/docs/INSTALL-FEDORA.md](source/docs/INSTALL-FEDORA.md).
 
