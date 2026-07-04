@@ -6,9 +6,11 @@
 
 %global latch_datadir %{_datadir}/latch
 %global latch_libdir %{_localstatedir}/lib/latch
+# COPR mock may not load systemd-rpm-macros; define explicitly.
+%global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.4
+Version:        0.3.0.5
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -160,6 +162,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.5-1
+- COPR: define %%{_unitdir} (systemd macros missing in mock)
+
 * Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.4-1
 - COPR: ship committed production vendor/ (mock builds have no network)
 
