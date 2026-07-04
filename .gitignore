@@ -1,6 +1,3 @@
-# Composer
-source/vendor/
-
 # Runtime / secrets
 source/storage/database/*.sqlite
 source/storage/database/*.sqlite-*
