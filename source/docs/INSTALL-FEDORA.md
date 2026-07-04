@@ -6,8 +6,6 @@ Recommended for **Fedora/RHEL-like** hosts: `dnf` installs PHP, Apache, and exte
 
 ## Enable COPR
 
-After the maintainer publishes the COPR project (see [docs/COPR.md](../../../docs/COPR.md) in the git repo):
-
 ```bash
 sudo dnf copr enable yeok/latch
 sudo dnf install latch
@@ -116,5 +114,4 @@ See [CLI.md](CLI.md) for the full command reference.
 ## Related docs
 
 - [INSTALL.md](INSTALL.md) — generic install (tarball, git)  
-- [UPGRADE.md](UPGRADE.md) — rollback and manual update sequence  
-- [docs/COPR.md](../../../docs/COPR.md) — maintainer COPR + auto-build setup
+- [UPGRADE.md](UPGRADE.md) — rollback and manual update sequence

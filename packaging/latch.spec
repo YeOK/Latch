@@ -1,8 +1,7 @@
 # Latch — self-hosted PHP forum (RPM for Fedora / COPR)
 # Sync Version: with repo VERSION file and git tag v{version}
 #
-# COPR: set "RPM spec file" to packaging/latch.spec, trigger via webhook on v* tags.
-# See docs/COPR.md
+# COPR: spec path packaging/latch.spec (maintainer notes: deploy/copr-setup.md, local only)
 
 %global latch_datadir %{_datadir}/latch
 %global latch_libdir %{_localstatedir}/lib/latch

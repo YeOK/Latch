@@ -9,5 +9,5 @@
 | `latch-httpd.conf` | Apache vhost template → `/etc/httpd/conf.d/latch.conf` |
 | `systemd/` | `latch-cron-*.timer` replaces crontab for `apache` |
 
-**Maintainer:** [docs/COPR.md](../docs/COPR.md)  
-**Operators:** [source/docs/INSTALL-FEDORA.md](../source/docs/INSTALL-FEDORA.md)
+**Operators:** [source/docs/INSTALL-FEDORA.md](../source/docs/INSTALL-FEDORA.md)  
+**Maintainer setup:** local `deploy/copr-setup.md` (not in git)

@@ -64,6 +64,6 @@ php bin/latch install --url=https://forum.example.com --name="My Forum"
 
 Download: [GitHub Releases](https://github.com/YeOK/Latch/releases) · Build locally: `./scripts/build-release.sh` → `dist/latch-0.3.0.3.tar.gz`
 
-**Fedora/RHEL:** COPR RPM — see [source/docs/INSTALL-FEDORA.md](source/docs/INSTALL-FEDORA.md) (maintainer setup: [docs/COPR.md](docs/COPR.md)).
+**Fedora/RHEL:** COPR RPM — see [source/docs/INSTALL-FEDORA.md](source/docs/INSTALL-FEDORA.md).
 
 See [source/docs/INSTALL.md](source/docs/INSTALL.md) and [source/docs/UPGRADE.md](source/docs/UPGRADE.md).

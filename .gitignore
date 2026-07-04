@@ -34,6 +34,8 @@ dist/
 # Operator-only (excluded from release tarball; keep local)
 PLAN.md
 deploy/
+.github/
+docs/COPR.md
 scripts/sync-latch.sh
 scripts/publish-latch-server.sh
 scripts/publish-latch-nopass.sh
