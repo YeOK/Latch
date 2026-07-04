@@ -25,6 +25,14 @@ sudo systemctl enable --now httpd php-fpm
 sudo systemctl enable --now latch-cron-hourly.timer latch-cron-daily.timer latch-cron-weekly.timer
 ```
 
+The RPM installs a **fail2ban** `latch-login` jail (watches `/var/log/httpd/latch-access.log` for failed `POST /login`). `dnf install latch` pulls in fail2ban via a weak dependency when recommends are enabled. Verify:
+
+```bash
+sudo fail2ban-client status latch-login
+```
+
+If you customized Apache log paths, edit `/etc/fail2ban/jail.d/latch-login.local` to match.
+
 Edit the vhost `ServerName` if needed:
 
 ```bash

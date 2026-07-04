@@ -10,7 +10,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.5
+Version:        0.3.0.6
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -32,6 +32,7 @@ Requires:       php-pdo
 Requires:       php-opcache
 Requires:       php-xml
 Recommends:     msmtp
+Recommends:     fail2ban
 
 %description
 Latch is a fast, secure, self-hosted forum on PHP and SQLite. This package
@@ -60,6 +61,8 @@ install -d %{buildroot}%{_sysconfdir}/latch
 install -d %{buildroot}%{_sysconfdir}/httpd/conf.d
 install -d %{buildroot}%{_bindir}
 install -d %{buildroot}%{_unitdir}
+install -d %{buildroot}%{_sysconfdir}/fail2ban/filter.d
+install -d %{buildroot}%{_sysconfdir}/fail2ban/jail.d
 
 # Application tree (exclude operator-only / runtime paths)
 rsync -a \
@@ -100,6 +103,8 @@ install -m 0644 packaging/systemd/latch-cron-daily.service %{buildroot}%{_unitdi
 install -m 0644 packaging/systemd/latch-cron-daily.timer %{buildroot}%{_unitdir}/latch-cron-daily.timer
 install -m 0644 packaging/systemd/latch-cron-weekly.service %{buildroot}%{_unitdir}/latch-cron-weekly.service
 install -m 0644 packaging/systemd/latch-cron-weekly.timer %{buildroot}%{_unitdir}/latch-cron-weekly.timer
+install -m 0644 packaging/fail2ban/latch-login.conf %{buildroot}%{_sysconfdir}/fail2ban/filter.d/latch-login.conf
+install -m 0644 packaging/fail2ban/latch-login.local %{buildroot}%{_sysconfdir}/fail2ban/jail.d/latch-login.local
 
 %pre
 getent group apache >/dev/null 2>&1 || groupadd -r apache 2>/dev/null || true
@@ -122,6 +127,12 @@ chmod 2770 %{latch_libdir}/storage/database %{latch_libdir}/storage/backups %{la
 systemctl daemon-reload >/dev/null 2>&1 || true
 systemctl enable --now latch-cron-hourly.timer latch-cron-daily.timer latch-cron-weekly.timer >/dev/null 2>&1 || true
 
+if command -v fail2ban-client >/dev/null 2>&1; then
+    systemctl enable --now fail2ban >/dev/null 2>&1 || true
+    fail2ban-client -t >/dev/null 2>&1 || true
+    systemctl try-restart fail2ban >/dev/null 2>&1 || systemctl restart fail2ban >/dev/null 2>&1 || true
+fi
+
 if [ ! -f %{_sysconfdir}/latch/local.php ]; then
     echo ""
     echo "Latch installed. Next steps:"
@@ -136,6 +147,11 @@ if [ "$1" = "0" ]; then
     systemctl disable --now latch-cron-hourly.timer latch-cron-daily.timer latch-cron-weekly.timer >/dev/null 2>&1 || true
 fi
 
+%postun
+if [ "$1" -eq 0 ] && command -v fail2ban-client >/dev/null 2>&1; then
+    systemctl try-restart fail2ban >/dev/null 2>&1 || true
+fi
+
 %posttrans
 if [ -f %{_sysconfdir}/latch/local.php ] && [ -f %{latch_libdir}/storage/database/latch.sqlite ]; then
     %{latch_datadir}/packaging/latch-rpm-update || :
@@ -144,6 +160,8 @@ fi
 %files
 %dir %{_sysconfdir}/latch
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/latch.conf
+%config(noreplace) %{_sysconfdir}/fail2ban/filter.d/latch-login.conf
+%config(noreplace) %{_sysconfdir}/fail2ban/jail.d/latch-login.local
 %{_sysconfdir}/latch/local.php.example
 %{_bindir}/latch
 %{_bindir}/latch-setup
@@ -162,6 +180,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.6-1
+- RPM: ship fail2ban latch-login filter/jail; enable on install when fail2ban present
+
 * Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.5-1
 - COPR: define %%{_unitdir} (systemd macros missing in mock)
 

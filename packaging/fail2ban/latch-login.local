@@ -1,0 +1,10 @@
+# /etc/fail2ban/jail.d/latch-login.local
+# Log path matches packaging/latch-httpd.conf CustomLog.
+[latch-login]
+enabled = true
+port = http,https
+filter = latch-login
+logpath = /var/log/httpd/latch-access.log
+maxretry = 5
+findtime = 600
+bantime = 3600

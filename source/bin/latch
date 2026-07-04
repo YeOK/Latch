@@ -264,9 +264,10 @@ function collect_audit_issues(Config $config): array
         $issues[] = 'SecurityHeaders class missing';
     }
 
-    $fail2banFilter = dirname(LATCH_ROOT) . '/deploy/server/fail2ban-latch-login.conf';
-    if (!is_file($fail2banFilter)) {
-        $issues[] = 'fail2ban filter template missing at deploy/server/fail2ban-latch-login.conf';
+    $fail2banInstalled = is_file('/etc/fail2ban/filter.d/latch-login.conf');
+    $fail2banTemplate = dirname(LATCH_ROOT) . '/deploy/server/fail2ban-latch-login.conf';
+    if (!$fail2banInstalled && !is_file($fail2banTemplate)) {
+        $issues[] = 'fail2ban filter missing (install latch RPM or deploy/server/fail2ban-latch-login.conf)';
     }
 
     if (ini_get('display_errors') === '1') {
