@@ -9,10 +9,13 @@ return array(
     'Twig\\' => array($vendorDir . '/twig/twig/src'),
     'Symfony\\Polyfill\\Mbstring\\' => array($vendorDir . '/symfony/polyfill-mbstring'),
     'Symfony\\Polyfill\\Ctype\\' => array($vendorDir . '/symfony/polyfill-ctype'),
+    'PhpParser\\' => array($vendorDir . '/nikic/php-parser/lib/PhpParser'),
+    'Latch\\Tests\\' => array($baseDir . '/tests'),
     'Latch\\Plugins\\MdImport\\' => array($baseDir . '/plugins/md-import/src'),
     'Latch\\Plugins\\ImageUpload\\' => array($baseDir . '/plugins/image-upload/src'),
     'Latch\\Plugins\\ForumStats\\' => array($baseDir . '/plugins/forum-stats/src'),
     'Latch\\' => array($baseDir . '/app'),
+    'DeepCopy\\' => array($vendorDir . '/myclabs/deep-copy/src/DeepCopy'),
     'DASPRiD\\Enum\\' => array($vendorDir . '/dasprid/enum/src'),
     'BaconQrCode\\' => array($vendorDir . '/bacon/bacon-qr-code/src'),
 );

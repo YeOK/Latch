@@ -17,7 +17,9 @@
                 <a class="admin-sidebar-link{% if current_path == '/admin/audit' %} is-active{% endif %}" href="/admin/audit">Audit log</a>
                 <a class="admin-sidebar-link{% if current_path == '/admin/maintenance' %} is-active{% endif %}" href="/admin/maintenance">Maintenance</a>
                 {% for item in plugin_admin_menu_items %}
-                    <a class="admin-sidebar-link{% if item.match is defined and current_path starts with item.match %} is-active{% elseif current_path == item.href %} is-active{% endif %}" href="{{ item.href }}">{{ item.label }}</a>
+                    {% if item is mapping %}
+                        <a class="admin-sidebar-link{% if item.match is defined and current_path starts with item.match %} is-active{% elseif current_path == item.href %} is-active{% endif %}" href="{{ item.href }}">{{ item.label }}</a>
+                    {% endif %}
                 {% endfor %}
             </nav>
             <a class="admin-sidebar-back" href="/">← Back to forum</a>

@@ -7,6 +7,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0.10] — 2026-07-04
+
+### Fixed
+- **Admin 500 after upgrade** — stale PHP-FPM opcache could still run the pre-0.3.0.9 `HookRegistry` after `dnf upgrade`, breaking plugin sidebar links (`md-import`). RPM `%posttrans` now restarts `php-fpm`; admin layout skips non-mapping menu entries defensively.
+
 ## [0.3.0.9] — 2026-07-04
 
 ### Added

@@ -10,7 +10,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.9
+Version:        0.3.0.10
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -155,6 +155,9 @@ if [ "$1" -eq 0 ] && command -v fail2ban-client >/dev/null 2>&1; then
 fi
 
 %posttrans
+# Reload PHP so opcache picks up app changes after rpm upgrade.
+systemctl try-restart php-fpm >/dev/null 2>&1 || true
+
 if [ -f %{_sysconfdir}/latch/local.php ] && [ -f %{latch_libdir}/storage/database/latch.sqlite ]; then
     %{latch_datadir}/packaging/latch-rpm-update || :
 fi
@@ -178,6 +181,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.10-1
+- Restart php-fpm after upgrade (opcache); guard plugin admin menu items in Twig
+
 * Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.9-1
 - Admin dashboard system panel; footer about text setting; md-import operator plugin; plugin admin SPA fix
 
