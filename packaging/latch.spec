@@ -10,7 +10,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.6
+Version:        0.3.0.7
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -56,7 +56,6 @@ fi
 
 %install
 install -d %{buildroot}%{latch_datadir}
-install -d %{buildroot}%{latch_libdir}/storage/{database,backups,logs,cache/twig}
 install -d %{buildroot}%{_sysconfdir}/latch
 install -d %{buildroot}%{_sysconfdir}/httpd/conf.d
 install -d %{buildroot}%{_bindir}
@@ -120,6 +119,8 @@ if [ ! -L %{latch_datadir}/source/storage ]; then
     ln -sf %{latch_libdir}/storage %{latch_datadir}/source/storage
 fi
 
+# Runtime state — created here, not in %%files (avoids upgrade conflicts once DB/backups exist).
+mkdir -p %{latch_libdir}/storage/{database,backups,logs,cache/twig}
 chown -R apache:apache %{latch_libdir}/storage
 chmod 2770 %{latch_libdir}/storage
 chmod 2770 %{latch_libdir}/storage/database %{latch_libdir}/storage/backups %{latch_libdir}/storage/logs %{latch_libdir}/storage/cache 2>/dev/null || true
@@ -165,12 +166,8 @@ fi
 %{_sysconfdir}/latch/local.php.example
 %{_bindir}/latch
 %{_bindir}/latch-setup
+# Do not %%dir storage/ subtrees — live DB/backups cause rpm upgrade file conflicts.
 %dir %attr(0750,apache,apache) %{latch_libdir}
-%dir %attr(0750,apache,apache) %{latch_libdir}/storage
-%dir %attr(0750,apache,apache) %{latch_libdir}/storage/database
-%dir %attr(0750,apache,apache) %{latch_libdir}/storage/backups
-%dir %attr(0750,apache,apache) %{latch_libdir}/storage/logs
-%dir %attr(0750,apache,apache) %{latch_libdir}/storage/cache
 %{latch_datadir}
 %{_unitdir}/latch-cron-hourly.service
 %{_unitdir}/latch-cron-hourly.timer
@@ -180,6 +177,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.7-1
+- Fix dnf upgrade: stop owning /var/lib/latch/storage/* in %%files (runtime data)
+
 * Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.6-1
 - RPM: ship fail2ban latch-login filter/jail; enable on install when fail2ban present
 
