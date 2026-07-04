@@ -1,0 +1,168 @@
+# Latch — self-hosted PHP forum (RPM for Fedora / COPR)
+# Sync Version: with repo VERSION file and git tag v{version}
+#
+# COPR: set "RPM spec file" to packaging/latch.spec, trigger via webhook on v* tags.
+# See docs/COPR.md
+
+%global latch_datadir %{_datadir}/latch
+%global latch_libdir %{_localstatedir}/lib/latch
+
+Name:           latch
+Version:        0.3.0.3
+Release:        1%{?dist}
+Summary:        Self-hosted PHP + SQLite forum engine
+
+License:        MIT
+URL:            https://latch.network
+Source0:        https://github.com/YeOK/Latch/archive/v%{version}/Latch-%{version}.tar.gz
+
+BuildArch:      noarch
+BuildRequires:  php-cli
+BuildRequires:  php-mbstring
+BuildRequires:  php-pdo
+BuildRequires:  php-xml
+BuildRequires:  composer
+BuildRequires:  rsync
+
+Requires:       httpd
+Requires:       php-cli
+Requires:       php-mbstring
+Requires:       php-pdo
+Requires:       php-opcache
+Requires:       php-xml
+Recommends:     msmtp
+
+%description
+Latch is a fast, secure, self-hosted forum on PHP and SQLite. This package
+installs application code under %{latch_datadir}/source. Forum data (database,
+backups, logs) lives under %{latch_libdir}/storage. Configuration and secrets
+live in %%{_sysconfdir}/latch/local.php.
+
+After install: sudo latch-setup
+After upgrade: handled automatically via %%posttrans (lock, backup, migrate).
+
+%prep
+%autosetup -n Latch-%{version}
+
+%build
+cd source
+if command -v composer >/dev/null 2>&1; then
+    composer install --no-dev --optimize-autoloader --no-interaction
+elif [ -f composer.phar ]; then
+    php composer.phar install --no-dev --optimize-autoloader --no-interaction
+else
+    echo "composer not found" >&2
+    exit 1
+fi
+
+%install
+install -d %{buildroot}%{latch_datadir}
+install -d %{buildroot}%{latch_libdir}/storage/{database,backups,logs,cache/twig}
+install -d %{buildroot}%{_sysconfdir}/latch
+install -d %{buildroot}%{_sysconfdir}/httpd/conf.d
+install -d %{buildroot}%{_bindir}
+install -d %{buildroot}%{_unitdir}
+
+# Application tree (exclude operator-only / runtime paths)
+rsync -a \
+    --exclude='.git' \
+    --exclude='source/storage/database/*.sqlite' \
+    --exclude='source/storage/database/*.sqlite-*' \
+    --exclude='source/storage/logs/*' \
+    --exclude='source/storage/cache/*' \
+    --exclude='source/storage/backups/*' \
+    --exclude='source/config/local.php' \
+    --exclude='source/data/' \
+    --exclude='deploy/forum-data/' \
+    --exclude='deploy/msmtp.conf' \
+    --exclude='PLAN.md' \
+    --exclude='dist/' \
+    --exclude='scripts/sync-latch.sh' \
+    --exclude='scripts/publish-latch-server.sh' \
+    --exclude='scripts/publish-latch-nopass.sh' \
+    --exclude='scripts/publish-forum-db.sh' \
+    --exclude='scripts/post-forum-updates.sh' \
+    --exclude='scripts/post-documentation.php' \
+    --exclude='scripts/post-security-news.php' \
+    --exclude='scripts/update-roadmap-post.php' \
+    --exclude='scripts/latch-logs.sh' \
+    --exclude='scripts/setup-api-test-client.sh' \
+    --exclude='scripts/install-latch-security.sh' \
+    ./ %{buildroot}%{latch_datadir}/
+
+install -m 0644 packaging/latch-httpd.conf %{buildroot}%{_sysconfdir}/httpd/conf.d/latch.conf
+install -m 0644 source/config/local.php.example %{buildroot}%{_sysconfdir}/latch/local.php.example
+install -m 0755 packaging/latch-cli %{buildroot}%{_bindir}/latch
+install -m 0755 packaging/latch-setup %{buildroot}%{_bindir}/latch-setup
+install -m 0755 packaging/latch-rpm-update %{buildroot}%{latch_datadir}/packaging/latch-rpm-update
+
+install -m 0644 packaging/systemd/latch-cron-hourly.service %{buildroot}%{_unitdir}/latch-cron-hourly.service
+install -m 0644 packaging/systemd/latch-cron-hourly.timer %{buildroot}%{_unitdir}/latch-cron-hourly.timer
+install -m 0644 packaging/systemd/latch-cron-daily.service %{buildroot}%{_unitdir}/latch-cron-daily.service
+install -m 0644 packaging/systemd/latch-cron-daily.timer %{buildroot}%{_unitdir}/latch-cron-daily.timer
+install -m 0644 packaging/systemd/latch-cron-weekly.service %{buildroot}%{_unitdir}/latch-cron-weekly.service
+install -m 0644 packaging/systemd/latch-cron-weekly.timer %{buildroot}%{_unitdir}/latch-cron-weekly.timer
+
+%pre
+getent group apache >/dev/null 2>&1 || groupadd -r apache 2>/dev/null || true
+getent passwd apache >/dev/null 2>&1 || useradd -r -g apache -d /usr/share/httpd -s /sbin/nologin apache 2>/dev/null || true
+
+%post
+# Symlink config + stateful storage into the application tree
+if [ ! -e %{latch_datadir}/source/config/local.php ]; then
+    ln -sf %{_sysconfdir}/latch/local.php %{latch_datadir}/source/config/local.php
+fi
+if [ ! -L %{latch_datadir}/source/storage ]; then
+    rm -rf %{latch_datadir}/source/storage
+    ln -sf %{latch_libdir}/storage %{latch_datadir}/source/storage
+fi
+
+chown -R apache:apache %{latch_libdir}/storage
+chmod 2770 %{latch_libdir}/storage
+chmod 2770 %{latch_libdir}/storage/database %{latch_libdir}/storage/backups %{latch_libdir}/storage/logs %{latch_libdir}/storage/cache 2>/dev/null || true
+
+systemctl daemon-reload >/dev/null 2>&1 || true
+systemctl enable --now latch-cron-hourly.timer latch-cron-daily.timer latch-cron-weekly.timer >/dev/null 2>&1 || true
+
+if [ ! -f %{_sysconfdir}/latch/local.php ]; then
+    echo ""
+    echo "Latch installed. Next steps:"
+    echo "  1. sudo latch-setup --url=https://forum.example.com"
+    echo "  2. sudo systemctl enable --now httpd"
+    echo "  3. Point DNS at this host (see %{_sysconfdir}/httpd/conf.d/latch.conf)"
+    echo ""
+fi
+
+%preun
+if [ "$1" = "0" ]; then
+    systemctl disable --now latch-cron-hourly.timer latch-cron-daily.timer latch-cron-weekly.timer >/dev/null 2>&1 || true
+fi
+
+%posttrans
+if [ -f %{_sysconfdir}/latch/local.php ] && [ -f %{latch_libdir}/storage/database/latch.sqlite ]; then
+    %{latch_datadir}/packaging/latch-rpm-update || :
+fi
+
+%files
+%dir %{_sysconfdir}/latch
+%config(noreplace) %{_sysconfdir}/httpd/conf.d/latch.conf
+%{_sysconfdir}/latch/local.php.example
+%{_bindir}/latch
+%{_bindir}/latch-setup
+%dir %attr(0750,apache,apache) %{latch_libdir}
+%dir %attr(0750,apache,apache) %{latch_libdir}/storage
+%dir %attr(0750,apache,apache) %{latch_libdir}/storage/database
+%dir %attr(0750,apache,apache) %{latch_libdir}/storage/backups
+%dir %attr(0750,apache,apache) %{latch_libdir}/storage/logs
+%dir %attr(0750,apache,apache) %{latch_libdir}/storage/cache
+%{latch_datadir}
+%{_unitdir}/latch-cron-hourly.service
+%{_unitdir}/latch-cron-hourly.timer
+%{_unitdir}/latch-cron-daily.service
+%{_unitdir}/latch-cron-daily.timer
+%{_unitdir}/latch-cron-weekly.service
+%{_unitdir}/latch-cron-weekly.timer
+
+%changelog
+* Fri Jul 03 2026 YeOK <yeokky@gmail.com> - 0.3.0.3-1
+- Initial COPR packaging scaffold (FHS layout, systemd cron, rpm upgrade hook)

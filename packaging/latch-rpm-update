@@ -1,0 +1,35 @@
+#!/bin/bash
+# RPM %posttrans hook — same safety sequence as scripts/update.sh.
+set -euo pipefail
+
+LATCH_ROOT="/usr/share/latch/source"
+WEB_USER="apache"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_UPDATE="${SCRIPT_DIR}/../../scripts/update.sh"
+
+run_latch() {
+    if [[ "$(id -un)" == "${WEB_USER}" ]]; then
+        php "${LATCH_ROOT}/bin/latch" "$@"
+    else
+        sudo -u "${WEB_USER}" php "${LATCH_ROOT}/bin/latch" "$@"
+    fi
+}
+
+if [[ ! -f "${LATCH_ROOT}/bin/latch" ]]; then
+    exit 0
+fi
+
+if [[ ! -f /etc/latch/local.php ]] || [[ ! -f /var/lib/latch/storage/database/latch.sqlite ]]; then
+    exit 0
+fi
+
+if [[ -f "${REPO_UPDATE}" ]]; then
+    LATCH_ROOT="${LATCH_ROOT}" WEB_USER="${WEB_USER}" bash "${REPO_UPDATE}"
+    exit $?
+fi
+
+echo "==> Latch RPM upgrade (inline)"
+run_latch lock on --message="Latch RPM upgrade"
+run_latch backup
+run_latch update --skip-lock --skip-backup --assume-files-ready
+run_latch lock off

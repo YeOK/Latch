@@ -1,0 +1,22 @@
+#!/bin/bash
+# CLI wrapper — run Latch commands as the web server user when needed.
+set -euo pipefail
+
+LATCH_ROOT="${LATCH_ROOT:-/usr/share/latch/source}"
+WEB_USER="${WEB_USER:-apache}"
+CLI="${LATCH_ROOT}/bin/latch"
+
+if [[ ! -f "${CLI}" ]]; then
+    echo "Error: Latch not installed (${CLI} missing)" >&2
+    exit 1
+fi
+
+if [[ "$(id -un)" == "${WEB_USER}" ]]; then
+    exec php "${CLI}" "$@"
+fi
+
+if id "${WEB_USER}" >/dev/null 2>&1; then
+    exec sudo -u "${WEB_USER}" php "${CLI}" "$@"
+fi
+
+exec php "${CLI}" "$@"

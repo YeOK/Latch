@@ -1,0 +1,12 @@
+[Unit]
+Description=Latch hourly maintenance
+After=network.target
+
+[Service]
+Type=oneshot
+User=apache
+Group=apache
+WorkingDirectory=/usr/share/latch/source
+ExecStart=/usr/bin/php bin/latch cron hourly
+StandardOutput=append:/var/lib/latch/storage/logs/cron.log
+StandardError=append:/var/lib/latch/storage/logs/cron.log
