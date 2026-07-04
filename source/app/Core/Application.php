@@ -490,6 +490,7 @@ final class Application
         $this->router->post('/admin/approval/:id/reject', $this->bind($admin, 'rejectPost'));
         $this->router->get('/admin/audit', $this->bind($admin, 'auditLog'));
         $this->router->get('/admin/maintenance', $this->bind($admin, 'maintenance'));
+        $this->router->post('/admin/mod-trash/purge-all', $this->bind($admin, 'purgeAllModTrash'));
         $this->router->get('/admin/trash', $this->bind($admin, 'trashQueue'));
         $this->router->post('/admin/trash/:id/restore', $this->bind($admin, 'restoreTrashedPost'));
         $this->router->post('/admin/trash/:id/purge', $this->bind($admin, 'purgeTrashedPost'));
@@ -502,6 +503,7 @@ final class Application
         $this->router->post('/mod/topic/:id/tags', $this->bind($mod, 'editTopicTags'));
         $this->router->post('/mod/topic/:id/details', $this->bind($mod, 'editTopicDetails'));
         $this->router->post('/mod/topic/:id/delete', $this->bind($mod, 'deleteTopic'));
+        $this->router->post('/mod/topics/bulk', $this->bind($mod, 'bulkTopics'));
         $this->router->post('/mod/topic/:id/purge-trash', $this->bind($mod, 'purgeTrashTopic'));
         $this->router->post('/mod/topic/:id/move', $this->bind($mod, 'moveTopic'));
         $this->router->post('/mod/topic/:id/merge', $this->bind($mod, 'mergeTopic'));
@@ -609,6 +611,7 @@ final class Application
             $themesPath . '/default/assets/js/staff-actions.js',
             $themesPath . '/default/assets/js/theme.js',
             $themesPath . '/default/assets/js/mod-tools.js',
+            $themesPath . '/default/assets/js/board-mod-tools.js',
         ];
 
         $max = 0;

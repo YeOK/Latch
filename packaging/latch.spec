@@ -10,7 +10,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.10
+Version:        0.3.0.11
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -181,6 +181,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.11-1
+- Bulk board topic moderation; post sort on topics; purge all mod trash (admin maintenance)
+
 * Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.10-1
 - Restart php-fpm after upgrade (opcache); guard plugin admin menu items in Twig
 

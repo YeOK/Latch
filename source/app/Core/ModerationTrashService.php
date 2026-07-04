@@ -255,6 +255,48 @@ final class ModerationTrashService
         ];
     }
 
+    /**
+     * Permanently delete every archived post on the moderation trash board.
+     *
+     * @return array{
+     *     purged_posts: int,
+     *     purged_topics: int,
+     *     purged: list<array<string, int>>
+     * }
+     */
+    public function purgeAllTrash(): array
+    {
+        $trashBoard = $this->trashBoard() ?? $this->ensureTrashBoard();
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT id FROM topics WHERE board_id = :board_id AND deleted_at IS NULL ORDER BY id ASC'
+        );
+        $stmt->execute(['board_id' => (int) $trashBoard['id']]);
+        $topicIds = array_map(static fn (array $row): int => (int) $row['id'], $stmt->fetchAll());
+
+        $purgedPosts = 0;
+        $purgedTopics = 0;
+        $purged = [];
+
+        foreach ($topicIds as $topicId) {
+            $result = $this->purgeTrashTopic($topicId);
+            if ($result === null) {
+                continue;
+            }
+
+            $purgedTopics++;
+            foreach ($result['purged'] as $entry) {
+                $purged[] = $entry;
+                $purgedPosts++;
+            }
+        }
+
+        return [
+            'purged_posts' => $purgedPosts,
+            'purged_topics' => $purgedTopics,
+            'purged' => $purged,
+        ];
+    }
+
     private function archiveTitle(string $boardName, string $topicTitle): string
     {
         $boardName = trim($boardName);

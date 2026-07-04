@@ -37,84 +37,27 @@
                         {% include 'partials/icon.twig' with { name: 'eye', size: 18 } %}
                     </button>
                 {% endif %}
-                {% if is_mod and not topic.deleted_at %}
+                {% if is_mod and not topic.deleted_at and is_mod_trash_board|default(false) %}
                 <div class="mod-actions staff-action-icons" data-staff-feedback>
-                    {% if is_mod_trash_board|default(false) %}
-                        <details class="staff-action-panel"
-                                 data-staff-post="/mod/topic/{{ topic.id }}/purge-trash"
-                                 data-staff-success="trash-item">
-                            <summary class="btn btn-small btn-icon btn-danger" title="Delete permanently" aria-label="Delete permanently">
-                                {% include 'partials/icon.twig' with { name: 'trash' } %}
-                            </summary>
-                            <div class="staff-action-popover">
-                                <p class="staff-action-confirm muted">Permanently delete this archived post? This cannot be undone.</p>
-                                <button type="button" class="btn btn-small btn-danger btn-icon" data-staff-action-submit title="Confirm delete" aria-label="Confirm permanent delete">
-                                    {% include 'partials/icon.twig' with { name: 'check' } %}
-                                </button>
-                            </div>
-                        </details>
-                    {% else %}
-                        <details class="staff-action-panel"
-                                 data-staff-post="/mod/topic/{{ topic.id }}/lock"
-                                 data-staff-success="topic-mod">
-                            <summary class="btn btn-small btn-icon" data-topic-lock-toggle
-                                      title="{{ topic.is_locked ? 'Unlock topic' : 'Lock topic' }}"
-                                      aria-label="{{ topic.is_locked ? 'Unlock topic' : 'Lock topic' }}">
-                                <span data-show-when-locked{% if not topic.is_locked %} hidden{% endif %}>
-                                    {% include 'partials/icon.twig' with { name: 'unlock' } %}
-                                </span>
-                                <span data-show-when-unlocked{% if topic.is_locked %} hidden{% endif %}>
-                                    {% include 'partials/icon.twig' with { name: 'lock' } %}
-                                </span>
-                            </summary>
-                            <div class="staff-action-popover">
-                                <p class="staff-action-confirm muted">{{ topic.is_locked ? 'Unlock this topic?' : 'Lock this topic?' }}</p>
-                                <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Confirm" aria-label="Confirm">
-                                    {% include 'partials/icon.twig' with { name: 'check' } %}
-                                </button>
-                            </div>
-                        </details>
-                        <details class="staff-action-panel"
-                                 data-staff-post="/mod/topic/{{ topic.id }}/pin"
-                                 data-staff-success="topic-mod">
-                            <summary class="btn btn-small btn-icon" data-topic-pin-toggle
-                                      title="{{ topic.is_pinned ? 'Unpin topic' : 'Pin topic' }}"
-                                      aria-label="{{ topic.is_pinned ? 'Unpin topic' : 'Pin topic' }}">
-                                {% include 'partials/icon.twig' with { name: 'pin' } %}
-                            </summary>
-                            <div class="staff-action-popover">
-                                <p class="staff-action-confirm muted">{{ topic.is_pinned ? 'Unpin this topic?' : 'Pin this topic?' }}</p>
-                                <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Confirm" aria-label="Confirm">
-                                    {% include 'partials/icon.twig' with { name: 'check' } %}
-                                </button>
-                            </div>
-                        </details>
-                        <details class="staff-action-panel"
-                                 data-staff-post="/mod/topic/{{ topic.id }}/delete"
-                                 data-staff-success="topic-mod">
-                            <summary class="btn btn-small btn-icon btn-danger" title="Remove topic" aria-label="Remove topic">
-                                {% include 'partials/icon.twig' with { name: 'trash' } %}
-                            </summary>
-                            <div class="staff-action-popover">
-                                <p class="staff-action-confirm muted">Remove this topic from the board?</p>
-                                <button type="button" class="btn btn-small btn-danger btn-icon" data-staff-action-submit title="Confirm" aria-label="Confirm remove">
-                                    {% include 'partials/icon.twig' with { name: 'check' } %}
-                                </button>
-                            </div>
-                        </details>
-                    {% endif %}
+                    <details class="staff-action-panel"
+                             data-staff-post="/mod/topic/{{ topic.id }}/purge-trash"
+                             data-staff-success="trash-item">
+                        <summary class="btn btn-small btn-icon btn-danger" title="Delete permanently" aria-label="Delete permanently">
+                            {% include 'partials/icon.twig' with { name: 'trash' } %}
+                        </summary>
+                        <div class="staff-action-popover">
+                            <p class="staff-action-confirm muted">Permanently delete this archived post? This cannot be undone.</p>
+                            <button type="button" class="btn btn-small btn-danger btn-icon" data-staff-action-submit title="Confirm delete" aria-label="Confirm permanent delete">
+                                {% include 'partials/icon.twig' with { name: 'check' } %}
+                            </button>
+                        </div>
+                    </details>
                 </div>
                 {% endif %}
             </div>
         </div>
         {% include 'partials/topic_tags.html.twig' with { tags: tags } %}
 
-        {% if is_mod and not topic.deleted_at and not is_mod_trash_board|default(false) %}
-            {% include 'partials/mod_toolbar.html.twig' with {
-                topic: topic,
-                mod_boards_json: mod_boards_json|default('[]')
-            } %}
-        {% endif %}
         {% if is_mod_trash_board|default(false) %}
             <p class="muted mod-trash-board-note">Staff-only archive. Each topic holds one removed post. Restore it to the original thread or delete it permanently.</p>
         {% endif %}
@@ -153,6 +96,47 @@
         {% include 'partials/icon.twig' with { name: 'arrow-up', size: 22 } %}
     </button>
 
+    {% if posts|length > 1 or (is_mod and not topic.deleted_at and not is_mod_trash_board|default(false)) %}
+        <div class="topic-post-toolbar">
+            {% if is_mod and not topic.deleted_at and not is_mod_trash_board|default(false) %}
+                {% include 'partials/mod_toolbar.html.twig' with {
+                    topic: topic,
+                    mod_boards_json: mod_boards_json|default('[]'),
+                    show_post_sort: posts|length > 1,
+                    post_sort: post_sort|default('oldest'),
+                    post_sort_options: post_sort_options|default({})
+                } %}
+            {% elseif posts|length > 1 %}
+                <div class="topic-list-controls">
+                    <label class="topic-post-sort">
+                        <select class="field-control topic-post-sort-select" id="topic-post-sort" aria-label="Sort posts">
+                            {% for sort_key, sort_label in post_sort_options %}
+                                <option value="{{ sort_key }}"{% if post_sort|default('oldest') == sort_key %} selected{% endif %}>{{ sort_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+            {% endif %}
+        </div>
+        {% if posts|length > 1 %}
+            <script nonce="{{ csp_nonce }}">
+            (function () {
+                var select = document.getElementById('topic-post-sort');
+                if (!select) return;
+                select.addEventListener('change', function () {
+                    var url = new URL(window.location.href);
+                    if (select.value === 'oldest') {
+                        url.searchParams.delete('sort');
+                    } else {
+                        url.searchParams.set('sort', select.value);
+                    }
+                    window.location.assign(url.pathname + url.search);
+                });
+            })();
+            </script>
+        {% endif %}
+    {% endif %}
+
     <div class="post-list" id="topic-post-list">
         {% for post in posts %}
             {% set quarantined = post.quarantined_at and not post.deleted_at %}
@@ -160,7 +144,8 @@
             <article class="post{% if quarantined and not is_mod %} post-quarantined{% endif %}{% if quarantined and is_mod %} post-quarantined-staff{% endif %}{% if pending %} post-pending{% endif %}"
                      id="post-{{ post.id }}"
                      data-post-id="{{ post.id }}"
-                     data-post-op="{{ loop.first ? '1' : '0' }}"
+                     data-post-op="{{ post.chronological_index|default(loop.index) == 1 ? '1' : '0' }}"
+                     data-post-seq="{{ post.chronological_index|default(loop.index) }}"
                      data-post-quarantined="{{ quarantined ? '1' : '0' }}">
                 {% if is_mod and not topic.deleted_at and not is_mod_trash_board|default(false) %}
                     <label class="mod-post-check mod-tools-active-only">

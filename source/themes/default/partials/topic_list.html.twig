@@ -4,7 +4,17 @@
 {% else %}
     <ul class="topic-list" role="list">
         {% for topic in topics %}
-            <li class="topic-row card">
+            <li class="topic-row card" id="topic-row-{{ topic.id }}"
+                data-topic-pinned="{{ topic.is_pinned ? '1' : '0' }}"
+                data-topic-locked="{{ topic.is_locked ? '1' : '0' }}">
+                {% if topic_mod_selectable|default(false) %}
+                    <label class="mod-topic-check board-mod-tools-active-only">
+                        <input type="checkbox"
+                               class="mod-topic-checkbox"
+                               value="{{ topic.id }}"
+                               aria-label="Select topic: {{ topic.title }}">
+                    </label>
+                {% endif %}
                 <div class="topic-row-main">
                     {% include 'partials/avatar.twig' with {
                         username: topic.author_name,

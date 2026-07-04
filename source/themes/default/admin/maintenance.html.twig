@@ -48,5 +48,25 @@
                 </button>
             </form>
         </div>
+
+        <div class="admin-mod-trash-purge">
+            <h2>Moderation trash</h2>
+            <p class="muted">Permanently delete every archived post in <a href="{{ mod_trash_board_path }}">moderation trash</a>. Restored threads are not affected — only items still in the trash queue. This cannot be undone.</p>
+            {% if mod_trash_count > 0 %}
+                <p>{{ mod_trash_count }} archived post{{ mod_trash_count == 1 ? '' : 's' }} waiting in the queue.</p>
+                <form method="post"
+                      action="/admin/mod-trash/purge-all"
+                      class="inline-form admin-maintenance-form"
+                      data-confirm="Permanently delete ALL {{ mod_trash_count }} archived post{{ mod_trash_count == 1 ? '' : 's' }} in moderation trash? This cannot be undone.">
+                    {{ csrf_field() }}
+                    <button type="submit" class="btn btn-small btn-danger admin-maintenance-btn">
+                        {% include 'partials/icon.twig' with { name: 'trash', size: 16 } %}
+                        Delete all mod trash
+                    </button>
+                </form>
+            {% else %}
+                <p class="muted">Moderation trash is empty.</p>
+            {% endif %}
+        </div>
     </section>
 {% endblock %}

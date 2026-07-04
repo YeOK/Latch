@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0.11] — 2026-07-04
+
+### Added
+- **Bulk topic moderation** — moderators can multi-select topics on board pages to pin, unpin, lock, unlock, or remove in one action (shield toggle on the topic list).
+- **Post sort on topics** — sort replies by oldest first, newest first, or most likes; control sits below the mod shield button, matching the board layout.
+- **Delete all mod trash** — admins can permanently purge the entire moderation trash queue from **Admin → Maintenance** (with confirmation).
+
+### Changed
+- **Board topic sort** — sort dropdown moved to the right column below the mod shield (no separate “Sort” label).
+- **Topic quick actions** — pin, lock, and remove buttons moved beside the mod shield on topic pages; watch stays in the header.
+
 ## [0.3.0.10] — 2026-07-04
 
 ### Fixed

@@ -68,8 +68,14 @@ final class AdminController
 
         $storagePath = (string) $this->app->config()->get('paths.storage');
 
+        $trashBoard = $this->app->moderationTrash()->trashBoard();
+
         $this->app->render('admin/maintenance.html.twig', [
             'site_lock' => SiteLock::read($storagePath),
+            'mod_trash_count' => $this->app->posts()->countTrashed(),
+            'mod_trash_board_path' => $trashBoard !== null
+                ? '/board/' . (string) $trashBoard['slug']
+                : $this->app->moderationTrash()->trashBoardPath(),
         ]);
     }
 
@@ -263,6 +269,82 @@ final class AdminController
         ]);
 
         $this->finishStaffAction($result['ok'], $result['message'], '/admin/maintenance');
+    }
+
+    public function purgeAllModTrash(array $params = []): void
+    {
+        $this->app->auth()->requireAdmin();
+        $this->validateStaffCsrf();
+
+        $result = $this->app->moderationTrash()->purgeAllTrash();
+        $purgedPosts = (int) $result['purged_posts'];
+
+        $restoreTopicIds = [];
+        $authorUserIds = [];
+        foreach ($result['purged'] as $purgeResult) {
+            $restoreTopicId = (int) $purgeResult['restore_topic_id'];
+            if ($restoreTopicId > 0) {
+                $restoreTopicIds[$restoreTopicId] = true;
+            }
+
+            $authorUserId = (int) $purgeResult['author_user_id'];
+            if ($authorUserId > 0) {
+                $authorUserIds[$authorUserId] = true;
+            }
+        }
+
+        foreach (array_keys($restoreTopicIds) as $restoreTopicId) {
+            $topic = $this->app->topics()->findById($restoreTopicId);
+            if ($topic === null) {
+                continue;
+            }
+
+            $this->app->topics()->recalculateLastPostAt($restoreTopicId);
+            $this->app->indexSearchTopic($restoreTopicId);
+            $this->app->invalidateCacheTags([
+                Cache::tagTopic($restoreTopicId),
+                Cache::tagBoard((int) $topic['board_id']),
+                Cache::tagSite(),
+            ]);
+        }
+
+        foreach (array_keys($authorUserIds) as $authorUserId) {
+            $this->app->invalidateCacheTags([Cache::tagUser($authorUserId)]);
+        }
+
+        $trashBoard = $this->app->moderationTrash()->trashBoard();
+        $trashBoardId = $trashBoard !== null ? (int) $trashBoard['id'] : 0;
+        if ($trashBoardId > 0) {
+            $this->app->invalidateCacheTags([
+                Cache::tagBoard($trashBoardId),
+                Cache::tagSite(),
+            ]);
+        }
+
+        $actor = $this->app->auth()->user();
+        $actorId = (int) ($actor['id'] ?? 0);
+        $this->app->auditLog()->record(
+            $actorId,
+            'admin.mod_trash_purge_all',
+            'board',
+            $trashBoardId,
+            $this->app->request()->ip(),
+            [
+                'purged_posts' => $purgedPosts,
+                'purged_topics' => (int) $result['purged_topics'],
+            ],
+        );
+
+        $this->recordMaintenanceAction('admin.mod_trash_purge_all', $purgedPosts > 0, [
+            'purged_posts' => $purgedPosts,
+            'purged_topics' => (int) $result['purged_topics'],
+        ]);
+
+        $message = $purgedPosts > 0
+            ? "Permanently deleted {$purgedPosts} archived post(s) from moderation trash."
+            : 'Moderation trash is already empty.';
+
+        $this->finishStaffAction($purgedPosts > 0, $message, '/admin/maintenance');
     }
 
     public function users(array $params = []): void

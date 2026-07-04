@@ -1,0 +1,59 @@
+{# Board-level bulk topic moderation — checkboxes appear when mod mode is active (board-mod-tools.js). #}
+<div class="board-mod-wrap" id="board-mod-wrap"
+     data-board-slug="{{ board.slug }}"
+     data-board-page="{{ page|default(1) }}"
+     data-board-tag="{{ filter_tag.slug|default('') }}"
+     data-board-sort="{{ topic_sort|default('activity') }}">
+    <div class="board-list-controls">
+        <div class="board-mod-bar">
+            <button type="button"
+                    class="btn btn-small btn-icon board-mod-toggle"
+                    id="board-mod-toggle"
+                    aria-pressed="false"
+                    aria-controls="board-mod-toolbar"
+                    title="Moderate topics"
+                    aria-label="Toggle topic moderation mode">
+                {% include 'partials/icon.twig' with { name: 'shield-filled', size: 24 } %}
+            </button>
+        </div>
+        <label class="board-topic-sort">
+            <select class="field-control board-topic-sort-select" id="board-topic-sort" aria-label="Sort topics">
+                {% for sort_key, sort_label in topic_sort_options %}
+                    <option value="{{ sort_key }}"{% if topic_sort|default('activity') == sort_key %} selected{% endif %}>{{ sort_label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+
+    <div class="staff-action-feedback" id="board-mod-feedback" hidden role="status"></div>
+
+    <div class="mod-toolbar board-mod-toolbar board-mod-tools-active-only" id="board-mod-toolbar">
+        <label class="mod-select-all">
+            <input type="checkbox" id="board-mod-select-all" class="mod-select-all-input" aria-label="Select all topics">
+            <span>Select all</span>
+        </label>
+        <span class="mod-selection-count muted" id="board-mod-selection-count">0 selected</span>
+        <div class="mod-toolbar-actions" role="group" aria-label="Bulk topic actions">
+            <button type="button" class="btn btn-small mod-toolbar-btn" data-board-mod-action="pin" disabled title="Pin selected topics">
+                {% include 'partials/icon.twig' with { name: 'pin', size: 16 } %}
+                <span>Pin</span>
+            </button>
+            <button type="button" class="btn btn-small mod-toolbar-btn" data-board-mod-action="unpin" disabled title="Unpin selected topics">
+                {% include 'partials/icon.twig' with { name: 'pin', size: 16 } %}
+                <span>Unpin</span>
+            </button>
+            <button type="button" class="btn btn-small mod-toolbar-btn" data-board-mod-action="lock" disabled title="Lock selected topics">
+                {% include 'partials/icon.twig' with { name: 'lock', size: 16 } %}
+                <span>Lock</span>
+            </button>
+            <button type="button" class="btn btn-small mod-toolbar-btn" data-board-mod-action="unlock" disabled title="Unlock selected topics">
+                {% include 'partials/icon.twig' with { name: 'unlock', size: 16 } %}
+                <span>Unlock</span>
+            </button>
+            <button type="button" class="btn btn-small mod-toolbar-btn btn-danger" data-board-mod-action="delete" disabled title="Remove selected topics">
+                {% include 'partials/icon.twig' with { name: 'trash', size: 16 } %}
+                <span>Remove</span>
+            </button>
+        </div>
+    </div>
+</div>

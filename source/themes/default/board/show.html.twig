@@ -43,14 +43,25 @@
         {% endif %}
 
         <div class="board-topic-toolbar">
-            <label class="board-topic-sort">
-                <span class="board-topic-sort-label muted">Sort</span>
-                <select class="field-control board-topic-sort-select" id="board-topic-sort" aria-label="Sort topics">
-                    {% for sort_key, sort_label in topic_sort_options %}
-                        <option value="{{ sort_key }}"{% if topic_sort|default('activity') == sort_key %} selected{% endif %}>{{ sort_label }}</option>
-                    {% endfor %}
-                </select>
-            </label>
+            {% if is_mod and board.slug != 'mod-trash' %}
+                {% include 'partials/board_mod_toolbar.html.twig' with {
+                    board: board,
+                    page: page,
+                    filter_tag: filter_tag|default(null),
+                    topic_sort: topic_sort|default('activity'),
+                    topic_sort_options: topic_sort_options
+                } %}
+            {% else %}
+                <div class="board-list-controls">
+                    <label class="board-topic-sort">
+                        <select class="field-control board-topic-sort-select" id="board-topic-sort" aria-label="Sort topics">
+                            {% for sort_key, sort_label in topic_sort_options %}
+                                <option value="{{ sort_key }}"{% if topic_sort|default('activity') == sort_key %} selected{% endif %}>{{ sort_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+            {% endif %}
         </div>
         <script nonce="{{ csp_nonce }}">
         (function () {
@@ -69,7 +80,10 @@
         })();
         </script>
 
-        {% include 'partials/topic_list.html.twig' with { topics: topics } %}
+        {% include 'partials/topic_list.html.twig' with {
+            topics: topics,
+            topic_mod_selectable: is_mod and board.slug != 'mod-trash'
+        } %}
 
         {% if total_pages > 1 %}
             <nav class="pagination">
@@ -82,5 +96,11 @@
                 {% endif %}
             </nav>
         {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    {% if is_mod and board.slug != 'mod-trash' and topics is not empty %}
+        <script src="/assets/js/board-mod-tools.js?v={{ asset_version }}" defer></script>
     {% endif %}
 {% endblock %}

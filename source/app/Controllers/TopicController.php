@@ -9,6 +9,7 @@ use Latch\Core\BoardAcl;
 use Latch\Core\Cache;
 use Latch\Core\Response;
 use Latch\Core\SeoMeta;
+use Latch\Support\PostListSort;
 use RuntimeException;
 
 final class TopicController
@@ -46,9 +47,13 @@ final class TopicController
         }
 
         $isTrashBoard = $this->app->moderationTrash()->isTrashBoard($board);
+        $postSort = PostListSort::normalize($this->app->request()->input('sort'));
         $posts = $this->app->enrichPostsWithAvatars(
             $this->app->posts()->listByTopic((int) $topic['id'], false, $viewerId, $isMod, $isTrashBoard),
         );
+        foreach ($posts as $i => $post) {
+            $posts[$i]['chronological_index'] = $i + 1;
+        }
         $posts = $this->enrichPostsForEdit($posts, $topic, $user, $isMod);
         if ($isTrashBoard) {
             $posts = $this->enrichTrashArchivePosts($posts);
@@ -56,7 +61,12 @@ final class TopicController
 
         // Guest-only page cache when the board is publicly readable.
         $cacheOptions = null;
-        if (!$this->app->auth()->check() && !$this->app->membersOnly() && BoardAcl::isPublicRead($board)) {
+        if (
+            !$this->app->auth()->check()
+            && !$this->app->membersOnly()
+            && BoardAcl::isPublicRead($board)
+            && $postSort === PostListSort::OLDEST
+        ) {
             $cacheOptions = [
                 'route' => '/topic/' . $topic['id'],
                 'tags' => [
@@ -70,6 +80,8 @@ final class TopicController
         if ($viewerId !== null) {
             $this->app->markTopicReadForUser($viewerId, (int) $topic['id'], $posts);
         }
+
+        $posts = PostListSort::sortPosts($posts, $postSort);
 
         $tags = $this->app->tags()->forTopic((int) $topic['id']);
         $can_edit_tags = $isMod
@@ -101,6 +113,8 @@ final class TopicController
             'topic' => $topic,
             'board' => $board,
             'posts' => $posts,
+            'post_sort' => $postSort,
+            'post_sort_options' => PostListSort::labels(),
             'tags' => $tags,
             'can_edit_tags' => $can_edit_tags && empty($topic['deleted_at']),
             'is_watching' => $is_watching,

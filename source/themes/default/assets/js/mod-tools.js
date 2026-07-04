@@ -74,24 +74,34 @@
         }).length;
     }
 
-    /** Earliest selected reply in thread order (not the topic opener). */
+    /** Earliest selected reply in chronological thread order (not the topic opener). */
     function selectedSplitPostId() {
-        var boxes = postCheckboxes();
-        for (var i = 0; i < boxes.length; i++) {
-            if (!boxes[i].checked) {
-                continue;
+        var bestId = null;
+        var bestSeq = null;
+
+        postCheckboxes().forEach(function (box) {
+            if (!box.checked) {
+                return;
             }
-            var id = parseInt(boxes[i].value, 10);
+            var id = parseInt(box.value, 10);
             if (id <= 0) {
-                continue;
+                return;
             }
             var postEl = document.getElementById('post-' + id);
-            if (postEl && postEl.dataset.postOp !== '1') {
-                return id;
+            if (!postEl || postEl.dataset.postOp === '1') {
+                return;
             }
-        }
+            var seq = parseInt(postEl.dataset.postSeq || '0', 10);
+            if (seq <= 0) {
+                return;
+            }
+            if (bestSeq === null || seq < bestSeq) {
+                bestSeq = seq;
+                bestId = id;
+            }
+        });
 
-        return null;
+        return bestId;
     }
 
     function updateSelectionUi() {

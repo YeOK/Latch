@@ -1,0 +1,51 @@
+{# Pin, lock, and remove — sits beside the mod shield on the topic post toolbar. #}
+<div class="mod-topic-quick-actions staff-action-icons" data-staff-feedback>
+    <details class="staff-action-panel"
+             data-staff-post="/mod/topic/{{ topic.id }}/lock"
+             data-staff-success="topic-mod">
+        <summary class="btn btn-small btn-icon" data-topic-lock-toggle
+                  title="{{ topic.is_locked ? 'Unlock topic' : 'Lock topic' }}"
+                  aria-label="{{ topic.is_locked ? 'Unlock topic' : 'Lock topic' }}">
+            <span data-show-when-locked{% if not topic.is_locked %} hidden{% endif %}>
+                {% include 'partials/icon.twig' with { name: 'unlock' } %}
+            </span>
+            <span data-show-when-unlocked{% if topic.is_locked %} hidden{% endif %}>
+                {% include 'partials/icon.twig' with { name: 'lock' } %}
+            </span>
+        </summary>
+        <div class="staff-action-popover">
+            <p class="staff-action-confirm muted">{{ topic.is_locked ? 'Unlock this topic?' : 'Lock this topic?' }}</p>
+            <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Confirm" aria-label="Confirm">
+                {% include 'partials/icon.twig' with { name: 'check' } %}
+            </button>
+        </div>
+    </details>
+    <details class="staff-action-panel"
+             data-staff-post="/mod/topic/{{ topic.id }}/pin"
+             data-staff-success="topic-mod">
+        <summary class="btn btn-small btn-icon" data-topic-pin-toggle
+                  title="{{ topic.is_pinned ? 'Unpin topic' : 'Pin topic' }}"
+                  aria-label="{{ topic.is_pinned ? 'Unpin topic' : 'Pin topic' }}">
+            {% include 'partials/icon.twig' with { name: 'pin' } %}
+        </summary>
+        <div class="staff-action-popover">
+            <p class="staff-action-confirm muted">{{ topic.is_pinned ? 'Unpin this topic?' : 'Pin this topic?' }}</p>
+            <button type="button" class="btn btn-small btn-primary btn-icon" data-staff-action-submit title="Confirm" aria-label="Confirm">
+                {% include 'partials/icon.twig' with { name: 'check' } %}
+            </button>
+        </div>
+    </details>
+    <details class="staff-action-panel"
+             data-staff-post="/mod/topic/{{ topic.id }}/delete"
+             data-staff-success="topic-mod">
+        <summary class="btn btn-small btn-icon btn-danger" title="Remove topic" aria-label="Remove topic">
+            {% include 'partials/icon.twig' with { name: 'trash' } %}
+        </summary>
+        <div class="staff-action-popover">
+            <p class="staff-action-confirm muted">Remove this topic from the board?</p>
+            <button type="button" class="btn btn-small btn-danger btn-icon" data-staff-action-submit title="Confirm" aria-label="Confirm remove">
+                {% include 'partials/icon.twig' with { name: 'check' } %}
+            </button>
+        </div>
+    </details>
+</div>

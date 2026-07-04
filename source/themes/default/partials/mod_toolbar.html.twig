@@ -1,15 +1,27 @@
 {# Moderation mode UI — checkboxes and toolbar appear only when mod mode is active (mod-tools.js). #}
 <div class="mod-mode-wrap" id="mod-mode-wrap" data-topic-id="{{ topic.id }}" data-mod-boards="{{ mod_boards_json|default('[]')|e('html_attr') }}">
-    <div class="mod-mode-bar">
-        <button type="button"
-                class="btn btn-small btn-icon mod-mode-toggle"
-                id="mod-mode-toggle"
-                aria-pressed="false"
-                aria-controls="mod-toolbar"
-                title="Moderate"
-                aria-label="Toggle moderation mode">
-            {% include 'partials/icon.twig' with { name: 'shield-filled', size: 24 } %}
-        </button>
+    <div class="topic-list-controls">
+        <div class="mod-mode-bar">
+            {% include 'partials/topic_mod_quick_actions.html.twig' with { topic: topic } %}
+            <button type="button"
+                    class="btn btn-small btn-icon mod-mode-toggle"
+                    id="mod-mode-toggle"
+                    aria-pressed="false"
+                    aria-controls="mod-toolbar"
+                    title="Moderate"
+                    aria-label="Toggle moderation mode">
+                {% include 'partials/icon.twig' with { name: 'shield-filled', size: 24 } %}
+            </button>
+        </div>
+        {% if show_post_sort|default(false) %}
+            <label class="topic-post-sort">
+                <select class="field-control topic-post-sort-select" id="topic-post-sort" aria-label="Sort posts">
+                    {% for sort_key, sort_label in post_sort_options %}
+                        <option value="{{ sort_key }}"{% if post_sort|default('oldest') == sort_key %} selected{% endif %}>{{ sort_label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        {% endif %}
     </div>
 
     <div class="mod-toolbar mod-tools-active-only" id="mod-toolbar">

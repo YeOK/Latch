@@ -580,11 +580,6 @@ body.cookie-consent-visible {
     margin: 0;
 }
 
-.board-topic-sort-label {
-    font-size: 0.88rem;
-    white-space: nowrap;
-}
-
 .board-topic-sort-select {
     min-width: 11rem;
     padding-top: 0.45rem;
