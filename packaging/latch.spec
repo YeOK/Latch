@@ -10,7 +10,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.7
+Version:        0.3.0.8
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -56,6 +56,7 @@ fi
 
 %install
 install -d %{buildroot}%{latch_datadir}
+install -d %{buildroot}%{latch_libdir}
 install -d %{buildroot}%{_sysconfdir}/latch
 install -d %{buildroot}%{_sysconfdir}/httpd/conf.d
 install -d %{buildroot}%{_bindir}
@@ -177,6 +178,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.8-1
+- COPR: create %%{latch_libdir} in %%install (%%dir in %%files requires BUILDROOT path)
+
 * Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.7-1
 - Fix dnf upgrade: stop owning /var/lib/latch/storage/* in %%files (runtime data)
 
