@@ -85,10 +85,4 @@ final class PostListSort
         ];
     }
 
-    public static function label(string $sort): string
-    {
-        $sort = self::normalize($sort);
-
-        return self::labels()[$sort] ?? self::labels()[self::OLDEST];
-    }
 }

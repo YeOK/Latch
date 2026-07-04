@@ -43,6 +43,11 @@ final class TwoFactor
         return $this->isEnabled($user);
     }
 
+    public function encryptionReady(): bool
+    {
+        return $this->cipher->hasConfiguredKey();
+    }
+
     public function generateSecret(): string
     {
         return $this->totp->generateSecret();

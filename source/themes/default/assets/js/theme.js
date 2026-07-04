@@ -316,9 +316,28 @@
     document.querySelectorAll('.locale-select').forEach(function (select) {
         select.addEventListener('change', function () {
             var code = select.value;
-            if (code) {
-                window.location.href = '/locale/' + encodeURIComponent(code);
+            if (!code) {
+                return;
             }
+
+            var tokenEl = document.querySelector('meta[name="csrf-token"]');
+            var token = tokenEl ? tokenEl.getAttribute('content') : '';
+            var body = new FormData();
+            body.append('_csrf', token || '');
+            body.append('locale', code);
+
+            fetch('/locale', {
+                method: 'POST',
+                body: body,
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            })
+                .then(function (response) {
+                    window.location.href = response.url || window.location.href;
+                })
+                .catch(function () {
+                    window.location.reload();
+                });
         });
     });
 })();

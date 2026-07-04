@@ -23,6 +23,7 @@ source/config/local.php
 # Tests / build
 source/tests/.phpunit.cache/
 source/tests/api/config.local.php
+source/tests/smoke/config.local.php
 source/tests/api/user-token.local.json
 source/tests/api/pkce.local.json
 phpunit.xml

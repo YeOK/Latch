@@ -18,6 +18,10 @@ php bin/latch help
 | `db-check` | SQLite `integrity_check` / `quick_check` + `foreign_key_check` |
 | `restore` | List or restore from `storage/backups/` (lock required) |
 | `update` | Lock → backup → migrate → db-check → cron → audit → cache → unlock |
+| `doctor` | Four-layer preflight — PHP, extensions, vendor, DB, permissions |
+| `test` | Full PHPUnit suite (`Latch` testsuite) |
+| `test --smoke` | Operator gate — smoke PHPUnit + `db-check` + `audit` [+ HTTP/API] |
+| `test --security` | Security gate — security PHPUnit + `audit` [+ HTTP probes] |
 | `cron hourly` | Rate-limit prunes, reputation queue flush |
 | `cron daily` | DB prunes, notifications, full reputation recompute (no cache purge) |
 | `cron weekly` | ANALYZE, DM/topic_reads cleanup; `--audit` prunes audit_log |
@@ -40,6 +44,7 @@ php bin/latch help
 | `test-webhooks` | Webhook repository unit tests (PHPUnit or built-in fallback) |
 | `test-api` | Live REST API + OAuth smoke tests |
 | `test-api-messages` | Messages API + user OAuth (PKCE); interactive |
+| `import phpbb` | Import phpBB 3.3.x bundle into empty forum (Phase 6) |
 | `post-announcements` | Post changelog replies to a forum topic |
 | `purge-users` | Delete member accounts with no posts/topics |
 
@@ -85,6 +90,19 @@ sudo -u apache php bin/latch migrate
 # or:
 bash scripts/migrate-latch-db.sh
 ```
+
+---
+
+## doctor
+
+Four-layer install preflight before `install`, after deploy, or as part of the release gate.
+
+```bash
+php bin/latch doctor
+php bin/latch doctor --json
+```
+
+Checks PHP version (≥ 8.2), required extensions (`pdo_sqlite`, `mbstring`, `sodium`, …), `vendor/` presence, database install state, pending migrations, and `storage/` / SQLite file permissions. Warns when `php-xml` is missing (needed for `bin/latch test`).
 
 ---
 
@@ -494,20 +512,93 @@ php bin/latch purge-users --ids=4,5,6 --dry-run
 
 ---
 
-## Test commands
+## test
+
+Phase 5 release gates. Requires `php-xml` for PHPUnit; `php-curl` for live HTTP harnesses. Full detail: [TESTING.md](TESTING.md).
+
+```bash
+php bin/latch test                 # full suite (~260 tests, Latch testsuite)
+php bin/latch test --smoke         # operator gate
+php bin/latch test --security      # security gate
+
+# Live HTTP probes (staging or production)
+php bin/latch test --smoke --url=https://latch.network
+php bin/latch test --security --url=https://latch.network
+```
+
+| Command | PHPUnit | CLI extras | HTTP (with `--url` or `tests/smoke/config.local.php`) |
+|---------|---------|------------|------------------------------------------------------|
+| `test` | Full `Latch` suite | — | — |
+| `test --smoke` | `smoke` suite (migrations, restore, plugins, PostFormatter, cron, …) | `db-check`, `audit` | Web smoke + API harness if `tests/api/config.local.php` exists |
+| `test --security` | `security` suite (CSRF, OIDC, ACL, spam, plugin audit, SSRF, …) | `audit` | Read-only security probes |
+
+Without `php-xml`, `test --smoke` falls back to a built-in SQLite integrity check plus `db-check` and `audit`.
+
+Config templates:
+
+- `tests/smoke/config.example.php` → `config.local.php` — base URL and optional member credentials for mutating smoke
+- `tests/api/config.example.php` → `config.local.php` — OAuth client for API harness
+
+Equivalent direct PHPUnit:
+
+```bash
+./vendor/bin/phpunit -c phpunit.xml.dist --testsuite Latch
+./vendor/bin/phpunit -c phpunit.xml.dist --testsuite smoke
+./vendor/bin/phpunit -c phpunit.xml.dist --testsuite security
+```
+
+### Targeted test commands
 
 | Command | What it runs |
 |---------|----------------|
 | `test-rss` | PHPUnit RSS tests + live feed validation (read-only DB or HTTP fallback) |
 | `test-profiles` | Public profile repository tests |
 | `test-spam` | Honeypot, link limits, approval queue tests |
-| `test-api` | HTTP smoke tests in `tests/api/` |
+| `test-webhooks` | Webhook repository tests |
+| `test-api` | HTTP smoke tests in `tests/api/` only |
+| `test-api-messages` | User-delegated OAuth + Messages API (see above) |
 
-For full PHPUnit suite:
+---
+
+## import phpbb
+
+Migrate **phpBB 3.3.x** (MySQL/MariaDB) into Latch via a portable JSON bundle. BBCode mapping: [MARKUP.md](MARKUP.md) § Imports.
+
+**v1 constraints:** empty forum only (no existing topics/posts); phpBB passwords are **not** ported — users must reset via email.
+
+### Export (once, from phpBB server)
+
+Requires `php-pdo_mysql`:
 
 ```bash
-cd source && ./vendor/bin/phpunit
+php bin/latch import phpbb --export \
+  --from-mysql='mysqli://user:pass@127.0.0.1/phpbb' \
+  --out=/tmp/forum-bundle.json
 ```
+
+### Import (repeatable)
+
+```bash
+php bin/latch lock on --message="Forum import"
+php bin/latch backup
+
+php bin/latch import phpbb --bundle=/tmp/forum-bundle.json --dry-run
+php bin/latch import phpbb --bundle=/tmp/forum-bundle.json --confirm
+php bin/latch search-reindex
+php bin/latch lock off
+```
+
+| Flag | Purpose |
+|------|---------|
+| `--bundle=PATH` | JSON bundle to import |
+| `--dry-run` | Count entities and BBCode warnings — no writes |
+| `--confirm` | Write to database |
+| `--json` | Machine-readable report |
+| `--prefix=phpbb_` | Table prefix for `--export` (default `phpbb_`) |
+
+Fixture bundles for tests: `scripts/fixtures/phpbb/minimal-bundle.json`, `edge-case-bundle.json`.
+
+Custom BBCode strategies: `config/import-phpbb-bbcodes.php`.
 
 ---
 
@@ -534,6 +625,12 @@ php bin/latch maintenance
 bash scripts/install-cron.sh
 tail -f storage/logs/cron.log
 
+# Before tagging a release
+php bin/latch doctor
+php bin/latch test
+php bin/latch test --smoke
+php bin/latch test --security
+
 # Weekly
 php bin/latch backup
 php bin/latch audit
@@ -549,4 +646,4 @@ php bin/latch search-reindex
 php scripts/post-documentation.php data/documentation-posts.json
 ```
 
-See also: `docs/INSTALL.md`, `docs/API.md`, `docs/EMAIL.md`, `docs/SECURITY.md`.
+See also: `docs/TESTING.md`, `docs/INSTALL.md`, `docs/API.md`, `docs/EMAIL.md`, `docs/SECURITY.md`.

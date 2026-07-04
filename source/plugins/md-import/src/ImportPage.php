@@ -35,7 +35,7 @@ final class ImportPage
 </section>
 
 <section class="form-section md-import-admin">
-    <form method="post" action="/admin/md-import" enctype="multipart/form-data" class="form form-wide">
+    <form method="post" action="/admin/md-import" enctype="multipart/form-data" class="form form-wide" data-account-bypass>
         {$csrf}
         <label>
             Board

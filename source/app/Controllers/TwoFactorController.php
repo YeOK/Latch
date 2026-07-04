@@ -32,7 +32,7 @@ final class TwoFactorController
 
     public function verifyChallenge(array $params = []): void
     {
-        if (!$this->app->csrf()->validate($this->app->request()->input('_csrf'))) {
+        if (!$this->app->csrf()->validateAndRotate($this->app->request()->input('_csrf'))) {
             $this->app->session()->flash('error', 'Invalid form token.');
             Response::redirect('/login/2fa');
         }
@@ -110,6 +110,10 @@ final class TwoFactorController
             Response::redirect('/login');
         }
 
+        if (!$this->requireEncryptionKeyForTotp()) {
+            Response::redirect('/login');
+        }
+
         $this->confirmSetup($user, true);
     }
 
@@ -124,6 +128,7 @@ final class TwoFactorController
         $twoFactor = $this->app->twoFactor();
         $this->app->render('profile/two_factor.html.twig', [
             'totp_enabled' => $twoFactor->isEnabled($user),
+            'totp_encryption_ready' => $twoFactor->encryptionReady(),
             'totp_mandatory' => $twoFactor->isMandatory($user),
             'recovery_codes_remaining' => $twoFactor->isEnabled($user)
                 ? $twoFactor->unusedRecoveryCodeCount((int) $user['id'])
@@ -147,6 +152,10 @@ final class TwoFactorController
 
         if ($this->app->twoFactor()->isEnabled($user)) {
             $this->app->session()->flash('error', 'Two-factor authentication is already enabled.');
+            Response::redirect('/profile/2fa');
+        }
+
+        if (!$this->requireEncryptionKeyForTotp()) {
             Response::redirect('/profile/2fa');
         }
 
@@ -180,13 +189,17 @@ final class TwoFactorController
     {
         $this->app->auth()->requireLogin();
 
-        if (!$this->app->csrf()->validate($this->app->request()->input('_csrf'))) {
+        if (!$this->app->csrf()->validateAndRotate($this->app->request()->input('_csrf'))) {
             Response::forbidden('Invalid form token.');
         }
 
         $user = $this->app->auth()->user();
         if ($user === null) {
             Response::redirect('/login');
+        }
+
+        if (!$this->requireEncryptionKeyForTotp()) {
+            Response::redirect('/profile/2fa');
         }
 
         $this->confirmSetup($user, false);
@@ -196,7 +209,7 @@ final class TwoFactorController
     {
         $this->app->auth()->requireLogin();
 
-        if (!$this->app->csrf()->validate($this->app->request()->input('_csrf'))) {
+        if (!$this->app->csrf()->validateAndRotate($this->app->request()->input('_csrf'))) {
             Response::forbidden('Invalid form token.');
         }
 
@@ -235,7 +248,7 @@ final class TwoFactorController
     {
         $this->app->auth()->requireLogin();
 
-        if (!$this->app->csrf()->validate($this->app->request()->input('_csrf'))) {
+        if (!$this->app->csrf()->validateAndRotate($this->app->request()->input('_csrf'))) {
             Response::forbidden('Invalid form token.');
         }
 
@@ -312,8 +325,26 @@ final class TwoFactorController
         Response::redirect('/profile/2fa');
     }
 
+    private function requireEncryptionKeyForTotp(): bool
+    {
+        if ($this->app->twoFactor()->encryptionReady()) {
+            return true;
+        }
+
+        $this->app->session()->flash(
+            'error',
+            'Set security.encryption_key in config/local.php before enabling two-factor authentication.',
+        );
+
+        return false;
+    }
+
     private function renderSetupForm(array $user, string $action): void
     {
+        if (!$this->requireEncryptionKeyForTotp()) {
+            Response::redirect($this->app->auth()->isTotpSetupRequired() ? '/login' : '/profile/2fa');
+        }
+
         $secret = (string) $this->app->session()->get('totp_setup_secret', '');
         if ($secret === '') {
             $secret = $this->app->twoFactor()->generateSecret();

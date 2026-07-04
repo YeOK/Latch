@@ -19,9 +19,36 @@ final class PluginAuditReport
     ) {
     }
 
+    /** Prefixes for hook-injection warnings that block admin/CLI enable. */
+    private const ENABLE_BLOCKING_WARN_PREFIXES = ['markup_', 'js_'];
+
     public function passed(): bool
     {
         return $this->criticalCount() === 0;
+    }
+
+    /**
+     * Stricter than passed(): also blocks markup/JS injection warnings that could become sitewide XSS via hooks.
+     */
+    public function enableAllowed(): bool
+    {
+        if (!$this->passed()) {
+            return false;
+        }
+
+        foreach ($this->findings as $finding) {
+            if ($finding->severity !== PluginAuditFinding::SEVERITY_WARN) {
+                continue;
+            }
+
+            foreach (self::ENABLE_BLOCKING_WARN_PREFIXES as $prefix) {
+                if (str_starts_with($finding->code, $prefix)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public function criticalCount(): int

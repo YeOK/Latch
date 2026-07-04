@@ -18,7 +18,8 @@ final class BodyGuard
 
     public function validate(PostSaveContext $ctx): ?string
     {
-        if (!preg_match_all('/!\[[^\]]*\]\((https?:\/\/[^\)]+)\)/i', $ctx->body, $matches)) {
+        $body = $this->bodyWithoutCodeSamples($ctx->body);
+        if (!preg_match_all('/!\[[^\]]*\]\((https?:\/\/[^\)]+)\)/i', $body, $matches)) {
             return null;
         }
 
@@ -34,5 +35,16 @@ final class BodyGuard
         }
 
         return null;
+    }
+
+    /**
+     * Strip fenced and inline code so documentation examples do not trip the image host check.
+     */
+    private function bodyWithoutCodeSamples(string $body): string
+    {
+        $body = (string) preg_replace('/```.*?```/s', '', $body);
+        $body = (string) preg_replace('/`[^`]*`/', '', $body);
+
+        return $body;
     }
 }

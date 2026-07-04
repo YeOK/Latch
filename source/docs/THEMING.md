@@ -105,7 +105,7 @@ User-facing strings use PHP translation files in `lang/{locale}.php` (dot keys).
 |-----------|-----------|
 | Guest locale | `latch_locale` cookie or site default (`settings.default_locale`) |
 | Member locale | `users.locale` column; profile form + `POST /profile/locale` |
-| Quick switch | `GET /locale/{code}` sets cookie and redirects back |
+| Quick switch | `POST /locale` (CSRF + `locale` field) sets cookie and redirects back |
 | RTL | Arabic (`ar`) sets `dir="rtl"` on `<html>`; use logical CSS where possible |
 | Fallback | Missing keys fall back to `lang/en.php` |
 
@@ -267,7 +267,7 @@ Links are **https only**. Style these classes in `theme.css`:
 
 Built-in board tiles live in `assets/img/board-icons/*.svg`. `BoardIconRegistry` maps slug/name to an icon key; admins can set `boards.icon_key` via the visual picker on `/admin/boards` (migration `009`).
 
-Custom themes may ship their own SVG pack in the same directory structure. Plugin-provided icons will use `BoardIconProviderInterface` (Phase 4).
+Custom themes may ship their own SVG pack in the same directory structure. Plugins register icons via the `board.icons` hook and `BoardIconRegistry`.
 
 ---
 

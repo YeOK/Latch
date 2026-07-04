@@ -261,9 +261,11 @@ final class Application
             $this->users,
             $this->settings,
             $this->inputValidator,
+            $this->config,
+            $this->registrationGuard,
         );
 
-        $this->auth = new Auth($this->session, $this->users, $this->userSessions, $this->request);
+        $this->auth = new Auth($this->session, $this->users, $this->userSessions, $this->request, $this->csrf);
         $this->reputation = new ReputationService($this->db, $this->users, $this->settings);
         $this->moderationTrash = new ModerationTrashService(
             $this->db,
@@ -353,7 +355,7 @@ final class Application
 
         $this->router->get('/', $this->bind($home, 'index'));
         $this->router->get('/health', $this->bind($health, 'ping'));
-        $this->router->get('/locale/:code', $this->bind($localeCtrl, 'switch'));
+        $this->router->post('/locale', $this->bind($localeCtrl, 'switch'));
 
         $this->router->get('/api/v1', $this->bind($api, 'meta'));
         $this->router->get('/api/v1/boards', $this->bind($api, 'boards'));
@@ -843,19 +845,9 @@ final class Application
         return $this->boardIcons;
     }
 
-    public function hooks(): HookRegistry
-    {
-        return $this->hookRegistry;
-    }
-
     public function plugins(): PluginRegistry
     {
         return $this->pluginRegistry;
-    }
-
-    public function router(): Router
-    {
-        return $this->router;
     }
 
     public function latchVersion(): string

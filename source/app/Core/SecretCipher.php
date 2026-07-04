@@ -16,6 +16,11 @@ final class SecretCipher
     ) {
     }
 
+    public function hasConfiguredKey(): bool
+    {
+        return $this->configuredKey() !== null;
+    }
+
     public function encrypt(string $plaintext): string
     {
         self::requireSodium();
@@ -60,7 +65,14 @@ final class SecretCipher
             return $this->overrideKey;
         }
 
-        return $this->configuredKey() ?? $this->derivedKey();
+        $configured = $this->configuredKey();
+        if ($configured === null) {
+            throw new \RuntimeException(
+                'Set security.encryption_key in config/local.php before encrypting secrets (required for two-factor authentication).',
+            );
+        }
+
+        return $configured;
     }
 
     private function configuredKey(): ?string
@@ -78,6 +90,9 @@ final class SecretCipher
         return $decoded;
     }
 
+    /**
+     * Legacy decrypt-only fallback when operators enabled TOTP before encryption_key was required.
+     */
     private function derivedKey(): string
     {
         self::requireSodium();

@@ -16,7 +16,12 @@ final class LocaleController
 
     public function switch(array $params = []): void
     {
-        $locale = Locale::normalize((string) ($params['code'] ?? ''));
+        if (!$this->app->csrf()->validate($this->app->request()->input('_csrf'))) {
+            $this->app->session()->flash('error', 'Invalid form token.');
+            Response::redirect('/');
+        }
+
+        $locale = Locale::normalize((string) $this->app->request()->input('locale', ''));
         $user = $this->app->auth()->user();
 
         if ($user !== null) {

@@ -11,6 +11,11 @@ use Latch\Core\Oidc\OidcConfig;
 use Latch\Core\Oidc\OidcHttpClient;
 use Latch\Core\Oidc\OidcProviderProfile;
 use Latch\Core\Oidc\OidcService;
+use Latch\Core\RateLimiter;
+use Latch\Core\RegistrationGuard;
+use Latch\Core\Request;
+use Latch\Core\SecurityLog;
+use Latch\Core\Turnstile;
 use Latch\Models\OidcIdentityRepository;
 use Latch\Models\SettingRepository;
 use Latch\Models\UserRepository;
@@ -23,6 +28,7 @@ final class OidcServiceTest extends TestCase
     private OidcIdentityRepository $identities;
     private OidcService $service;
     private SettingRepository $settings;
+    private Config $config;
 
     protected function setUp(): void
     {
@@ -48,20 +54,42 @@ final class OidcServiceTest extends TestCase
                 created_at TEXT NOT NULL,
                 UNIQUE (provider, provider_subject)
              );
-             CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT);'
+             CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT);
+             CREATE TABLE registration_attempts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip_address TEXT NOT NULL,
+                attempted_at TEXT NOT NULL,
+                success INTEGER NOT NULL DEFAULT 0
+             );'
         );
 
-        $config = new Config(LATCH_ROOT . '/config');
+        $this->config = new Config(LATCH_ROOT . '/config');
         $this->settings = new SettingRepository($this->db);
-        $this->users = new UserRepository($this->db, new InputValidator($config));
+        $this->users = new UserRepository($this->db, new InputValidator($this->config));
         $this->identities = new OidcIdentityRepository($this->db);
-        $this->service = new OidcService(
-            new OidcConfig($config, $this->settings),
+        $this->service = $this->makeService(new Request($this->config));
+    }
+
+    private function makeService(Request $request): OidcService
+    {
+        $logPath = sys_get_temp_dir() . '/latch-oidc-test-' . getmypid() . '.log';
+        @unlink($logPath);
+
+        return new OidcService(
+            new OidcConfig($this->config, $this->settings),
             new OidcHttpClient(),
             $this->identities,
             $this->users,
             $this->settings,
-            new InputValidator($config),
+            new InputValidator($this->config),
+            $this->config,
+            new RegistrationGuard(
+                $this->settings,
+                new RateLimiter($this->db),
+                new Turnstile('', ''),
+                new SecurityLog($logPath),
+                $request,
+            ),
         );
     }
 
@@ -136,6 +164,62 @@ final class OidcServiceTest extends TestCase
             'hidden@example.com',
             false,
             'hidden',
+            null,
+        ));
+    }
+
+    public function testResolveUserRejectsNewAccountWhenRegistrationDisabled(): void
+    {
+        $this->settings->setBool('allow_registration', false);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Registration is disabled.');
+
+        $this->service->resolveUser('github', new OidcProviderProfile(
+            '900',
+            'blocked@example.com',
+            true,
+            'blocked',
+            null,
+        ));
+    }
+
+    public function testResolveUserStillLinksExistingAccountWhenRegistrationDisabled(): void
+    {
+        $this->settings->setBool('allow_registration', false);
+        $existing = $this->users->createSocial('member1', 'person@example.com');
+        $this->users->markEmailVerified((int) $existing['id']);
+
+        $resolved = $this->service->resolveUser('google', new OidcProviderProfile(
+            'google-subject-2',
+            'person@example.com',
+            true,
+            null,
+            'Person',
+        ));
+
+        $this->assertFalse($resolved['created']);
+        $this->assertSame((int) $existing['id'], (int) $resolved['user']['id']);
+    }
+
+    public function testResolveUserRejectsNewAccountWhenIpRateLimited(): void
+    {
+        $rateLimiter = new RateLimiter($this->db);
+        $request = new Request($this->config);
+        for ($i = 0; $i < 3; $i++) {
+            $rateLimiter->recordRegistrationAttempt($request->ip(), true);
+        }
+
+        $this->service = $this->makeService($request);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Too many registration attempts');
+
+        $this->service->resolveUser('github', new OidcProviderProfile(
+            '901',
+            'ratelimited@example.com',
+            true,
+            'ratelimited',
             null,
         ));
     }

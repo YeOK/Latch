@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Latch\Core\Oidc;
 
 use JsonException;
+use Latch\Core\Config;
 use Latch\Core\InputValidator;
+use Latch\Core\RegistrationGuard;
 use Latch\Core\ThemeMode;
 use Latch\Models\OidcIdentityRepository;
 use Latch\Models\SettingRepository;
@@ -21,6 +23,8 @@ final class OidcService
         private readonly UserRepository $users,
         private readonly SettingRepository $settings,
         private readonly InputValidator $inputValidator,
+        private readonly Config $appConfig,
+        private readonly RegistrationGuard $registrationGuard,
     ) {
     }
 
@@ -75,6 +79,8 @@ final class OidcService
             throw new RuntimeException('The provider did not return a verified email address.');
         }
 
+        $this->assertNewRegistrationAllowed();
+
         $username = $this->suggestUsername($profile);
         $user = $this->users->createSocial(
             $username,
@@ -85,8 +91,33 @@ final class OidcService
         $this->users->markEmailVerified((int) $user['id']);
         $this->identities->link((int) $user['id'], $provider, $profile->subject, $email);
         $user = $this->users->findById((int) $user['id']) ?? $user;
+        $this->registrationGuard->recordAttempt(true);
 
         return ['user' => $user, 'created' => true];
+    }
+
+    private function assertNewRegistrationAllowed(): void
+    {
+        if (!$this->allowRegistration()) {
+            $this->registrationGuard->logBlocked('registration_disabled');
+            throw new RuntimeException('Registration is disabled.');
+        }
+
+        $maxPerHour = (int) $this->appConfig->get('security.registration_max_per_ip_hour', 3);
+        if ($this->registrationGuard->tooManyAttempts($maxPerHour, 60)) {
+            $this->registrationGuard->logBlocked('rate_limit');
+            $this->registrationGuard->recordAttempt(false);
+            throw new RuntimeException('Too many registration attempts from your network. Try again later.');
+        }
+    }
+
+    private function allowRegistration(): bool
+    {
+        if ($this->settings->get('allow_registration') !== null) {
+            return $this->settings->getBool('allow_registration');
+        }
+
+        return (bool) $this->appConfig->get('forum.allow_registration', true);
     }
 
     public function suggestUsername(OidcProviderProfile $profile): string

@@ -87,6 +87,43 @@ final class ImageUploadPluginTest extends TestCase
         $this->assertNull($guard->validate($ctx));
     }
 
+    public function testBodyGuardIgnoresMarkdownImagesInInlineCode(): void
+    {
+        $config = $this->sampleConfig();
+        $guard = new BodyGuard($config);
+        $ctx = new PostSaveContext(
+            body: 'Docs mention `![alt](https://host/example.png)` as syntax only.',
+            user: ['id' => 1, 'username' => 'yeok'],
+            board: ['id' => 1],
+            topic: null,
+            kind: 'topic',
+        );
+
+        $this->assertNull($guard->validate($ctx));
+    }
+
+    public function testBodyGuardAllowsPluginsDocumentationImport(): void
+    {
+        $config = $this->sampleConfig();
+        $guard = new BodyGuard($config);
+        $path = dirname(__DIR__) . '/docs/PLUGINS.md';
+        $this->assertFileExists($path);
+
+        $parser = new \Latch\Plugins\MdImport\MarkdownImport();
+        $parsed = $parser->parse((string) file_get_contents($path), 'PLUGINS.md', null, true);
+        $posts = $parser->splitIntoPosts($parsed['body'], 65535);
+        $ctx = new PostSaveContext(
+            body: $posts[0],
+            user: ['id' => 1, 'username' => 'yeok'],
+            board: ['id' => 1],
+            topic: null,
+            kind: 'topic',
+            topicTitle: $parsed['title'],
+        );
+
+        $this->assertNull($guard->validate($ctx));
+    }
+
     public function testContentTypeAllowlist(): void
     {
         $config = $this->sampleConfig();

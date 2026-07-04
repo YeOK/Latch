@@ -1,0 +1,66 @@
+{
+  "meta": {
+    "source": "phpbb",
+    "version": "3.3",
+    "fixture": "minimal",
+    "slug_map": {
+      "1": "general"
+    }
+  },
+  "forums": [
+    {
+      "id": 1,
+      "title": "General Discussion",
+      "description": "Talk about anything",
+      "sort_order": 10
+    }
+  ],
+  "users": [
+    {
+      "id": 2,
+      "username": "alice",
+      "email": "alice@example.com",
+      "role": "member",
+      "user_type": 0,
+      "registered_at": "2020-01-15T12:00:00+00:00"
+    },
+    {
+      "id": 3,
+      "username": "bob",
+      "email": "bob@example.com",
+      "role": "mod",
+      "user_type": 0,
+      "registered_at": "2020-02-01T09:30:00+00:00"
+    }
+  ],
+  "topics": [
+    {
+      "id": 101,
+      "forum_id": 1,
+      "user_id": 2,
+      "title": "Welcome to the migrated forum",
+      "created_at": "2020-03-01T10:00:00+00:00",
+      "last_post_at": "2020-03-01T11:00:00+00:00",
+      "is_locked": 0,
+      "is_pinned": 1
+    }
+  ],
+  "posts": [
+    {
+      "id": 1001,
+      "topic_id": 101,
+      "forum_id": 1,
+      "user_id": 2,
+      "created_at": "2020-03-01T10:00:00+00:00",
+      "body_bbcode": "[b]Hello[/b] from phpBB! Visit [url=https://latch.network]Latch[/url]."
+    },
+    {
+      "id": 1002,
+      "topic_id": 101,
+      "forum_id": 1,
+      "user_id": 3,
+      "created_at": "2020-03-01T11:00:00+00:00",
+      "body_bbcode": "[quote=\"alice\"]Hello from phpBB![/quote]\n\n[code]echo migrated;[/code]"
+    }
+  ]
+}

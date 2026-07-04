@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "source": "phpbb",
+    "version": "3.3",
+    "fixture": "edge-case"
+  },
+  "forums": [
+    {
+      "id": 5,
+      "title": "BBCode Torture Tests",
+      "description": "",
+      "sort_order": 1
+    }
+  ],
+  "users": [
+    {
+      "id": 10,
+      "username": "torture_tester",
+      "email": "torture@example.com",
+      "role": "admin",
+      "user_type": 0,
+      "registered_at": "2021-06-01T00:00:00+00:00"
+    }
+  ],
+  "topics": [
+    {
+      "id": 500,
+      "forum_id": 5,
+      "user_id": 10,
+      "title": "Nested markup and lists",
+      "created_at": "2021-06-02T08:00:00+00:00",
+      "last_post_at": "2021-06-02T08:00:00+00:00",
+      "is_locked": 0,
+      "is_pinned": 0
+    }
+  ],
+  "posts": [
+    {
+      "id": 9001,
+      "topic_id": 500,
+      "forum_id": 5,
+      "user_id": 10,
+      "created_at": "2021-06-02T08:00:00+00:00",
+      "body_bbcode": "[list][*]one[*]two[/list]\n[img]https://images.example.com/test.png[/img]\n[color=red]warn[/color] and [customtag]inner[/customtag]"
+    }
+  ]
+}

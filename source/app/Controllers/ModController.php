@@ -8,11 +8,13 @@ use Latch\Core\Application;
 use Latch\Core\Cache;
 use Latch\Core\ModerationTrashService;
 use Latch\Core\Response;
+use Latch\Support\ModerationTrashResponder;
 use Latch\Support\StaffActionResponder;
 use RuntimeException;
 
 final class ModController
 {
+    use ModerationTrashResponder;
     use StaffActionResponder;
 
     public function __construct(private readonly Application $app)
@@ -964,56 +966,14 @@ final class ModController
         $this->app->notificationService()->onStaffTopicAction($action, $topic, $staff, $message);
     }
 
-    private function finishTrashRestore(int $id): void
+    protected function recordTrashRestore(int $postId, int $topicId): void
     {
-        $trashPath = $this->app->moderationTrash()->trashBoardPath();
-        $result = $this->app->moderationTrash()->restoreTrashedPost($id);
-        if ($result === null) {
-            $this->finishStaffAction(false, 'Trashed post not found.', $trashPath);
-        }
-
-        $topicId = (int) $result['restore_topic_id'];
-        $topic = $this->app->topics()->findById($topicId);
-        if ($topic === null) {
-            $this->finishStaffAction(false, 'Original topic no longer exists.', $trashPath);
-        }
-
-        $this->app->topics()->recalculateLastPostAt($topicId);
-        $this->app->indexSearchTopic($topicId);
-        $this->app->invalidateCacheTags([
-            Cache::tagTopic($topicId),
-            Cache::tagBoard((int) $topic['board_id']),
-            Cache::tagUser((int) $result['author_user_id']),
-            Cache::tagSite(),
-        ]);
-
-        $this->logModAction('post.trash_restore', 'post', $id, ['topic_id' => $topicId]);
-        $this->finishStaffAction(true, 'Post restored to its topic.', $trashPath);
+        $this->logModAction('post.trash_restore', 'post', $postId, ['topic_id' => $topicId]);
     }
 
-    private function finishTrashPurge(int $id): void
+    protected function recordTrashPurge(int $postId, int $topicId): void
     {
-        $trashPath = $this->app->moderationTrash()->trashBoardPath();
-        $result = $this->app->moderationTrash()->purgeTrashedPost($id);
-        if ($result === null) {
-            $this->finishStaffAction(false, 'Trashed post not found.', $trashPath);
-        }
-
-        $topicId = (int) $result['restore_topic_id'];
-        $topic = $this->app->topics()->findById($topicId);
-        if ($topic !== null) {
-            $this->app->topics()->recalculateLastPostAt($topicId);
-            $this->app->indexSearchTopic($topicId);
-            $this->app->invalidateCacheTags([
-                Cache::tagTopic($topicId),
-                Cache::tagBoard((int) $topic['board_id']),
-                Cache::tagSite(),
-            ]);
-        }
-
-        $this->app->invalidateCacheTags([Cache::tagUser((int) $result['author_user_id'])]);
-        $this->logModAction('post.trash_purge', 'post', $id, ['topic_id' => $topicId]);
-        $this->finishStaffAction(true, 'Post permanently deleted.', $trashPath);
+        $this->logModAction('post.trash_purge', 'post', $postId, ['topic_id' => $topicId]);
     }
 
     private function mergeTopicTags(int $sourceTopicId, int $targetTopicId): void

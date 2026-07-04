@@ -1,3 +1,9 @@
+/**
+ * In-page account/admin/profile navigation and AJAX form handling.
+ *
+ * Forms with data-account-bypass submit normally (full page) — use for file uploads and
+ * redirects outside /admin. Other POST forms in .admin-main use fetch + in-panel reload.
+ */
 (function () {
     'use strict';
 
@@ -561,6 +567,10 @@
                 }
 
                 if (document.body.classList.contains('page-admin') && form.closest('.admin-main')) {
+                    if (parsed.pathname.indexOf('/admin') !== 0) {
+                        window.location.assign(target);
+                        return;
+                    }
                     loadInPlaceAdmin(target, false);
                     return;
                 }

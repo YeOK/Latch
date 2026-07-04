@@ -34,6 +34,22 @@ final class Csrf
         return hash_equals($expected, $provided);
     }
 
+    public function rotate(): void
+    {
+        $this->session->set('_csrf', bin2hex(random_bytes(32)));
+    }
+
+    public function validateAndRotate(?string $provided): bool
+    {
+        if (!$this->validate($provided)) {
+            return false;
+        }
+
+        $this->rotate();
+
+        return true;
+    }
+
     public function field(): string
     {
         return '<input type="hidden" name="_csrf" value="' . htmlspecialchars($this->token(), ENT_QUOTES, 'UTF-8') . '">';

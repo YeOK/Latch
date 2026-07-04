@@ -15,6 +15,8 @@ use Latch\Core\ReportReasons;
 use Latch\Core\ReputationService;
 use Latch\Core\Response;
 use Latch\Core\Webhooks\WebhookEvent;
+use Latch\Support\ModerationTrashResponder;
+use Latch\Support\OutboundUrlGuard;
 use Latch\Support\SiteLock;
 use Latch\Support\SiteMaintenance;
 use Latch\Support\StaffActionResponder;
@@ -24,6 +26,7 @@ use Latch\Support\VersionInfo;
 
 final class AdminController
 {
+    use ModerationTrashResponder;
     use StaffActionResponder;
 
     private const FOUNDER_ID = 1;
@@ -1596,75 +1599,30 @@ final class AdminController
         return mb_strlen($title) <= 80 ? $title : mb_substr($title, 0, 79) . '…';
     }
 
-    private function finishTrashRestore(int $id): void
+    protected function recordTrashRestore(int $postId, int $topicId): void
     {
-        $trashPath = $this->app->moderationTrash()->trashBoardPath();
-        $result = $this->app->moderationTrash()->restoreTrashedPost($id);
-        if ($result === null) {
-            $this->finishStaffAction(false, 'Trashed post not found.', $trashPath);
-        }
-
-        $topicId = (int) $result['restore_topic_id'];
-        $topic = $this->app->topics()->findById($topicId);
-        if ($topic === null) {
-            $this->finishStaffAction(false, 'Original topic no longer exists.', $trashPath);
-        }
-
-        $this->app->topics()->recalculateLastPostAt($topicId);
-        $this->app->indexSearchTopic($topicId);
-        $this->app->invalidateCacheTags([
-            Cache::tagTopic($topicId),
-            Cache::tagBoard((int) $topic['board_id']),
-            Cache::tagUser((int) $result['author_user_id']),
-            Cache::tagSite(),
-        ]);
-
         $actor = $this->app->auth()->user();
         $this->app->auditLog()->record(
             (int) ($actor['id'] ?? 0),
             'post.trash_restore',
             'post',
-            $id,
+            $postId,
             $this->app->request()->ip(),
             ['topic_id' => $topicId],
         );
-
-        $this->finishStaffAction(true, 'Post restored to its topic.', $trashPath);
     }
 
-    private function finishTrashPurge(int $id): void
+    protected function recordTrashPurge(int $postId, int $topicId): void
     {
-        $trashPath = $this->app->moderationTrash()->trashBoardPath();
-        $result = $this->app->moderationTrash()->purgeTrashedPost($id);
-        if ($result === null) {
-            $this->finishStaffAction(false, 'Trashed post not found.', $trashPath);
-        }
-
-        $topicId = (int) $result['restore_topic_id'];
-        $topic = $this->app->topics()->findById($topicId);
-        if ($topic !== null) {
-            $this->app->topics()->recalculateLastPostAt($topicId);
-            $this->app->indexSearchTopic($topicId);
-            $this->app->invalidateCacheTags([
-                Cache::tagTopic($topicId),
-                Cache::tagBoard((int) $topic['board_id']),
-                Cache::tagSite(),
-            ]);
-        }
-
-        $this->app->invalidateCacheTags([Cache::tagUser((int) $result['author_user_id'])]);
-
         $actor = $this->app->auth()->user();
         $this->app->auditLog()->record(
             (int) ($actor['id'] ?? 0),
             'post.trash_purge',
             'post',
-            $id,
+            $postId,
             $this->app->request()->ip(),
             ['topic_id' => $topicId],
         );
-
-        $this->finishStaffAction(true, 'Post permanently deleted.', $trashPath);
     }
 
     public function plugins(array $params = []): void
@@ -1714,7 +1672,7 @@ final class AdminController
         }
 
         $report = $this->pluginAuditor()->auditPath($manifest->pluginDir);
-        if (!$report->passed()) {
+        if (!$report->enableAllowed()) {
             $this->finishStaffAction(
                 false,
                 $this->auditFailureMessage($report),
@@ -1827,6 +1785,7 @@ final class AdminController
 
         return [
             'passed' => $report->passed(),
+            'enable_allowed' => $report->enableAllowed(),
             'critical_count' => $report->criticalCount(),
             'warn_count' => $report->warnCount(),
             'critical_findings' => $criticalFindings,
@@ -1846,8 +1805,14 @@ final class AdminController
             $report->warnCount(),
         )];
 
+        if ($report->passed() && !$report->enableAllowed()) {
+            $parts = ['Plugin audit passed but enable is blocked due to hook injection warnings.'];
+        }
+
         foreach ($report->findings as $finding) {
-            if ($finding->severity !== 'critical') {
+            if ($finding->severity !== PluginAuditFinding::SEVERITY_CRITICAL
+                && !($finding->severity === PluginAuditFinding::SEVERITY_WARN
+                    && (str_starts_with($finding->code, 'markup_') || str_starts_with($finding->code, 'js_')))) {
                 continue;
             }
 
@@ -1899,8 +1864,9 @@ final class AdminController
             ? array_values(array_filter(array_map('strval', $eventsInput), static fn (string $e): bool => WebhookEvent::isValid($e)))
             : [];
 
-        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL) || !str_starts_with(strtolower($url), 'https://')) {
-            $this->finishStaffAction(false, 'Webhook URL must be a valid HTTPS URL.', '/admin/webhooks');
+        $urlError = OutboundUrlGuard::publicHttpsUrlError($url);
+        if ($urlError !== null) {
+            $this->finishStaffAction(false, $urlError, '/admin/webhooks');
         }
 
         if ($events === []) {

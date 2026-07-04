@@ -80,6 +80,20 @@ final class WebhookDispatcher
         $id = (int) $webhook['id'];
         $url = (string) $webhook['url'];
         $secret = (string) $webhook['secret'];
+        $ssrfError = OutboundUrlGuard::publicHttpsUrlError($url);
+        if ($ssrfError !== null) {
+            $this->webhooks->recordDelivery(
+                $id,
+                $event,
+                $payload,
+                null,
+                $ssrfError,
+                0,
+            );
+
+            return;
+        }
+
         $signature = hash_hmac('sha256', $payload, $secret);
         $started = hrtime(true);
 

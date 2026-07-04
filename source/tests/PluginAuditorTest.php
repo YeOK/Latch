@@ -66,10 +66,19 @@ final class PluginAuditorTest extends TestCase
         $report = $this->auditor->auditTarget('docs/plugins/warnexample');
 
         $this->assertTrue($report->passed(), $report->toHuman());
+        $this->assertFalse($report->enableAllowed(), $report->toHuman());
         $this->assertSame(0, $report->criticalCount());
         $this->assertGreaterThan(0, $report->warnCount());
         $this->assertContains('markup_script_tag', $this->findingCodes($report->findings));
         $this->assertContains('js_eval', $this->findingCodes($report->findings));
+    }
+
+    public function testBundledPluginsAllowEnable(): void
+    {
+        foreach (['forum-stats', 'image-upload', 'md-import'] as $slug) {
+            $report = $this->auditor->auditTarget($slug);
+            $this->assertTrue($report->enableAllowed(), $slug . ': ' . $report->toHuman());
+        }
     }
 
     public function testResolvesSlugAndRelativePath(): void

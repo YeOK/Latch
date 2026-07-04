@@ -46,6 +46,9 @@ use Latch\Support\SiteMigrate;
 use Latch\Support\SiteRestore;
 use Latch\Support\SqliteIntegrity;
 use Latch\Support\UpdateOrchestrator;
+use Latch\Import\Phpbb\BbcodeConverter;
+use Latch\Import\Phpbb\PhpbbImporter;
+use Latch\Import\Phpbb\PhpbbReader;
 
 define('LATCH_ROOT', dirname(__DIR__));
 
@@ -90,6 +93,7 @@ match ($command) {
     'update' => run_update($argv),
     'doctor' => run_doctor($argv),
     'test' => run_test($argv),
+    'import' => run_import($argv),
     default => unknown_command($command),
 };
 
@@ -114,8 +118,8 @@ Latch CLI
   php bin/latch update         Lock → backup → migrate → db-check → unlock
   php bin/latch doctor         Four-layer install preflight (PHP, vendor, DB, perms)
   php bin/latch test           Run PHPUnit suite (or built-in fallback)
-  php bin/latch test --smoke   Operator smoke: unit slices + db-check + audit
-  php bin/latch test --security Security-focused unit tests + audit
+  php bin/latch test --smoke   Operator smoke: PHPUnit smoke suite + db-check + audit + optional HTTP
+  php bin/latch test --security Security PHPUnit suite + audit + optional HTTP probes
   php bin/latch cache-clear    Purge page cache and Twig compile files
   php bin/latch cron hourly    Light scheduled tasks (rate limits, reputation queue)
   php bin/latch cron daily     DB prunes + reputation (no cache purge)
@@ -141,6 +145,7 @@ Latch CLI
   php bin/latch plugin enable <slug> [--force]  Enable after audit pass
   php bin/latch plugin disable <slug>  Disable a plugin
   php bin/latch plugin-audit <path|slug>  Static security scan; JSON with --json
+  php bin/latch import phpbb   Import phpBB 3.3.x bundle (or export from MySQL)
   php bin/latch help           Show this message
 
 Test API options:
@@ -156,6 +161,16 @@ API client options (api-client create):
 
 API client options (api-client revoke):
   --client-id=ID               Client id to revoke (required)
+
+phpBB import options (import phpbb):
+  --bundle=PATH                JSON bundle to import (required for import)
+  --dry-run                    Preview counts and warnings (no writes)
+  --confirm                    Write import to database
+  --export                     Export phpBB MySQL database to JSON bundle
+  --from-mysql=DSN             mysqli://user:pass@host/dbname (export mode)
+  --out=PATH                   Output path for --export
+  --prefix=phpbb_              Table prefix for export (default: phpbb_)
+  --json                       Machine-readable report
 
 Post announcements options:
   --topic=ID                   Topic ID (required)
@@ -462,12 +477,12 @@ function run_test(array $argv): void
     $suite = strtolower(trim((string) ($argv[2] ?? '')));
 
     if ($suite === '--smoke' || isset($opts['smoke'])) {
-        run_test_smoke();
+        run_test_smoke($opts);
         return;
     }
 
     if ($suite === '--security' || isset($opts['security'])) {
-        run_test_security();
+        run_test_security($opts);
         return;
     }
 
@@ -495,7 +510,8 @@ function run_test_phpunit(?string $filter = null): void
     }
 
     $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($phpunit)
-        . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist');
+        . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist')
+        . ' --testsuite Latch';
     if ($filter !== null && $filter !== '') {
         $cmd .= ' --filter ' . escapeshellarg($filter);
     }
@@ -504,61 +520,135 @@ function run_test_phpunit(?string $filter = null): void
     exit($code);
 }
 
-function run_test_smoke(): void
+/**
+ * @param array<string, string> $opts
+ */
+function run_test_smoke(array $opts): void
 {
     fwrite(STDOUT, "Smoke gate: operator-critical checks\n\n");
 
-    $steps = [
-        ['OAuthScopes', LATCH_ROOT . '/tests/OAuthScopesTest.php'],
-        ['SqliteIntegrity', LATCH_ROOT . '/tests/SqliteIntegrityTest.php'],
-        ['SiteLock', LATCH_ROOT . '/tests/SiteLockTest.php'],
-        ['TopicRepositoryHome', LATCH_ROOT . '/tests/TopicRepositoryHomeTest.php'],
-        ['PluginSystem', LATCH_ROOT . '/tests/PluginSystemTest.php'],
-        ['SiteRestore', LATCH_ROOT . '/tests/SiteRestoreTest.php'],
-    ];
+    if (!run_test_phpunit_suite('smoke', 'Smoke')) {
+        run_test_smoke_fallback();
+    }
 
-    if (extension_loaded('dom') && extension_loaded('xml') && is_file(LATCH_ROOT . '/vendor/bin/phpunit')) {
-        foreach ($steps as [$label, $file]) {
-            fwrite(STDOUT, "==> PHPUnit {$label}\n");
-            $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(LATCH_ROOT . '/vendor/bin/phpunit')
-                . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist')
-                . ' ' . escapeshellarg($file);
-            passthru($cmd, $code);
-            if ($code !== 0) {
-                fwrite(STDERR, "Smoke failed at {$label}\n");
-                exit($code);
-            }
+    run_test_db_check_step();
+
+    if (!run_test_audit_step()) {
+        exit(1);
+    }
+
+    $baseUrl = resolve_live_test_url($opts, 'smoke');
+    if ($baseUrl !== null) {
+        fwrite(STDOUT, "==> HTTP smoke ({$baseUrl})\n");
+        $code = run_web_smoke_harness($baseUrl, $opts);
+        if ($code !== 0) {
+            exit($code);
         }
     } else {
-        fwrite(STDOUT, "==> Built-in (install php-xml for full PHPUnit)\n");
-        require_pdo();
-        $tmp = sys_get_temp_dir() . '/latch-smoke-' . bin2hex(random_bytes(4)) . '.sqlite';
-        $pdo = new PDO('sqlite:' . $tmp);
-        $pdo->exec('CREATE TABLE t (id INTEGER PRIMARY KEY)');
-        $report = SqliteIntegrity::run($tmp);
-        @unlink($tmp);
-        if (!$report['ok']) {
-            fwrite(STDERR, "SqliteIntegrity smoke failed\n");
-            exit(1);
-        }
-        fwrite(STDOUT, "SqliteIntegrity: ok\n");
+        fwrite(STDOUT, "==> HTTP smoke skipped (pass --url= or copy tests/smoke/config.example.php → config.local.php)\n");
     }
 
-    if (class_exists(PDO::class)) {
-        fwrite(STDOUT, "==> db-check\n");
-        $config = new Config(LATCH_ROOT . '/config');
-        $dbPath = (string) $config->get('database.path');
-        if (is_file($dbPath)) {
-            $report = SqliteIntegrity::run($dbPath);
-            fwrite(STDOUT, SqliteIntegrity::formatHuman($report) . "\n");
-            if (!$report['ok']) {
-                exit(1);
-            }
-        } else {
-            fwrite(STDOUT, "Skipped (no database — fresh tree)\n");
+    if (is_file(LATCH_ROOT . '/tests/api/config.local.php')) {
+        fwrite(STDOUT, "==> API smoke\n");
+        $code = run_api_smoke_harness($opts);
+        if ($code !== 0) {
+            exit($code);
         }
     }
 
+    fwrite(STDOUT, "\nSmoke gate passed.\n");
+    exit(0);
+}
+
+/**
+ * @param array<string, string> $opts
+ */
+function run_test_security(array $opts): void
+{
+    fwrite(STDOUT, "Security gate\n\n");
+
+    if (!run_test_phpunit_suite('security', 'Security')) {
+        fwrite(STDOUT, "PHPUnit unavailable — running audit + optional HTTP only\n");
+    }
+
+    $baseUrl = resolve_live_test_url($opts, 'smoke');
+    if ($baseUrl !== null) {
+        fwrite(STDOUT, "==> HTTP security probes ({$baseUrl})\n");
+        $code = run_web_security_harness($baseUrl);
+        if ($code !== 0) {
+            exit($code);
+        }
+    } else {
+        fwrite(STDOUT, "==> HTTP security skipped (pass --url= or tests/smoke/config.local.php)\n");
+    }
+
+    if (!run_test_audit_step()) {
+        exit(1);
+    }
+
+    fwrite(STDOUT, "\nSecurity gate passed.\n");
+    exit(0);
+}
+
+function run_test_phpunit_suite(string $suite, string $label): bool
+{
+    if (!extension_loaded('dom') || !extension_loaded('xml') || !is_file(LATCH_ROOT . '/vendor/bin/phpunit')) {
+        return false;
+    }
+
+    fwrite(STDOUT, "==> PHPUnit {$label} suite\n");
+    $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(LATCH_ROOT . '/vendor/bin/phpunit')
+        . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist')
+        . ' --testsuite ' . escapeshellarg($suite);
+    passthru($cmd, $code);
+    if ($code !== 0) {
+        fwrite(STDERR, "{$label} suite failed\n");
+        exit($code);
+    }
+
+    return true;
+}
+
+function run_test_smoke_fallback(): void
+{
+    fwrite(STDOUT, "==> Built-in fallback (install php-xml for full PHPUnit)\n");
+    require_pdo();
+    $tmp = sys_get_temp_dir() . '/latch-smoke-' . bin2hex(random_bytes(4)) . '.sqlite';
+    $pdo = new PDO('sqlite:' . $tmp);
+    $pdo->exec('CREATE TABLE t (id INTEGER PRIMARY KEY)');
+    $report = SqliteIntegrity::run($tmp);
+    @unlink($tmp);
+    if (!$report['ok']) {
+        fwrite(STDERR, "SqliteIntegrity smoke failed\n");
+        exit(1);
+    }
+    fwrite(STDOUT, "SqliteIntegrity: ok\n");
+}
+
+function run_test_db_check_step(): void
+{
+    if (!class_exists(PDO::class)) {
+        return;
+    }
+
+    fwrite(STDOUT, "==> db-check\n");
+    $config = new Config(LATCH_ROOT . '/config');
+    $dbPath = (string) $config->get('database.path');
+    if (!is_file($dbPath)) {
+        fwrite(STDOUT, "Skipped (no database — fresh tree)\n");
+
+        return;
+    }
+
+    $report = SqliteIntegrity::run($dbPath);
+    fwrite(STDOUT, SqliteIntegrity::formatHuman($report) . "\n");
+    if (!$report['ok']) {
+        exit(1);
+    }
+}
+
+function run_test_audit_step(): bool
+{
     fwrite(STDOUT, "==> audit\n");
     $config = new Config(LATCH_ROOT . '/config');
     $issues = collect_audit_issues($config);
@@ -567,55 +657,207 @@ function run_test_smoke(): void
         foreach ($issues as $issue) {
             fwrite(STDERR, "  - {$issue}\n");
         }
+
+        return false;
+    }
+
+    fwrite(STDOUT, "audit: OK\n");
+
+    return true;
+}
+
+/**
+ * @param array<string, string> $opts
+ */
+function resolve_live_test_url(array $opts, string $profile): ?string
+{
+    if (isset($opts['url']) && trim($opts['url']) !== '') {
+        return rtrim(trim($opts['url']), '/');
+    }
+
+    $configPath = LATCH_ROOT . '/tests/' . $profile . '/config.local.php';
+    if (!is_file($configPath)) {
+        return null;
+    }
+
+    $config = require $configPath;
+    if (!is_array($config)) {
+        return null;
+    }
+
+    $baseUrl = trim((string) ($config['base_url'] ?? ''));
+
+    return $baseUrl !== '' ? rtrim($baseUrl, '/') : null;
+}
+
+/**
+ * @param array<string, string> $opts
+ */
+function run_web_smoke_harness(string $baseUrl, array $opts): int
+{
+    if (!function_exists('curl_init')) {
+        fwrite(STDERR, "HTTP smoke requires php-curl.\n");
+        return 1;
+    }
+
+    $config = ['base_url' => $baseUrl];
+    $configPath = LATCH_ROOT . '/tests/smoke/config.local.php';
+    if (is_file($configPath)) {
+        $local = require $configPath;
+        if (is_array($local)) {
+            $config = array_merge($local, $config);
+        }
+    }
+
+    require LATCH_ROOT . '/tests/smoke/WebSmokeHarness.php';
+
+    return (new WebSmokeHarness($config))->run();
+}
+
+function run_web_security_harness(string $baseUrl): int
+{
+    if (!function_exists('curl_init')) {
+        fwrite(STDERR, "HTTP security probes require php-curl.\n");
+        return 1;
+    }
+
+    require LATCH_ROOT . '/tests/security/WebSecurityHarness.php';
+
+    return (new WebSecurityHarness($baseUrl))->run();
+}
+
+/**
+ * @param array<string, string> $opts
+ */
+function run_api_smoke_harness(array $opts): int
+{
+    if (!function_exists('curl_init')) {
+        fwrite(STDERR, "API smoke requires php-curl.\n");
+        return 1;
+    }
+
+    $configPath = (string) ($opts['config'] ?? LATCH_ROOT . '/tests/api/config.local.php');
+    $config = require $configPath;
+    if (!is_array($config)) {
+        fwrite(STDERR, "Invalid API config.\n");
+        return 1;
+    }
+
+    if (isset($opts['url']) && $opts['url'] !== '') {
+        $config['base_url'] = $opts['url'];
+    }
+
+    require LATCH_ROOT . '/tests/api/ApiHarness.php';
+
+    return (new ApiHarness($config))->run();
+}
+
+function run_import(array $argv): void
+{
+    $sub = strtolower(trim((string) ($argv[2] ?? '')));
+    if ($sub !== 'phpbb') {
+        fwrite(STDERR, "Usage: php bin/latch import phpbb --bundle=PATH [--dry-run|--confirm]\n");
+        fwrite(STDERR, "       php bin/latch import phpbb --export --from-mysql=DSN --out=PATH\n");
         exit(1);
     }
-    fwrite(STDOUT, "audit: OK\n\nSmoke gate passed.\n");
+
+    $opts = parse_cli_options($argv);
+
+    if (isset($opts['export'])) {
+        run_import_phpbb_export($opts);
+        return;
+    }
+
+    run_import_phpbb_bundle($opts);
+}
+
+/**
+ * @param array<string, string> $opts
+ */
+function run_import_phpbb_export(array $opts): void
+{
+    $dsn = trim((string) ($opts['from-mysql'] ?? ''));
+    $out = trim((string) ($opts['out'] ?? ''));
+    if ($dsn === '' || $out === '') {
+        fwrite(STDERR, "--export requires --from-mysql= and --out=\n");
+        exit(1);
+    }
+
+    $prefix = trim((string) ($opts['prefix'] ?? 'phpbb_'));
+    if ($prefix === '') {
+        $prefix = 'phpbb_';
+    }
+
+    try {
+        (new PhpbbReader())->exportToFile($dsn, $out, $prefix);
+    } catch (\Throwable $e) {
+        fwrite(STDERR, 'Export failed: ' . $e->getMessage() . "\n");
+        exit(1);
+    }
+
+    fwrite(STDOUT, "Exported phpBB bundle → {$out}\n");
     exit(0);
 }
 
-function run_test_security(): void
+/**
+ * @param array<string, string> $opts
+ */
+function run_import_phpbb_bundle(array $opts): void
 {
-    fwrite(STDOUT, "Security gate\n\n");
-
-    $files = [
-        LATCH_ROOT . '/tests/Phase15LeftoversTest.php',
-        LATCH_ROOT . '/tests/SiteLockTest.php',
-        LATCH_ROOT . '/tests/OidcServiceTest.php',
-        LATCH_ROOT . '/tests/RequestHttpsTest.php',
-        LATCH_ROOT . '/tests/BoardAclTest.php',
-        LATCH_ROOT . '/tests/PluginAuditorTest.php',
-    ];
-
-    if (extension_loaded('dom') && extension_loaded('xml') && is_file(LATCH_ROOT . '/vendor/bin/phpunit')) {
-        foreach ($files as $file) {
-            if (!is_file($file)) {
-                continue;
-            }
-            fwrite(STDOUT, '==> ' . basename($file) . "\n");
-            $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(LATCH_ROOT . '/vendor/bin/phpunit')
-                . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist')
-                . ' ' . escapeshellarg($file);
-            passthru($cmd, $code);
-            if ($code !== 0) {
-                exit($code);
-            }
-        }
-    } else {
-        fwrite(STDOUT, "PHPUnit unavailable — running audit only\n");
-    }
-
-    $config = new Config(LATCH_ROOT . '/config');
-    $issues = collect_audit_issues($config);
-    if ($issues !== []) {
-        fwrite(STDERR, 'audit: FAILED — ' . count($issues) . " issue(s)\n");
-        foreach ($issues as $issue) {
-            fwrite(STDERR, "  - {$issue}\n");
-        }
+    $bundlePath = trim((string) ($opts['bundle'] ?? ''));
+    if ($bundlePath === '') {
+        fwrite(STDERR, "--bundle=PATH is required.\n");
         exit(1);
     }
 
-    fwrite(STDOUT, "audit: OK\n\nSecurity gate passed.\n");
-    exit(0);
+    $dryRun = isset($opts['dry-run']);
+    $confirm = isset($opts['confirm']);
+    if ($dryRun === $confirm) {
+        fwrite(STDERR, "Specify exactly one of --dry-run or --confirm.\n");
+        exit(1);
+    }
+
+    require_pdo();
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $db = new Database((string) $config->get('database.path'));
+    $reader = new PhpbbReader();
+    $converter = new BbcodeConverter(phpbb_custom_bbcode_strategies());
+    $importer = new PhpbbImporter($db, $converter);
+
+    try {
+        $bundle = $reader->loadBundleFile($bundlePath);
+    } catch (\Throwable $e) {
+        fwrite(STDERR, $e->getMessage() . "\n");
+        exit(1);
+    }
+
+    $report = $confirm ? $importer->confirm($bundle) : $importer->dryRun($bundle);
+
+    if (isset($opts['json'])) {
+        fwrite(STDOUT, $report->toJson() . "\n");
+    } else {
+        fwrite(STDOUT, $report->toHuman() . "\n");
+    }
+
+    if ($confirm && $report->ok()) {
+        fwrite(STDOUT, "\nRun: php bin/latch search-reindex\n");
+    }
+
+    exit($report->ok() ? 0 : 1);
+}
+
+/** @return array<string, string> */
+function phpbb_custom_bbcode_strategies(): array
+{
+    $path = LATCH_ROOT . '/config/import-phpbb-bbcodes.php';
+    if (!is_file($path)) {
+        return [];
+    }
+
+    $data = require $path;
+
+    return is_array($data) ? array_map('strval', $data) : [];
 }
 
 function run_backup(): void
@@ -1748,10 +1990,10 @@ function run_plugin(array $argv): void
             exit(1);
         }
 
-        if (!$report->passed()) {
+        if (!$report->enableAllowed()) {
             fwrite(STDERR, $report->toHuman());
             if (!isset($opts['force'])) {
-                fwrite(STDERR, "Audit failed. Fix findings or re-run with --force (logged to audit_log when DB is writable).\n");
+                fwrite(STDERR, "Audit failed or enable blocked. Fix findings or re-run with --force (logged to audit_log when DB is writable).\n");
                 exit(1);
             }
 
@@ -1765,7 +2007,7 @@ function run_plugin(array $argv): void
             $settings,
         );
 
-        if (!$report->passed() && isset($opts['force'])) {
+        if (!$report->enableAllowed() && isset($opts['force'])) {
             try {
                 $auditLog = new \Latch\Models\AuditLogRepository($db);
                 $auditLog->record(

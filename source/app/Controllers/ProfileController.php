@@ -265,7 +265,7 @@ final class ProfileController
     {
         $this->app->auth()->requireLogin();
 
-        if (!$this->app->csrf()->validate($this->app->request()->input('_csrf'))) {
+        if (!$this->app->csrf()->validateAndRotate($this->app->request()->input('_csrf'))) {
             Response::forbidden('Invalid form token.');
         }
 

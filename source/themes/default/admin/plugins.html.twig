@@ -52,7 +52,11 @@
                         </td>
                         <td>
                             {% if audit.passed %}
-                                <span class="badge">Pass</span>
+                                {% if audit.enable_allowed %}
+                                    <span class="badge">Pass</span>
+                                {% else %}
+                                    <span class="badge badge-quarantine">Blocked</span>
+                                {% endif %}
                             {% else %}
                                 <span class="badge badge-quarantine">Failed</span>
                             {% endif %}
@@ -102,7 +106,7 @@
                                     {{ csrf_field() }}
                                     <button type="submit" class="btn btn-small">Disable</button>
                                 </form>
-                            {% elseif row.compatible and audit.passed %}
+                            {% elseif row.compatible and audit.enable_allowed %}
                                 <form method="post" action="/admin/plugins/{{ manifest.slug }}/enable" class="inline-form">
                                     {{ csrf_field() }}
                                     <button type="submit" class="btn btn-small btn-primary">Enable</button>

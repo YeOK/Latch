@@ -7,6 +7,28 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **phpBB import (Phase 6 v1)** — `bin/latch import phpbb` with `--dry-run` / `--confirm` (JSON bundle) and `--export --from-mysql=` (requires `pdo_mysql`); `BbcodeConverter`, `import_map` migration `031`, fixture bundles under `scripts/fixtures/phpbb/`.
+- **Phase 5 test gates** — `bin/latch test --smoke` and `test --security` run dedicated PHPUnit suites (`phpunit.xml.dist`), then `db-check` / `audit`; optional live HTTP probes with `--url=` or `tests/smoke/config.local.php`; smoke also runs `tests/api/` harness when API config exists.
+- **`CsrfTest`**, **`SecurityRegressionTest`** — CSRF rotation/validation and markup/SSRF regression coverage in the security suite.
+- **Outbound URL guard** — webhook create/delivery rejects private, loopback, and link-local targets (SSRF mitigation).
+- **Plugin enable gate** — markup/JS injection audit warnings now block enable (stricter than audit pass).
+- **Theme manifest note** — `themes/default/README.md` documents that `theme.json` is not loaded at runtime.
+
+### Fixed
+- **OIDC registration** — new Google/GitHub sign-ups now respect **registration disabled** and per-IP signup rate limits; linking existing accounts is unchanged.
+- **`md-import` + `image-upload`** — `BodyGuard` no longer treats markdown image syntax inside inline or fenced code as real post images, so documentation like `docs/PLUGINS.md` imports successfully when `image-upload` is enabled.
+- **`md-import` admin form** — import uses a full-page POST (`data-account-bypass`) so file uploads and hook rejection flashes are reliable; admin SPA now navigates away when a form redirects outside `/admin` (e.g. to the new topic).
+
+### Changed
+- **Locale quick switch** — `POST /locale` with CSRF replaces `GET /locale/{code}`.
+- **TOTP enrollment** — requires `security.encryption_key` in `config/local.php` (derived-key encrypt is decrypt-only for legacy secrets).
+- **CSRF rotation** — new token after login and sensitive profile/2FA mutations.
+- **Moderation trash** — shared restore/purge logic for admin and mod controllers.
+
+### Removed
+- Dead code: `BoardIconProviderInterface`, unused `Application::router()` / `hooks()`, sort `label()` helpers, orphan `field_input.html.twig` partial.
+
 ## [0.3.0.11] — 2026-07-04
 
 ### Added

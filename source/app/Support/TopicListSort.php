@@ -55,10 +55,4 @@ final class TopicListSort
         ];
     }
 
-    public static function label(string $sort): string
-    {
-        $sort = self::normalize($sort);
-
-        return self::labels()[$sort] ?? self::labels()[self::ACTIVITY];
-    }
 }

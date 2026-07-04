@@ -63,10 +63,14 @@
             {% if totp_mandatory %}
                 <p class="flash flash-error">Required for your role before you can use admin features.</p>
             {% endif %}
-            <form method="post" action="/profile/2fa/enable">
-                {{ csrf_field() }}
-                <button type="submit" class="btn btn-primary">Enable two-factor authentication</button>
-            </form>
+            {% if not totp_encryption_ready %}
+                <p class="flash flash-error">Set <code>security.encryption_key</code> in <code>config/local.php</code> before enabling two-factor authentication.</p>
+            {% else %}
+                <form method="post" action="/profile/2fa/enable">
+                    {{ csrf_field() }}
+                    <button type="submit" class="btn btn-primary">Enable two-factor authentication</button>
+                </form>
+            {% endif %}
         {% endif %}
     </section>
 {% endblock %}

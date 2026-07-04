@@ -22,6 +22,7 @@ final class Auth
         private readonly UserRepository $users,
         private readonly UserSessionRepository $userSessions,
         private readonly Request $request,
+        private readonly Csrf $csrf,
     ) {
     }
 
@@ -92,6 +93,7 @@ final class Auth
     public function login(array $user): void
     {
         $this->session->regenerate();
+        $this->csrf->rotate();
         $this->session->set('user_id', (int) $user['id']);
         $this->session->set('password_changed_at', $user['password_changed_at'] ?? null);
 

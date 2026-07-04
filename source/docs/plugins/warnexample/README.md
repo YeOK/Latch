@@ -1,6 +1,6 @@
 # Warn example plugin (audit test fixture)
 
-**Do not enable on production.** This plugin exists only to verify `plugin-audit` and `/admin/plugins` show **warnings** correctly while still passing the enable gate.
+**Do not enable on production.** This plugin exists only to verify `plugin-audit` and `/admin/plugins` show **warnings** correctly. Audit **passes** (no critical findings) but **enable is blocked** due to markup/JS injection warnings.
 
 ## Expected audit result
 
