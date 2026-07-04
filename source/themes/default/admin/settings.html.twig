@@ -17,6 +17,11 @@
             Tagline
             <input type="text" name="site_tagline" value="{{ site_tagline }}" maxlength="{{ input_limits.site_tagline_max }}">
         </label>
+        <label>
+            Footer about text
+            <textarea name="footer_about" rows="5" maxlength="{{ input_limits.footer_about_max }}" placeholder="Short description shown in the site footer (below the logo).">{{ footer_about }}</textarea>
+        </label>
+        <p class="muted">Press <kbd>Enter</kbd> once for a line break; press it twice (blank line) to start a new paragraph. Leave empty to show only your tagline in the footer, or nothing if the tagline is also empty.</p>
         <label class="checkbox">
             <input type="checkbox" name="members_only" value="1"{% if members_only %} checked{% endif %}>
             Members only (guests cannot read boards)

@@ -7,8 +7,16 @@
                 {% else %}
                     {% include 'partials/brand_custom.html.twig' with { brand_variant: 'footer' } %}
                 {% endif %}
-                <p>Fast, secure, self-hosted forum software. MIT-licensed — PHP 8.2+, SQLite, Twig themes, and built-in moderation tools.</p>
-                <p class="footer-tagline muted">Designed for simple ops: one database file, WAL mode, guest caching, and fail2ban-ready auth.</p>
+                {% set footer_about_text = footer_about|default('')|trim|replace({"\r\n": "\n", "\r": "\n"}) %}
+                {% if footer_about_text %}
+                    {% for paragraph in footer_about_text|split("\n\n") %}
+                        {% if paragraph|trim %}
+                            <p{% if not loop.first %} class="footer-tagline muted"{% endif %}>{{ paragraph|trim|nl2br }}</p>
+                        {% endif %}
+                    {% endfor %}
+                {% elseif site.tagline %}
+                    <p class="footer-tagline muted">{{ site.tagline }}</p>
+                {% endif %}
             </section>
             <section class="footer-links">
                 <h2 class="footer-heading">{{ trans('footer.explore') }}</h2>

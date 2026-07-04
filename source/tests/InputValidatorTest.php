@@ -41,6 +41,12 @@ final class InputValidatorTest extends TestCase
         $this->assertNotNull($this->validator->bioError(str_repeat('b', 501)));
     }
 
+    public function testFooterAboutRejectsOverflow(): void
+    {
+        $this->assertNull($this->validator->footerAboutError(str_repeat('f', 500)));
+        $this->assertNotNull($this->validator->footerAboutError(str_repeat('f', 501)));
+    }
+
     public function testPasswordMaxLength(): void
     {
         $this->assertNull($this->validator->passwordError(str_repeat('p', 128)));

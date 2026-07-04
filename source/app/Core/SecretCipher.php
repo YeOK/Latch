@@ -18,6 +18,7 @@ final class SecretCipher
 
     public function encrypt(string $plaintext): string
     {
+        self::requireSodium();
         $key = $this->key();
         $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
         $cipher = sodium_crypto_secretbox($plaintext, $nonce, $key);
@@ -27,6 +28,7 @@ final class SecretCipher
 
     public function decrypt(string $encoded): ?string
     {
+        self::requireSodium();
         $raw = base64_decode($encoded, true);
         if ($raw === false || strlen($raw) < SODIUM_CRYPTO_SECRETBOX_NONCEBYTES + SODIUM_CRYPTO_SECRETBOX_MACBYTES) {
             return null;
@@ -78,6 +80,7 @@ final class SecretCipher
 
     private function derivedKey(): string
     {
+        self::requireSodium();
         $dbPath = (string) $this->config->get('database.path', 'latch');
         $siteUrl = (string) $this->config->get('site.url', 'latch');
 
@@ -85,6 +88,17 @@ final class SecretCipher
             'latch-totp:' . $dbPath . ':' . $siteUrl,
             '',
             SODIUM_CRYPTO_SECRETBOX_KEYBYTES,
+        );
+    }
+
+    private static function requireSodium(): void
+    {
+        if (function_exists('sodium_crypto_secretbox')) {
+            return;
+        }
+
+        throw new \RuntimeException(
+            'PHP sodium extension is required for two-factor authentication (install php-sodium, then restart the web server).',
         );
     }
 }

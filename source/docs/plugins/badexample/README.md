@@ -5,8 +5,9 @@
 ## Expected audit result
 
 ```bash
-php bin/latch plugin-audit badexample
+php bin/latch plugin-audit docs/plugins/badexample
 # exit 1 — critical findings in src/AuditTrap.php
+# Or copy to plugins/badexample/ and audit by slug
 ```
 
 Typical critical flags:

@@ -275,7 +275,16 @@ final class TwoFactorController
         }
 
         $twoFactor = $this->app->twoFactor();
-        if (!$twoFactor->enable((int) $user['id'], $secret, $code)) {
+        try {
+            $enabled = $twoFactor->enable((int) $user['id'], $secret, $code);
+        } catch (\RuntimeException $e) {
+            $this->app->session()->flash('error', $e->getMessage());
+            $this->renderSetupForm($user, $fromLogin ? '/login/2fa/setup' : '/profile/2fa/confirm');
+
+            return;
+        }
+
+        if (!$enabled) {
             $this->app->session()->flash('error', 'Invalid authentication code. Check your app and try again.');
             $this->renderSetupForm($user, $fromLogin ? '/login/2fa/setup' : '/profile/2fa/confirm');
 

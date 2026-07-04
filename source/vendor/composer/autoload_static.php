@@ -28,6 +28,7 @@ class ComposerStaticInit86d0a14d52e9c3f9e6a6a83580ea1982
         ),
         'L' =>
         array (
+            'Latch\\Plugins\\MdImport\\' => 23,
             'Latch\\Plugins\\ImageUpload\\' => 26,
             'Latch\\Plugins\\ForumStats\\' => 25,
             'Latch\\' => 6,
@@ -54,6 +55,10 @@ class ComposerStaticInit86d0a14d52e9c3f9e6a6a83580ea1982
         'Symfony\\Polyfill\\Ctype\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-ctype',
+        ),
+        'Latch\\Plugins\\MdImport\\' =>
+        array (
+            0 => __DIR__ . '/../..' . '/plugins/md-import/src',
         ),
         'Latch\\Plugins\\ImageUpload\\' =>
         array (
@@ -282,6 +287,10 @@ class ComposerStaticInit86d0a14d52e9c3f9e6a6a83580ea1982
         'Latch\\Plugins\\ImageUpload\\PluginConfig' => __DIR__ . '/../..' . '/plugins/image-upload/src/PluginConfig.php',
         'Latch\\Plugins\\ImageUpload\\PresignHandler' => __DIR__ . '/../..' . '/plugins/image-upload/src/PresignHandler.php',
         'Latch\\Plugins\\ImageUpload\\R2Presigner' => __DIR__ . '/../..' . '/plugins/image-upload/src/R2Presigner.php',
+        'Latch\\Plugins\\MdImport\\ImportHandler' => __DIR__ . '/../..' . '/plugins/md-import/src/ImportHandler.php',
+        'Latch\\Plugins\\MdImport\\ImportPage' => __DIR__ . '/../..' . '/plugins/md-import/src/ImportPage.php',
+        'Latch\\Plugins\\MdImport\\MarkdownImport' => __DIR__ . '/../..' . '/plugins/md-import/src/MarkdownImport.php',
+        'Latch\\Plugins\\MdImport\\Plugin' => __DIR__ . '/../..' . '/plugins/md-import/src/Plugin.php',
         'Latch\\Support\\Doctor' => __DIR__ . '/../..' . '/app/Support/Doctor.php',
         'Latch\\Support\\Schema' => __DIR__ . '/../..' . '/app/Support/Schema.php',
         'Latch\\Support\\Scripts' => __DIR__ . '/../..' . '/app/Support/Scripts.php',
@@ -292,9 +301,11 @@ class ComposerStaticInit86d0a14d52e9c3f9e6a6a83580ea1982
         'Latch\\Support\\SqliteIntegrity' => __DIR__ . '/../..' . '/app/Support/SqliteIntegrity.php',
         'Latch\\Support\\StaffActionResponder' => __DIR__ . '/../..' . '/app/Support/StaffActionResponder.php',
         'Latch\\Support\\Str' => __DIR__ . '/../..' . '/app/Support/Str.php',
+        'Latch\\Support\\SystemInfo' => __DIR__ . '/../..' . '/app/Support/SystemInfo.php',
         'Latch\\Support\\TopicListSort' => __DIR__ . '/../..' . '/app/Support/TopicListSort.php',
         'Latch\\Support\\UpdateOrchestrator' => __DIR__ . '/../..' . '/app/Support/UpdateOrchestrator.php',
         'Latch\\Support\\UserDependencyCleanup' => __DIR__ . '/../..' . '/app/Support/UserDependencyCleanup.php',
+        'Latch\\Support\\VersionInfo' => __DIR__ . '/../..' . '/app/Support/VersionInfo.php',
         'Latch\\Support\\WebhookDispatcher' => __DIR__ . '/../..' . '/app/Support/WebhookDispatcher.php',
         'Symfony\\Polyfill\\Ctype\\Ctype' => __DIR__ . '/..' . '/symfony/polyfill-ctype/Ctype.php',
         'Symfony\\Polyfill\\Mbstring\\Mbstring' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/Mbstring.php',

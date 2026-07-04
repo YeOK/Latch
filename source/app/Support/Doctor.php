@@ -55,7 +55,7 @@ final class Doctor
      */
     private static function checkExtensions(): array
     {
-        $required = ['pdo', 'pdo_sqlite', 'mbstring', 'json', 'session'];
+        $required = ['pdo', 'pdo_sqlite', 'mbstring', 'json', 'session', 'sodium'];
         $checks = [];
         foreach ($required as $ext) {
             $loaded = extension_loaded($ext);

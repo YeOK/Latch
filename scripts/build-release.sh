@@ -84,6 +84,7 @@ rsync -a \
     --exclude='scripts/post-documentation.php' \
     --exclude='scripts/post-security-news.php' \
     --exclude='scripts/update-roadmap-post.php' \
+    --exclude='source/plugins/md-import/' \
     --exclude='scripts/latch-logs.sh' \
     --exclude='scripts/setup-api-test-client.sh' \
     --exclude='scripts/install-latch-security.sh' \

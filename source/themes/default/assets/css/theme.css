@@ -96,7 +96,7 @@
     input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="number"], [type="url"], [type="tel"], [type="date"], [type="datetime-local"]),
     textarea,
     select
-):not(.composer-textarea):not(.composer-honeypot input) {
+):not(.composer-textarea):not(.composer-honeypot input):not(.site-search-input) {
     box-sizing: border-box;
     padding: var(--field-padding-y) var(--field-padding-x);
     border: 1px solid var(--field-border);
@@ -113,7 +113,7 @@
     input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="number"], [type="url"], [type="tel"], [type="date"], [type="datetime-local"]),
     textarea,
     select
-):not(.composer-textarea):not(.composer-honeypot input)::placeholder {
+):not(.composer-textarea):not(.composer-honeypot input):not(.site-search-input)::placeholder {
     color: var(--muted);
 }
 
@@ -122,7 +122,7 @@
     input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="number"], [type="url"], [type="tel"], [type="date"], [type="datetime-local"]),
     textarea,
     select
-):not(.composer-textarea):not(.composer-honeypot input):focus {
+):not(.composer-textarea):not(.composer-honeypot input):not(.site-search-input):focus {
     outline: none;
     border-color: var(--field-border-focus);
     background-color: var(--field-bg-focus);
@@ -134,7 +134,7 @@
     input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="number"], [type="url"], [type="tel"], [type="date"], [type="datetime-local"]),
     textarea,
     select
-):not(.composer-textarea):not(.composer-honeypot input):disabled {
+):not(.composer-textarea):not(.composer-honeypot input):not(.site-search-input):disabled {
     opacity: 0.65;
     cursor: not-allowed;
 }
@@ -344,19 +344,39 @@ a:hover {
 
 .site-search .site-search-icon {
     position: absolute;
-    left: 0.75rem;
+    left: 0.85rem;
     display: flex;
+    align-items: center;
     color: var(--muted);
     pointer-events: none;
     z-index: 1;
 }
 
-.site-search input[type="search"] {
+.site-search .site-search-input[type="search"] {
+    box-sizing: border-box;
     width: 100%;
     min-width: 0;
-    padding: var(--field-padding-y) 2.5rem var(--field-padding-y) 2.35rem;
+    padding: var(--field-padding-y) 2.5rem var(--field-padding-y) 2.75rem;
+    border: 1px solid var(--field-border);
+    border-radius: var(--field-radius);
+    background-color: var(--field-bg);
+    color: var(--text);
+    font: inherit;
+    font-size: var(--field-font-size);
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
     -webkit-appearance: none;
     appearance: none;
+}
+
+.site-search .site-search-input[type="search"]::placeholder {
+    color: var(--muted);
+}
+
+.site-search .site-search-input[type="search"]:focus {
+    outline: none;
+    border-color: var(--field-border-focus);
+    background-color: var(--field-bg-focus);
+    box-shadow: var(--field-focus-ring);
 }
 
 .site-search input[type="search"]::-webkit-search-decoration,
@@ -366,7 +386,7 @@ a:hover {
     display: none;
 }
 
-.site-search input.site-search-input--no-icon[type="search"] {
+.site-search .site-search-input.site-search-input--no-icon[type="search"] {
     padding-left: var(--field-padding-x);
 }
 
@@ -2986,6 +3006,105 @@ main.container.page-home {
     font-size: 1.65rem;
     font-weight: 700;
     line-height: 1.1;
+}
+
+.admin-system-panel {
+    margin-bottom: 2rem;
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.admin-system-heading {
+    margin: 0 0 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.admin-system-grid {
+    display: grid;
+    gap: 0.85rem 1.5rem;
+    margin: 0;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.admin-system-item dt {
+    margin: 0 0 0.2rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+}
+
+.admin-system-item dd {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+.admin-system-alert {
+    color: var(--danger);
+}
+
+.admin-version-panel {
+    margin-bottom: 2rem;
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.admin-version-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.65rem;
+}
+
+.admin-version-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.admin-version-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-version-sep {
+    margin: 0 0.1rem;
+}
+
+.admin-version-badge--behind {
+    background: color-mix(in srgb, var(--danger) 18%, var(--surface));
+    color: var(--danger);
+}
+
+.admin-version-badge--ahead,
+.admin-version-badge--unknown {
+    background: color-mix(in srgb, var(--muted) 20%, var(--surface));
+    color: var(--muted);
+}
+
+.admin-version-badge--current {
+    background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+    color: var(--accent);
+}
+
+.admin-version-git {
+    margin: 0.65rem 0 0;
+    font-size: 0.85rem;
 }
 
 .admin-stat-label {

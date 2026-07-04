@@ -8,7 +8,7 @@ declare(strict_types=1);
  */
 return [
     'app' => [
-        'version' => '0.3.0.3',
+        'version' => '0.3.0.9',
     ],
     'site' => [
         'name' => 'Latch',
@@ -37,6 +37,7 @@ return [
         'report_detail_max' => 500,
         'site_name_max' => 80,
         'site_tagline_max' => 160,
+        'footer_about_max' => 500,
         'email_max' => 254,
         'password_max' => 128,
     ],

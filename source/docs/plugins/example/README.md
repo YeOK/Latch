@@ -1,10 +1,12 @@
 # Example plugin
 
-Reference plugin for Latch Phase 4. Demonstrates `plugin.json`, bootstrap class, and hooks.
+Reference plugin for Latch Phase 4. Lives under `docs/plugins/` — not auto-discovered. Copy to `plugins/example/` to try it.
 
 ## Enable (operator)
 
 ```bash
+cp -a docs/plugins/example plugins/example
+
 # List discovered plugins
 php bin/latch plugin list
 

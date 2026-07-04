@@ -106,7 +106,7 @@ $hooks->add(HookName::POST_BEFORE_SAVE, static function (PostSaveContext $ctx): 
 
 ### `admin.menu`
 
-Return associative arrays (or an array of them from one callback):
+Return associative arrays (or an array of them from one callback). Register the page under `/admin/…` (via `route.register`) so `account-panel.js` loads it in-place in the admin shell instead of a full navigation.
 
 ```php
 $hooks->add(HookName::ADMIN_MENU, static fn (): array => [
@@ -174,21 +174,9 @@ After enabling, purge guest page cache / Twig compile if needed (`php bin/latch 
 
 **Audit gate:** `plugin enable` (CLI and admin) runs `plugin-audit` first. Critical findings block enable unless CLI `--force` (logged to `audit_log` as `plugin.enable_forced`).
 
-## Example plugins
+## Bundled plugins
 
-### `example` (good)
-
-Bundled at `plugins/example/`:
-
-- `GET /plugin/example` — JSON status when enabled
-- Footer note via `layout.footer`
-
-Enable locally to try it:
-
-```bash
-php bin/latch migrate   # applies 028_plugins.sql if needed
-php bin/latch plugin enable example
-```
+Only **`forum-stats`** and **`image-upload`** ship under `plugins/` and are discovered by `plugin list`. Reference and audit fixtures live under `docs/plugins/` — copy a directory into `plugins/{slug}/` when you want to try or test it.
 
 ### `forum-stats` (distributable reference)
 
@@ -198,13 +186,33 @@ Bundled at `plugins/forum-stats/` — posts, topics, and registered member count
 
 Bundled at `plugins/image-upload/` — **Insert image** toolbar button; presigned direct upload to **Cloudflare R2**; markdown `![](https://your-cdn/…)` in posts. Credentials in `config/local.php` → `plugins.image_upload` (see `plugins/image-upload/README.md`). Uses `editor.compose`, `post.format.image_host`, `csp.img_src`, `csp.connect_src`, `post.before_save`.
 
+## Reference plugins (`docs/plugins/`)
+
+Not auto-discovered. Copy into `plugins/{slug}/` before enable.
+
+### `example` (good)
+
+Reference at `docs/plugins/example/`:
+
+- `GET /plugin/example` — JSON status when enabled
+- Footer note via `layout.footer`
+
+Try locally:
+
+```bash
+cp -a docs/plugins/example plugins/example
+php bin/latch migrate   # applies 028_plugins.sql if needed
+php bin/latch plugin-audit example
+php bin/latch plugin enable example
+```
+
 ### `badexample` (audit failure fixture)
 
-Bundled at `plugins/badexample/` — intentional `eval`, undeclared network, and forbidden path writes in `src/AuditTrap.php`. Use to verify audit UI and CLI (`plugin-audit badexample` must exit 1). **Never enable on production.**
+Reference at `docs/plugins/badexample/` — intentional `eval`, undeclared network, and forbidden path writes in `src/AuditTrap.php`. Copy to `plugins/` only when verifying audit UI and CLI (`plugin-audit badexample` must exit 1). **Never enable on production.**
 
 ### `warnexample` (audit warning fixture)
 
-Bundled at `plugins/warnexample/` — intentional markup warnings in `src/WarnTrap.php` and JS warnings in `assets/warn.js`. Use to verify audit UI shows **warnings** separately from critical (`plugin-audit warnexample` exits 0 with warnings). Enable is allowed. **Never enable on production.**
+Reference at `docs/plugins/warnexample/` — intentional markup warnings in `src/WarnTrap.php` and JS warnings in `assets/warn.js`. Copy to `plugins/` to verify audit UI shows **warnings** separately from critical (`plugin-audit warnexample` exits 0 with warnings). Enable is allowed. **Never enable on production.**
 
 ## Author checklist
 
@@ -219,11 +227,12 @@ Bundled at `plugins/warnexample/` — intentional markup warnings in `src/WarnTr
 Static scanner — no plugin code is executed during the audit.
 
 ```bash
-php bin/latch plugin-audit plugins/example
-php bin/latch plugin-audit example          # slug under plugins/
+php bin/latch plugin-audit plugins/forum-stats
+php bin/latch plugin-audit forum-stats      # slug under plugins/
+php bin/latch plugin-audit docs/plugins/example   # reference copy (not discovered until under plugins/)
 php bin/latch plugin-audit /path/to/plugin
-php bin/latch plugin-audit example --json   # machine-readable report
-php bin/latch plugin audit example          # alias
+php bin/latch plugin-audit forum-stats --json   # machine-readable report
+php bin/latch plugin audit forum-stats          # alias
 ```
 
 Exit code **0** = pass (no critical findings). Exit code **1** = critical issues or invalid path.

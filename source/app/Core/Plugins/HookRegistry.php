@@ -39,6 +39,11 @@ final class HookRegistry
                 continue;
             }
             if (is_array($result)) {
+                if (self::isAssociativeMenuItem($result)) {
+                    $results[] = $result;
+                    continue;
+                }
+
                 foreach ($result as $item) {
                     if ($item !== null && $item !== '') {
                         $results[] = $item;
@@ -86,5 +91,13 @@ final class HookRegistry
         );
 
         return $entries;
+    }
+
+    /**
+     * @param array<mixed> $value
+     */
+    private static function isAssociativeMenuItem(array $value): bool
+    {
+        return isset($value['label'], $value['href']) && is_string($value['label']) && is_string($value['href']);
     }
 }

@@ -1,0 +1,123 @@
+/* GitHub-flavored markdown presentation for imported docs. */
+
+.post-md-import {
+    font-size: 1rem;
+    line-height: 1.6;
+    word-wrap: break-word;
+}
+
+.post-md-import .post-heading {
+    margin: 1.5rem 0 1rem;
+    font-weight: 600;
+    line-height: 1.25;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.35rem;
+}
+
+.post-md-import .post-heading:first-child {
+    margin-top: 0;
+}
+
+.post-md-import h2.post-heading {
+    font-size: 1.5rem;
+}
+
+.post-md-import h3.post-heading {
+    font-size: 1.25rem;
+    border-bottom: none;
+}
+
+.post-md-import h4.post-heading {
+    font-size: 1.05rem;
+    border-bottom: none;
+}
+
+.post-md-import p {
+    margin: 0 0 1rem;
+}
+
+.post-md-import a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+.post-md-import a:hover {
+    color: var(--accent-hover);
+}
+
+.post-md-import .inline-code,
+.post-md-import code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.875em;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.15em 0.35em;
+}
+
+.post-md-import .code-block {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+    margin: 0 0 1rem;
+    font-size: 0.875rem;
+    line-height: 1.45;
+}
+
+.post-md-import .code-block code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+.post-md-import .post-quote {
+    margin: 0 0 1rem;
+    padding: 0 1rem;
+    border-left: 0.25em solid var(--border);
+    background: transparent;
+    border-radius: 0;
+    color: var(--muted);
+}
+
+.post-md-import .post-table-wrap {
+    margin: 0 0 1rem;
+    overflow-x: auto;
+}
+
+.post-md-import .post-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.post-md-import .post-table th,
+.post-md-import .post-table td {
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.75rem;
+}
+
+.post-md-import .post-table th {
+    background: var(--surface-raised);
+    font-weight: 600;
+}
+
+.post-md-import .post-table tr:nth-child(even) td {
+    background: color-mix(in srgb, var(--surface-raised) 55%, transparent);
+}
+
+.post-md-import ul {
+    margin: 0 0 1rem;
+    padding-left: 1.5rem;
+}
+
+.post-md-import li + li {
+    margin-top: 0.25rem;
+}
+
+.md-import-admin textarea {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.9rem;
+}

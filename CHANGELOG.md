@@ -5,6 +5,22 @@ All notable changes to [Latch](https://latch.network) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.3.0.9] — 2026-07-04
+
+### Added
+- **`md-import` operator plugin** — admin upload/paste of `.md` files to create formatted topics (GitHub-style rendering); lives under **Admin → Import markdown** with in-panel SPA navigation. Excluded from public release tarballs; shipped in git/COPR for operator installs.
+
+### Fixed
+- **Plugin admin menu** — `admin.menu` hooks returning a single `{label, href}` item no longer break the admin layout (500 on strict Twig).
+
+### Changed
+- **Admin dashboard** — added Topics, Boards, and Open reports stat cards; new **System** panel (database size with WAL breakdown, guest cache, last cron runs, mail status) sits below forum stats and above the version panel.
+- **Footer about text** — site-specific copy below the footer logo is editable in **Admin → Settings** (below Tagline). Single line breaks and blank lines between paragraphs are preserved in the footer. Leave empty to fall back to the tagline. Fresh installs seed the previous default Latch marketing text.
+- **Example plugins** — `example`, `badexample`, and `warnexample` moved from `plugins/` to `docs/plugins/` so they are not auto-discovered; copy into `plugins/{slug}/` when needed. Active bundled plugins remain `forum-stats` and `image-upload`.
+- **Plugin admin pages** — document registering admin UI under `/admin/…` for SPA in-place loading (`PLUGINS.md`).
+
 ## [0.3.0.3] — 2026-07-03
 
 ### Fixed

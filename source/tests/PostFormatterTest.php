@@ -16,6 +16,15 @@ final class PostFormatterTest extends TestCase
         $this->formatter = new PostFormatter();
     }
 
+    public function testWrapsImportedMarkdownWithGithubClass(): void
+    {
+        $html = $this->formatter->format("<!-- latch-md-import -->\n# Hello\n\nParagraph.");
+
+        $this->assertStringStartsWith('<div class="post-md-import">', $html);
+        $this->assertStringContainsString('<h2 class="post-heading">Hello</h2>', $html);
+        $this->assertStringEndsWith('</div>', $html);
+    }
+
     public function testRendersMarkdownLink(): void
     {
         $html = $this->formatter->format(

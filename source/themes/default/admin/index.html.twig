@@ -5,7 +5,7 @@
 {% block admin_content %}
     <section class="page-header">
         <h1>Dashboard</h1>
-        <p class="muted">Forum overview{% if open_reports %} · {{ open_reports }} open report{{ open_reports == 1 ? '' : 's' }}{% endif %}</p>
+        <p class="muted">Forum overview</p>
     </section>
 
     <section class="admin-stats" aria-label="Forum statistics">
@@ -13,9 +13,21 @@
             <span class="admin-stat-value">{{ post_count }}</span>
             <span class="admin-stat-label">Posts</span>
         </div>
+        <div class="admin-stat-card">
+            <span class="admin-stat-value">{{ topic_count }}</span>
+            <span class="admin-stat-label">Topics</span>
+        </div>
         <a class="admin-stat-card admin-stat-card--link" href="/admin/users">
             <span class="admin-stat-value">{{ user_count }}</span>
             <span class="admin-stat-label">Users</span>
+        </a>
+        <a class="admin-stat-card admin-stat-card--link" href="/admin/boards">
+            <span class="admin-stat-value">{{ board_count }}</span>
+            <span class="admin-stat-label">Boards</span>
+        </a>
+        <a class="admin-stat-card admin-stat-card--link{% if open_reports %} admin-stat-card--alert{% endif %}" href="/admin/reports">
+            <span class="admin-stat-value">{{ open_reports }}</span>
+            <span class="admin-stat-label">Open reports</span>
         </a>
         <a class="admin-stat-card admin-stat-card--link" href="/admin/audit">
             <span class="admin-stat-value">{{ audit_log_count }}</span>
@@ -25,58 +37,73 @@
             <span class="admin-stat-value">{{ pending_approval }}</span>
             <span class="admin-stat-label">Pending approval</span>
         </a>
-        <a class="admin-stat-card admin-stat-card--link{% if trash_count %} admin-stat-card--alert{% endif %}" href="/board/mod-trash">
-            <span class="admin-stat-value">{{ trash_count|default(0) }}</span>
-            <span class="admin-stat-label">Moderation trash</span>
-        </a>
         <a class="admin-stat-card admin-stat-card--link{% if quarantine_count %} admin-stat-card--alert{% endif %}" href="/admin/quarantine">
             <span class="admin-stat-value">{{ quarantine_count|default(0) }}</span>
             <span class="admin-stat-label">Quarantined</span>
         </a>
     </section>
 
-    <section class="form-section admin-maintenance">
-        <h2>Maintenance</h2>
-        <p class="muted">One-click operator tasks. Backups are saved under <code>storage/backups/</code> on the server.</p>
+    {% if system_info is defined %}
+        <section class="admin-system-panel" aria-label="System status">
+            <h2 class="admin-system-heading">System</h2>
+            <dl class="admin-system-grid">
+                <div class="admin-system-item">
+                    <dt>Database</dt>
+                    <dd>
+                        {{ system_info.database.total_label }}
+                        <span class="muted">({{ system_info.database.detail_label }})</span>
+                        · {{ system_info.database.journal_mode|upper }}
+                    </dd>
+                </div>
+                <div class="admin-system-item">
+                    <dt>Guest cache</dt>
+                    <dd>{{ system_info.guest_cache.label }}</dd>
+                </div>
+                <div class="admin-system-item">
+                    <dt>Last cron</dt>
+                    <dd>
+                        {% if system_info.cron.hourly.ago %}
+                            hourly · {{ system_info.cron.hourly.ago }}
+                        {% else %}
+                            hourly · never
+                        {% endif %}
+                        ·
+                        {% if system_info.cron.daily.ago %}
+                            daily · {{ system_info.cron.daily.ago }}
+                        {% else %}
+                            daily · never
+                        {% endif %}
+                        ·
+                        {% if system_info.cron.weekly.ago %}
+                            weekly · {{ system_info.cron.weekly.ago }}
+                        {% else %}
+                            weekly · never
+                        {% endif %}
+                    </dd>
+                </div>
+                <div class="admin-system-item">
+                    <dt>Mail</dt>
+                    <dd{% if system_info.mail.alert %} class="admin-system-alert"{% endif %}>{{ system_info.mail.label }}</dd>
+                </div>
+            </dl>
+        </section>
+    {% endif %}
 
-        <div class="admin-site-lock">
-            <h3>Site lock (pre-update)</h3>
-            {% if site_lock %}
-                <p class="muted">Locked since {{ site_lock.enabled_at }}{% if site_lock.enabled_by %} by {{ site_lock.enabled_by }}{% endif %}.</p>
-                <p>{{ site_lock.message }}</p>
-            {% else %}
-                <p class="muted">Stops all web and API traffic without touching the database — use before <code>migrate</code> or file updates. Unlock via <code>/maintenance/unlock</code> (token shown after enable) or <code>sudo -u apache php bin/latch lock off</code>.</p>
-                <form method="post" action="/admin/site-lock" class="admin-site-lock-form" data-account-bypass data-confirm="Enable maintenance mode? The forum and API will return 503 until unlocked. Save the unlock token shown after enabling.">
-                    {{ csrf_field() }}
-                    <label class="muted" for="site-lock-message">Message (optional)</label>
-                    <input id="site-lock-message" name="message" type="text" maxlength="240" placeholder="Updating Latch…">
-                    <button type="submit" class="btn btn-small btn-primary admin-maintenance-btn">Enable maintenance mode</button>
-                </form>
+    {% if version_info is defined %}
+        <section class="admin-version-panel" aria-label="Latch version">
+            <div class="admin-version-main">
+                <span class="admin-version-label">Installed</span>
+                <span class="admin-version-value">{{ version_info.installed }}</span>
+                {% if version_info.tree %}
+                    <span class="admin-version-sep muted">·</span>
+                    <span class="admin-version-label">Tree</span>
+                    <span class="admin-version-value">{{ version_info.tree }}</span>
+                {% endif %}
+                <span class="badge admin-version-badge admin-version-badge--{{ version_info.status }}">{{ version_info.status_label }}</span>
+            </div>
+            {% if version_info.git %}
+                <p class="muted admin-version-git">Git <code>{{ version_info.git }}</code></p>
             {% endif %}
-        </div>
-
-        <div class="admin-maintenance-actions">
-            <form method="post" action="/admin/backup" class="inline-form admin-maintenance-form" data-confirm="Create a backup of the database and local config?">
-                {{ csrf_field() }}
-                <button type="submit" class="btn btn-small admin-maintenance-btn">
-                    {% include 'partials/icon.twig' with { name: 'shield', size: 16 } %}
-                    Create backup
-                </button>
-            </form>
-            <form method="post" action="/admin/search-reindex" class="inline-form admin-maintenance-form" data-confirm="Rebuild the full-text search index?">
-                {{ csrf_field() }}
-                <button type="submit" class="btn btn-small admin-maintenance-btn">
-                    {% include 'partials/icon.twig' with { name: 'search', size: 16 } %}
-                    Rebuild search
-                </button>
-            </form>
-            <form method="post" action="/admin/cache-clear" class="inline-form admin-maintenance-form" data-confirm="Clear page cache and Twig compile cache?">
-                {{ csrf_field() }}
-                <button type="submit" class="btn btn-small admin-maintenance-btn">
-                    {% include 'partials/icon.twig' with { name: 'dismiss', size: 16 } %}
-                    Clear cache
-                </button>
-            </form>
-        </div>
-    </section>
+        </section>
+    {% endif %}
 {% endblock %}

@@ -154,9 +154,9 @@
             return showSiteLockConfirmation(json, form);
         }
 
-        var redirect = json.redirect || '/admin';
-        var isError = !json.ok;
         var maintenance = isMaintenanceForm(form);
+        var redirect = json.redirect || (maintenance ? '/admin/maintenance' : '/admin');
+        var isError = !json.ok;
 
         if (isOpen && overlay.contains(form)) {
             if (json.message) {

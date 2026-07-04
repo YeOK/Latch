@@ -489,6 +489,7 @@ final class Application
         $this->router->post('/admin/approval/:id/approve', $this->bind($admin, 'approvePost'));
         $this->router->post('/admin/approval/:id/reject', $this->bind($admin, 'rejectPost'));
         $this->router->get('/admin/audit', $this->bind($admin, 'auditLog'));
+        $this->router->get('/admin/maintenance', $this->bind($admin, 'maintenance'));
         $this->router->get('/admin/trash', $this->bind($admin, 'trashQueue'));
         $this->router->post('/admin/trash/:id/restore', $this->bind($admin, 'restoreTrashedPost'));
         $this->router->post('/admin/trash/:id/purge', $this->bind($admin, 'purgeTrashedPost'));
@@ -525,8 +526,22 @@ final class Application
     {
         $themesPath = (string) $this->config->get('paths.themes');
         $active = (string) $this->config->get('theme.active', 'default');
-        $file = $this->resolveThemeAssetFile($themesPath, $active, $relativePath)
-            ?? $this->resolveThemeAssetFile($themesPath, 'default', $relativePath);
+        $defaultFile = $this->resolveThemeAssetFile($themesPath, 'default', $relativePath);
+        $activeFile = $active !== 'default'
+            ? $this->resolveThemeAssetFile($themesPath, $active, $relativePath)
+            : null;
+
+        // Child theme packs override tokens/components; base layout CSS stays in default.
+        if ($relativePath === 'css/theme.css' && $defaultFile !== null && $activeFile !== null && $activeFile !== $defaultFile) {
+            $this->emitThemeAsset(
+                'text/css; charset=utf-8',
+                file_get_contents($defaultFile) . "\n" . file_get_contents($activeFile),
+                $defaultFile . '|' . filemtime($defaultFile) . '|' . $activeFile . '|' . filemtime($activeFile),
+            );
+            return;
+        }
+
+        $file = $activeFile ?? $defaultFile;
 
         if ($file === null) {
             Response::notFound('Asset not found');
@@ -542,7 +557,12 @@ final class Application
             default => 'application/octet-stream',
         };
 
-        $etag = '"' . hash('sha256', $file . '|' . filemtime($file)) . '"';
+        $this->emitThemeAsset($mime, (string) file_get_contents($file), $file . '|' . filemtime($file));
+    }
+
+    private function emitThemeAsset(string $mime, string $body, string $etagSeed): void
+    {
+        $etag = '"' . hash('sha256', $etagSeed) . '"';
 
         http_response_code(200);
         header('Content-Type: ' . $mime);
@@ -555,7 +575,7 @@ final class Application
             exit;
         }
 
-        readfile($file);
+        echo $body;
         exit;
     }
 
@@ -1501,6 +1521,7 @@ final class Application
 
         $siteName = $this->settings->get('site_name', (string) ($site['name'] ?? 'Latch'));
         $siteTagline = $this->settings->get('site_tagline', (string) ($site['tagline'] ?? ''));
+        $footerAbout = (string) $this->settings->get('footer_about', '');
         $siteUrl = (string) ($site['url'] ?? '');
         $membersOnly = $this->membersOnly();
 
@@ -1511,6 +1532,7 @@ final class Application
                 'url' => $siteUrl,
                 'use_gravatar' => $this->settings->getBool('use_gravatar', true),
             ],
+            'footer_about' => $footerAbout,
             'seo' => SeoMeta::forPath(
                 $siteUrl !== '' ? $siteUrl : $this->siteUrl(),
                 $siteName,

@@ -80,6 +80,11 @@ final class PostFormatter
     public function format(string $raw): string
     {
         $raw = str_replace(["\r\n", "\r"], "\n", $raw);
+        $mdImport = false;
+        if (str_starts_with($raw, '<!-- latch-md-import -->')) {
+            $mdImport = true;
+            $raw = (string) preg_replace('/^<!-- latch-md-import -->\s*/', '', $raw);
+        }
         $raw = preg_replace('/^<!-- latch-announcement:[a-z0-9-]+ -->\s*/', '', $raw) ?? $raw;
         if ($raw === '') {
             return '';
@@ -97,7 +102,7 @@ final class PostFormatter
             };
         }
 
-        return $html;
+        return $mdImport ? '<div class="post-md-import">' . $html . '</div>' : $html;
     }
 
     /**

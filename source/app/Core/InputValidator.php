@@ -192,6 +192,16 @@ final class InputValidator
         return null;
     }
 
+    public function footerAboutError(string $text): ?string
+    {
+        $max = $this->intLimit('footer_about_max', 500);
+        if (mb_strlen($text) > $max) {
+            return "Footer about text must be {$max} characters or fewer.";
+        }
+
+        return null;
+    }
+
     public function assertUsername(string $username): void
     {
         $this->assert($this->usernameError($username));
@@ -240,6 +250,7 @@ final class InputValidator
             'report_detail_max' => $this->intLimit('report_detail_max', 500),
             'site_name_max' => $this->intLimit('site_name_max', 80),
             'site_tagline_max' => $this->intLimit('site_tagline_max', 160),
+            'footer_about_max' => $this->intLimit('footer_about_max', 500),
             'password_max' => $this->intLimit('password_max', 128),
         ];
     }

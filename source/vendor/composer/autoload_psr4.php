@@ -9,6 +9,7 @@ return array(
     'Twig\\' => array($vendorDir . '/twig/twig/src'),
     'Symfony\\Polyfill\\Mbstring\\' => array($vendorDir . '/symfony/polyfill-mbstring'),
     'Symfony\\Polyfill\\Ctype\\' => array($vendorDir . '/symfony/polyfill-ctype'),
+    'Latch\\Plugins\\MdImport\\' => array($baseDir . '/plugins/md-import/src'),
     'Latch\\Plugins\\ImageUpload\\' => array($baseDir . '/plugins/image-upload/src'),
     'Latch\\Plugins\\ForumStats\\' => array($baseDir . '/plugins/forum-stats/src'),
     'Latch\\' => array($baseDir . '/app'),

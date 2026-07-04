@@ -1,0 +1,52 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Maintenance — {{ site.name }}{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <h1>Maintenance</h1>
+        <p class="muted">One-click operator tasks. Backups are saved under <code>storage/backups/</code> on the server.</p>
+    </section>
+
+    <section class="form-section admin-maintenance">
+        <div class="admin-site-lock">
+            <h2>Site lock (pre-update)</h2>
+            {% if site_lock %}
+                <p class="muted">Locked since {{ site_lock.enabled_at }}{% if site_lock.enabled_by %} by {{ site_lock.enabled_by }}{% endif %}.</p>
+                <p>{{ site_lock.message }}</p>
+            {% else %}
+                <p class="muted">Stops all web and API traffic without touching the database — use before <code>migrate</code> or file updates. Unlock via <code>/maintenance/unlock</code> (token shown after enable) or <code>sudo -u apache php bin/latch lock off</code>.</p>
+                <form method="post" action="/admin/site-lock" class="admin-site-lock-form" data-account-bypass data-confirm="Enable maintenance mode? The forum and API will return 503 until unlocked. Save the unlock token shown after enabling.">
+                    {{ csrf_field() }}
+                    <label class="muted" for="site-lock-message">Message (optional)</label>
+                    <input id="site-lock-message" name="message" type="text" maxlength="240" placeholder="Updating Latch…">
+                    <button type="submit" class="btn btn-small btn-primary admin-maintenance-btn">Enable maintenance mode</button>
+                </form>
+            {% endif %}
+        </div>
+
+        <div class="admin-maintenance-actions">
+            <form method="post" action="/admin/backup" class="inline-form admin-maintenance-form" data-confirm="Create a backup of the database and local config?">
+                {{ csrf_field() }}
+                <button type="submit" class="btn btn-small admin-maintenance-btn">
+                    {% include 'partials/icon.twig' with { name: 'shield', size: 16 } %}
+                    Create backup
+                </button>
+            </form>
+            <form method="post" action="/admin/search-reindex" class="inline-form admin-maintenance-form" data-confirm="Rebuild the full-text search index?">
+                {{ csrf_field() }}
+                <button type="submit" class="btn btn-small admin-maintenance-btn">
+                    {% include 'partials/icon.twig' with { name: 'search', size: 16 } %}
+                    Rebuild search
+                </button>
+            </form>
+            <form method="post" action="/admin/cache-clear" class="inline-form admin-maintenance-form" data-confirm="Clear page cache and Twig compile cache?">
+                {{ csrf_field() }}
+                <button type="submit" class="btn btn-small admin-maintenance-btn">
+                    {% include 'partials/icon.twig' with { name: 'dismiss', size: 16 } %}
+                    Clear cache
+                </button>
+            </form>
+        </div>
+    </section>
+{% endblock %}

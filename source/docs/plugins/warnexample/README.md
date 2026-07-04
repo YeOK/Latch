@@ -5,8 +5,9 @@
 ## Expected audit result
 
 ```bash
-php bin/latch plugin-audit warnexample
+php bin/latch plugin-audit docs/plugins/warnexample
 # exit 0 — passed with warnings in src/WarnTrap.php and assets/warn.js
+# Or copy to plugins/warnexample/ and audit by slug
 ```
 
 Typical warning flags:

@@ -233,16 +233,18 @@ a:hover {
 
 .site-search .site-search-icon {
     position: absolute;
-    left: 0.75rem;
+    left: 0.85rem;
     display: flex;
+    align-items: center;
     color: var(--muted);
     pointer-events: none;
+    z-index: 1;
 }
 
-.site-search input[type="search"] {
+.site-search .site-search-input[type="search"] {
     width: 100%;
     min-width: 0;
-    padding: 0.5rem 0.85rem 0.5rem 2.35rem;
+    padding: 0.5rem 0.85rem 0.5rem 2.75rem;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--surface);
@@ -250,7 +252,7 @@ a:hover {
     font-size: 0.9rem;
 }
 
-.site-search input[type="search"]:focus {
+.site-search .site-search-input[type="search"]:focus {
     outline: 2px solid var(--accent-soft);
     border-color: var(--accent);
 }

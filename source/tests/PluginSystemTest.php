@@ -107,7 +107,7 @@ final class PluginSystemTest extends TestCase
 
     public function testExampleManifestParses(): void
     {
-        $dir = dirname(__DIR__) . '/plugins/example';
+        $dir = dirname(__DIR__) . '/docs/plugins/example';
         $manifest = PluginManifest::fromDirectory($dir);
 
         $this->assertSame('example', $manifest->slug);
@@ -118,7 +118,7 @@ final class PluginSystemTest extends TestCase
 
     public function testExamplePluginClassImplementsInterface(): void
     {
-        $manifest = PluginManifest::fromDirectory(dirname(__DIR__) . '/plugins/example');
+        $manifest = PluginManifest::fromDirectory(dirname(__DIR__) . '/docs/plugins/example');
         require_once $manifest->bootstrapFile();
         $class = $manifest->bootstrapClass();
 
@@ -127,12 +127,14 @@ final class PluginSystemTest extends TestCase
         $this->assertInstanceOf(PluginInterface::class, $plugin);
     }
 
-    public function testRegistryDiscoversExamplePlugin(): void
+    public function testRegistryDiscoversBundledPlugins(): void
     {
         $registry = new PluginRegistry(dirname(__DIR__) . '/plugins', new SettingRepository($this->db));
         $slugs = array_map(static fn (PluginManifest $m): string => $m->slug, $registry->discover());
 
-        $this->assertContains('example', $slugs);
+        $this->assertContains('forum-stats', $slugs);
+        $this->assertContains('image-upload', $slugs);
+        $this->assertNotContains('example', $slugs);
     }
 
     public function testRegistryEnableList(): void

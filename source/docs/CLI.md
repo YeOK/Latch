@@ -303,9 +303,9 @@ sudo -u apache php bin/latch maintenance --clear-cache   # after enable/disable
 Audit and failed enable work **without** a writable database — the scanner runs **before** any DB write:
 
 ```bash
-# Audit only (any user with read access to plugins/)
-php bin/latch plugin-audit badexample          # exit 1 — test fixture
-php bin/latch plugin enable badexample         # blocked with report (no DB needed)
+# Audit only (any user with read access to plugins/ or docs/plugins/)
+php bin/latch plugin-audit docs/plugins/badexample   # exit 1 — test fixture
+# After copying to plugins/: php bin/latch plugin enable badexample  # blocked with report
 ```
 
 ### Enable workflow
@@ -315,7 +315,7 @@ php bin/latch plugin enable badexample         # blocked with report (no DB need
 3. `php bin/latch plugin enable <slug>` (re-runs audit) or enable in **Admin → Plugins**
 4. Clear cache if the site was already serving pages: `maintenance --clear-cache`
 
-Bundled reference plugins: `example`, `forum-stats` (home page stats bar), `badexample` (critical audit test), `warnexample` (warning audit test).
+Active bundled plugins: `forum-stats` (home page stats bar), `image-upload` (R2 compose upload). Reference copies in `docs/plugins/`: `example`, `badexample` (critical audit test), `warnexample` (warning audit test).
 
 ### Security audit (`plugin-audit`)
 
@@ -337,8 +337,8 @@ php bin/latch plugin audit forum-stats    # alias
 **Warning (review):** obfuscation patterns (`base64_decode`, …), `vendor/` without lock file, oversized files, suspicious markup in PHP (`markup_*` codes), suspicious JS in `assets/*.js` / `*.mjs` (`js_*` codes). Structural hook HTML (`<button>`, `<section>`) is not flagged.
 
 ```bash
-php bin/latch plugin-audit warnexample   # exit 0 — warnings only
-php bin/latch plugin-audit badexample    # exit 1 — critical findings
+php bin/latch plugin-audit docs/plugins/warnexample   # exit 0 — warnings only
+php bin/latch plugin-audit docs/plugins/badexample    # exit 1 — critical findings
 ```
 
 `--force` on enable still writes `plugin.enable_forced` to `audit_log` with finding details. Admin UI does not offer force-enable.

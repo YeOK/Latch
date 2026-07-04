@@ -19,6 +19,8 @@ use Latch\Support\SiteLock;
 use Latch\Support\SiteMaintenance;
 use Latch\Support\StaffActionResponder;
 use Latch\Support\Str;
+use Latch\Support\SystemInfo;
+use Latch\Support\VersionInfo;
 
 final class AdminController
 {
@@ -39,16 +41,34 @@ final class AdminController
     {
         $this->app->auth()->requireAdmin();
 
-        $storagePath = (string) $this->app->config()->get('paths.storage');
+        $mailStatus = $this->app->mail()->status();
 
         $this->app->render('admin/index.html.twig', [
             'post_count' => $this->app->posts()->countAll(),
+            'topic_count' => $this->app->topics()->countAll(),
             'user_count' => $this->app->users()->countAll(),
+            'board_count' => $this->app->boards()->count(),
             'audit_log_count' => $this->app->auditLog()->countAll(),
             'pending_approval' => $this->app->posts()->countPending(),
-            'open_reports' => count($this->app->reports()->openReports()),
-            'trash_count' => $this->app->posts()->countTrashed(),
+            'open_reports' => $this->app->reports()->openCount(),
             'quarantine_count' => $this->app->posts()->countQuarantined(),
+            'system_info' => SystemInfo::snapshot(
+                $this->app->config(),
+                $this->app->cacheEnabled(),
+                $mailStatus,
+                $this->app->settings()->get('last_cron_daily_at'),
+            ),
+            'version_info' => VersionInfo::snapshot($this->app->config(), LATCH_ROOT),
+        ]);
+    }
+
+    public function maintenance(array $params = []): void
+    {
+        $this->app->auth()->requireAdmin();
+
+        $storagePath = (string) $this->app->config()->get('paths.storage');
+
+        $this->app->render('admin/maintenance.html.twig', [
             'site_lock' => SiteLock::read($storagePath),
         ]);
     }
@@ -141,7 +161,7 @@ final class AdminController
 
         $storagePath = (string) $this->app->config()->get('paths.storage');
         if (SiteLock::isLocked($storagePath)) {
-            $this->finishStaffAction(false, 'Site is already in maintenance mode.', '/admin');
+            $this->finishStaffAction(false, 'Site is already in maintenance mode.', '/admin/maintenance');
         }
 
         $message = trim((string) $this->app->request()->input('message', ''));
@@ -151,7 +171,7 @@ final class AdminController
         try {
             $result = SiteLock::enable($storagePath, $message, $username !== '' ? $username : null);
         } catch (\Throwable $e) {
-            $this->finishStaffAction(false, 'Could not enable maintenance mode: ' . $e->getMessage(), '/admin');
+            $this->finishStaffAction(false, 'Could not enable maintenance mode: ' . $e->getMessage(), '/admin/maintenance');
         }
 
         $this->recordMaintenanceAction('admin.site_lock_enable', true, [
@@ -208,7 +228,7 @@ final class AdminController
             'path' => $result['path'],
         ]);
 
-        $this->finishStaffAction($result['ok'], $result['message'], '/admin');
+        $this->finishStaffAction($result['ok'], $result['message'], '/admin/maintenance');
     }
 
     public function clearCache(array $params = []): void
@@ -228,7 +248,7 @@ final class AdminController
         );
 
         $this->recordMaintenanceAction('admin.cache_clear', true, $cleared);
-        $this->finishStaffAction(true, $message, '/admin');
+        $this->finishStaffAction(true, $message, '/admin/maintenance');
     }
 
     public function reindexSearch(array $params = []): void
@@ -242,7 +262,7 @@ final class AdminController
             'topics' => $result['topics'],
         ]);
 
-        $this->finishStaffAction($result['ok'], $result['message'], '/admin');
+        $this->finishStaffAction($result['ok'], $result['message'], '/admin/maintenance');
     }
 
     public function users(array $params = []): void
@@ -783,6 +803,7 @@ final class AdminController
         $this->app->render('admin/settings.html.twig', [
             'site_name' => $this->app->settings()->get('site_name', (string) $this->app->config()->get('site.name')),
             'site_tagline' => $this->app->settings()->get('site_tagline', (string) $this->app->config()->get('site.tagline')),
+            'footer_about' => (string) $this->app->settings()->get('footer_about', ''),
             'members_only' => $this->app->membersOnly(),
             'allow_registration' => $this->app->allowRegistration(),
             'require_email_verification' => $this->app->requireEmailVerification(),
@@ -840,6 +861,7 @@ final class AdminController
 
         $siteName = trim((string) $this->app->request()->input('site_name', ''));
         $siteTagline = trim((string) $this->app->request()->input('site_tagline', ''));
+        $footerAbout = (string) $this->app->request()->input('footer_about', '');
         $validator = $this->app->inputValidator();
 
         if ($siteName !== '') {
@@ -858,6 +880,14 @@ final class AdminController
         }
 
         $this->app->settings()->set('site_tagline', $siteTagline);
+
+        $footerAboutError = $validator->footerAboutError($footerAbout);
+        if ($footerAboutError !== null) {
+            $this->app->session()->flash('error', $footerAboutError);
+            Response::redirect('/admin/settings');
+        }
+
+        $this->app->settings()->set('footer_about', $this->normalizeFooterAbout($footerAbout));
         $wasMembersOnly = $this->app->membersOnly();
         $this->app->settings()->setBool('members_only', $this->app->request()->input('members_only') === '1');
         $this->app->settings()->setBool('allow_registration', $this->app->request()->input('allow_registration') === '1');
@@ -1867,5 +1897,10 @@ final class AdminController
             $enabled ? 'Webhook enabled.' : 'Webhook disabled.',
             '/admin/webhooks',
         );
+    }
+
+    private function normalizeFooterAbout(string $text): string
+    {
+        return trim(str_replace(["\r\n", "\r"], "\n", $text));
     }
 }

@@ -1,0 +1,17 @@
+{
+    "name": "Markdown import (operator)",
+    "slug": "md-import",
+    "version": "1.0.0",
+    "min_latch_version": "0.3.0",
+    "description": "Admin-only: upload a .md file to create a formatted forum topic. Local operator plugin — not for public release.",
+    "hooks": [
+        "route.register",
+        "admin.menu",
+        "theme.assets"
+    ],
+    "permissions": {
+        "filesystem": [],
+        "network": [],
+        "config": []
+    }
+}

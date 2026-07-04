@@ -25,7 +25,7 @@ final class PluginAuditorTest extends TestCase
 
     public function testExamplePluginPassesAudit(): void
     {
-        $report = $this->auditor->auditTarget('example');
+        $report = $this->auditor->auditTarget('docs/plugins/example');
 
         $this->assertSame('example', $report->slug);
         $this->assertTrue($report->passed());
@@ -51,7 +51,7 @@ final class PluginAuditorTest extends TestCase
 
     public function testBadexamplePluginFailsAudit(): void
     {
-        $report = $this->auditor->auditTarget('badexample');
+        $report = $this->auditor->auditTarget('docs/plugins/badexample');
 
         $this->assertSame('badexample', $report->slug);
         $this->assertFalse($report->passed());
@@ -63,7 +63,7 @@ final class PluginAuditorTest extends TestCase
 
     public function testWarnexamplePluginPassesWithWarnings(): void
     {
-        $report = $this->auditor->auditTarget('warnexample');
+        $report = $this->auditor->auditTarget('docs/plugins/warnexample');
 
         $this->assertTrue($report->passed(), $report->toHuman());
         $this->assertSame(0, $report->criticalCount());
@@ -74,11 +74,18 @@ final class PluginAuditorTest extends TestCase
 
     public function testResolvesSlugAndRelativePath(): void
     {
-        $bySlug = $this->auditor->resolvePath('example');
-        $byRelative = $this->auditor->resolvePath('plugins/example');
+        $bySlug = $this->auditor->resolvePath('forum-stats');
+        $byRelative = $this->auditor->resolvePath('plugins/forum-stats');
 
         $this->assertSame($bySlug, $byRelative);
-        $this->assertStringEndsWith('/plugins/example', $bySlug);
+        $this->assertStringEndsWith('/plugins/forum-stats', $bySlug);
+    }
+
+    public function testResolvesDocsPluginPath(): void
+    {
+        $resolved = $this->auditor->resolvePath('docs/plugins/example');
+
+        $this->assertStringEndsWith('/docs/plugins/example', $resolved);
     }
 
     public function testDetectsEvalAsCritical(): void
@@ -122,7 +129,7 @@ PHP, network: true);
 
     public function testReportJsonShape(): void
     {
-        $report = $this->auditor->auditTarget('example');
+        $report = $this->auditor->auditTarget('docs/plugins/example');
         $data = $report->toArray();
 
         $this->assertArrayHasKey('passed', $data);

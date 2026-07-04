@@ -947,6 +947,11 @@ function run_install(array $argv): void
 
     $settings->set('site_name', $siteName);
     $settings->set('site_tagline', 'Fast, secure discussions');
+    $settings->set(
+        'footer_about',
+        "Fast, secure, self-hosted forum software. MIT-licensed — PHP 8.2+, SQLite, Twig themes, and built-in moderation tools.\n\n"
+        . 'Designed for simple ops: one database file, WAL mode, guest caching, and fail2ban-ready auth.',
+    );
     $settings->setBool('members_only', false);
     $settings->setBool('allow_registration', true);
     $settings->setBool('cache_enabled', true);
