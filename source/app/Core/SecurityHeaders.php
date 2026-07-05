@@ -74,6 +74,22 @@ final class SecurityHeaders
         );
     }
 
+    /**
+     * Replace CSP nonce attributes in cached HTML so they match the current request header.
+     */
+    public static function rewriteHtmlNonces(string $html, string $nonce): string
+    {
+        if (!preg_match('/^[a-f0-9]{32}$/i', $nonce)) {
+            return $html;
+        }
+
+        return preg_replace(
+            '/\bnonce="[a-f0-9]{32}"/i',
+            'nonce="' . $nonce . '"',
+            $html
+        ) ?? $html;
+    }
+
     public static function detectHttps(Config $config, Request $request): bool
     {
         if ($request->isHttps()) {

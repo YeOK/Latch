@@ -10,9 +10,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
 ### Fixed
+- **CSP on cached guest pages** — guest page-cache hits rewrite inline `nonce` attributes to match the per-request CSP header (fixes theme FOUC script blocked in Lighthouse/DevTools).
+- **Admin users bulk script** — inline bulk-action script includes CSP nonce.
+- **Lighthouse accessibility** — header brand link uses visible text for its accessible name (drops redundant `aria-label`); footer inline links are underlined so they are distinguishable without relying on color alone.
 - **PHP 8.5 deprecations** — `Database` uses `Pdo\Sqlite::OPEN_READONLY` when available; `BoardAcl::viewerLevel` no longer indexes `LEVELS` with a null role.
 
 ### Changed
+- **Lighthouse (guest home page)** — Chrome Lighthouse on dev (`127.0.0.1:8080`, 2026-07-05): Performance **100**, Accessibility **100**, Best Practices **100**, SEO **100**. Production baseline before this release (v0.3.0.15): 100 / 94 / 81 / 100.
 - **Bulk topic moderation (scale)** — `BulkTopicActionService` defers guest-cache and FTS side effects to one flush per request; `ModerationTrashBatch` batches search removals on bulk delete; board UI sends large selections in chunks of 20 with progress (`board-mod-tools.js`); per-topic author notifications skipped in bulk (audit log unchanged); **Delete all mod trash** uses batched cache invalidation. Documented in [PERFORMANCE.md](source/docs/PERFORMANCE.md#bulk-topic-moderation).
 
 ## [0.3.0.15] — 2026-07-05

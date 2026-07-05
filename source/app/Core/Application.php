@@ -658,7 +658,7 @@ final class Application
 
             $cached = $this->cache->get($cacheKey);
             if ($cached !== null) {
-                Response::html($cached, 200, true);
+                Response::html(SecurityHeaders::rewriteHtmlNonces($cached, $this->cspNonce), 200, true);
                 return;
             }
         }

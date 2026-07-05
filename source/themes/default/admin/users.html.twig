@@ -189,7 +189,7 @@
 
 {% block scripts %}
     {{ parent() }}
-    <script>
+    <script nonce="{{ csp_nonce }}">
     (function () {
         var form = document.getElementById('bulk-users-form');
         var bar = document.getElementById('bulk-user-actions');
