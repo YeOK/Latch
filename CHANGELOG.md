@@ -7,6 +7,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0.15] — 2026-07-05
+
 ### Added
 - **SQLite connection tuning** — configurable `database.sqlite` PRAGMAs in `config/default.php` (`busy_timeout_ms`, `cache_size_kib`, `mmap_size`); override in `config/local.php`; documented in [INSTALL.md](source/docs/INSTALL.md).
 - **Theme JS security scan** — `ThemeJsAuditor` in `test --security` for first-party `themes/default/assets/js/` (complements GitHub CodeQL); see [TESTING.md](source/docs/TESTING.md).
