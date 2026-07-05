@@ -10,7 +10,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.15
+Version:        0.3.0.16
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -184,6 +184,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sun Jul 05 2026 YeOK <yeokky@gmail.com> - 0.3.0.16-1
+- Bulk moderation scale, CSP cache nonce fix, Lighthouse a11y, PHP 8.5 deprecations
+
 * Sun Jul 05 2026 YeOK <yeokky@gmail.com> - 0.3.0.15-1
 - SQLite PRAGMA tuning, plugin audit cache, theme JS security scan, XSS fixes
 
