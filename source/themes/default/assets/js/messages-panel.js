@@ -144,10 +144,14 @@
                 }
             })
             .catch(function () {
-                body.innerHTML =
-                    '<p class="muted messages-overlay-loading">Could not load messages. <a href="' +
-                    url +
-                    '">Open full page</a>.</p>';
+                body.replaceChildren();
+                var message = document.createElement('p');
+                message.className = 'muted messages-overlay-loading';
+                var fallback = document.createElement('a');
+                fallback.href = parsed.pathname + parsed.search;
+                fallback.textContent = 'Open full page';
+                message.append('Could not load messages. ', fallback, '.');
+                body.appendChild(message);
             })
             .finally(function () {
                 loading = false;
