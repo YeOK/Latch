@@ -70,7 +70,9 @@ final class BoardAcl
             return self::LEVELS[self::ROLE_GUEST];
         }
 
-        return self::LEVELS[$userRole] ?? self::LEVELS[self::ROLE_MEMBER];
+        $role = $userRole ?? self::ROLE_MEMBER;
+
+        return self::LEVELS[$role] ?? self::LEVELS[self::ROLE_MEMBER];
     }
 
     public static function requiredLevel(array $board, string $action): int

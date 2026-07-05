@@ -9,6 +9,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+### Fixed
+- **PHP 8.5 deprecations** — `Database` uses `Pdo\Sqlite::OPEN_READONLY` when available; `BoardAcl::viewerLevel` no longer indexes `LEVELS` with a null role.
+
 ### Changed
 - **Bulk topic moderation (scale)** — `BulkTopicActionService` defers guest-cache and FTS side effects to one flush per request; `ModerationTrashBatch` batches search removals on bulk delete; board UI sends large selections in chunks of 20 with progress (`board-mod-tools.js`); per-topic author notifications skipped in bulk (audit log unchanged); **Delete all mod trash** uses batched cache invalidation. Documented in [PERFORMANCE.md](source/docs/PERFORMANCE.md#bulk-topic-moderation).
 

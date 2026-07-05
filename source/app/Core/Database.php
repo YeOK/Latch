@@ -46,7 +46,7 @@ final class Database
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ];
         if ($readOnly) {
-            $options[PDO::SQLITE_OPEN_READONLY] = true;
+            $options[self::sqliteOpenReadonlyFlag()] = true;
         }
 
         try {
@@ -132,6 +132,15 @@ final class Database
         }
 
         $this->pdo->exec('PRAGMA mmap_size = ' . $sqlite['mmap_size']);
+    }
+
+    private static function sqliteOpenReadonlyFlag(): int
+    {
+        if (class_exists(\Pdo\Sqlite::class)) {
+            return \Pdo\Sqlite::OPEN_READONLY;
+        }
+
+        return PDO::SQLITE_OPEN_READONLY;
     }
 
     private static function isReadonlyError(PDOException $e): bool
