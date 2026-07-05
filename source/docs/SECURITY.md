@@ -68,10 +68,10 @@ Verify after deploy: trigger a login and check `storage/logs/security.log` — `
 
 ## fail2ban
 
-Deploy templates in `deploy/server/`:
+Templates ship in `packaging/fail2ban/` (installed by the COPR RPM):
 
-- `fail2ban-latch-login.conf` → `/etc/fail2ban/filter.d/`
-- `fail2ban-latch-login.local` → `/etc/fail2ban/jail.d/`
+- `latch-login.conf` → `/etc/fail2ban/filter.d/`
+- `latch-login.local` → `/etc/fail2ban/jail.d/`
 
 Point `logpath` at your Apache access log for latch.network.
 

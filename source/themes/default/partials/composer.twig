@@ -6,41 +6,83 @@
             <input type="text" name="website" tabindex="-1" autocomplete="off">
         </label>
     </div>
-    <div class="composer-tabs" role="tablist">
-        <button type="button" class="composer-tab is-active" data-tab="write" role="tab" aria-selected="true">Write</button>
-        <button type="button" class="composer-tab" data-tab="preview" role="tab" aria-selected="false">Preview</button>
-    </div>
     <div class="composer-toolbar" aria-label="Formatting">
-        <button type="button" class="composer-btn" data-action="bold" title="Bold"><strong>B</strong></button>
-        <button type="button" class="composer-btn" data-action="italic" title="Italic"><em>I</em></button>
-        <button type="button" class="composer-btn" data-action="link" title="Link">Link</button>
-        <button type="button" class="composer-btn" data-action="quote" title="Quote">Quote</button>
-        <button type="button" class="composer-btn" data-action="code" title="Code block">Code</button>
-        <button type="button" class="composer-btn" data-action="inline-code" title="Inline code">{ }</button>
-        <button type="button" class="composer-btn" data-action="spoiler" title="Spoiler">Spoiler</button>
+        <button type="button" class="composer-btn" data-action="bold" title="Bold (**text**)"><strong>B</strong></button>
+        <button type="button" class="composer-btn" data-action="italic" title="Italic (*text*)"><em>I</em></button>
+        <button type="button" class="composer-btn" data-action="link" title="Link ([url=…]…[/url])">Link</button>
+        <button type="button" class="composer-btn" data-action="quote" title="Quote ([quote]…[/quote])">Quote</button>
+        <button type="button" class="composer-btn" data-action="list" title="Bullet list (- item)" aria-label="Bullet list">• List</button>
+        <button type="button" class="composer-btn" data-action="heading" title="Heading (## text)" aria-label="Heading">H</button>
+        <button type="button" class="composer-btn" data-action="code" title="Code block (```lang … ```)">Code</button>
+        <button type="button" class="composer-btn" data-action="inline-code" title="Inline code (`code`)">{ }</button>
+        <button type="button" class="composer-btn" data-action="spoiler" title="Spoiler ([spoiler]…[/spoiler])">Spoiler</button>
+        <button type="button" class="composer-btn" data-action="mention" title="Mention (@username)" aria-label="Mention">@</button>
         {% for html in plugin_composer_toolbar %}
             {{ html|raw }}
         {% endfor %}
-        <div class="composer-emote-picker">
-            <button type="button" class="composer-btn composer-emote-toggle" aria-expanded="false" aria-haspopup="true" title="Emotes">😊</button>
-            <div class="composer-emote-panel" hidden>
-                {% for code, emoji in post_smileys() %}
-                    <button type="button" class="composer-emote-item" data-emote="{{ code }}" title="{{ code }}">{{ emoji }}</button>
-                {% endfor %}
+        <div class="composer-toolbar-end">
+            <div class="composer-emote-picker">
+                <button type="button" class="composer-btn composer-emote-toggle" aria-expanded="false" aria-haspopup="true" title="Emotes">😊</button>
+                <div class="composer-emote-panel" hidden>
+                    {% for code, emoji in post_smileys() %}
+                        <button type="button" class="composer-emote-item" data-emote="{{ code }}" title="{{ code }}">{{ emoji }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="composer-help-picker">
+                <button type="button" class="composer-btn composer-help-toggle" aria-expanded="false" aria-haspopup="dialog" title="Markup help">?</button>
+                <div class="composer-help-panel" role="dialog" aria-label="Markup help" hidden>
+                    <p class="composer-help-intro muted">Write markup, not HTML. Use the toolbar or type:</p>
+                    <dl class="composer-help-list">
+                        <dt><code>**bold**</code></dt><dd>Bold</dd>
+                        <dt><code>*italic*</code></dt><dd>Italic</dd>
+                        <dt><code>`code`</code></dt><dd>Inline code</dd>
+                        <dt><code>[url=https://…]text[/url]</code></dt><dd>Link (HTTPS)</dd>
+                        <dt><code>[quote author="name"]</code></dt><dd>Quoted reply</dd>
+                        <dt><code>- item</code></dt><dd>Bullet list (blank line before list)</dd>
+                        <dt><code>## Heading</code></dt><dd>Section heading</dd>
+                        <dt><code>```php</code> … <code>```</code></dt><dd>Code block (change language in the bar below)</dd>
+                        <dt><code>[spoiler]…[/spoiler]</code></dt><dd>Hidden until opened</dd>
+                        <dt><code>@username</code></dt><dd>Mention a member</dd>
+                        <dt><code>:smile:</code></dt><dd>Emoji shortcode</dd>
+                    </dl>
+                </div>
             </div>
         </div>
     </div>
-    <div class="composer-panel" data-panel="write">
-        <textarea
-            name="{{ name|default('body') }}"
-            rows="{{ rows|default(8) }}"
-            maxlength="{{ input_limits.post_body_max }}"
-            {% if required|default(false) %}required{% endif %}
-            placeholder="{{ placeholder|default('') }}"
-            class="composer-textarea"
-        >{{ value|default('') }}</textarea>
+    <div class="composer-code-bar" hidden>
+        <span class="composer-code-bar-label">Code block</span>
+        <select class="composer-code-lang" aria-label="Code language">
+            <option value="php">PHP</option>
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="python">Python</option>
+            <option value="bash">Bash</option>
+            <option value="sql">SQL</option>
+            <option value="json">JSON</option>
+            <option value="yaml">YAML</option>
+            <option value="css">CSS</option>
+            <option value="rust">Rust</option>
+            <option value="go">Go</option>
+            <option value="java">Java</option>
+            <option value="cpp">C++</option>
+            <option value="">Plain text</option>
+        </select>
     </div>
-    <div class="composer-panel is-hidden" data-panel="preview" role="tabpanel">
-        <div class="composer-preview post-content muted">Preview will appear here.</div>
+    <div class="composer-split">
+        <div class="composer-write-pane">
+            <textarea
+                name="{{ name|default('body') }}"
+                rows="1"
+                maxlength="{{ input_limits.post_body_max }}"
+                {% if required|default(false) %}required{% endif %}
+                placeholder="{{ placeholder|default('') }}"
+                class="composer-textarea"
+            >{{ value|default('') }}</textarea>
+        </div>
+        <div class="composer-live-preview" aria-live="polite">
+            <p class="composer-preview-heading muted">Preview</p>
+            <div class="composer-preview post-content muted">Start typing to see formatted preview.</div>
+        </div>
     </div>
 </div>

@@ -7,6 +7,25 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0.13] — 2026-07-05
+
+### Added
+- **Direct messages** — delete empty conversations (trash icon in thread header); per-message delete on your own messages is easier to spot on mobile.
+- **Post editor** — toolbar adds bullet list, heading, and @mention helpers plus a `?` markup cheat sheet; existing buttons show syntax in tooltips.
+- **Code blocks** — live AJAX preview under the composer (no Write/Preview tab); Code button inserts a fenced block and a language dropdown appears while the cursor is inside it; topic posts highlight fenced blocks with highlight.js; language label shown on read view; editor uses a 70/30 split with scroll-synced preview; textarea is vertically resizable while the preview pane stays fixed.
+
+### Changed
+- **Theme performance budgets** (`docs/THEMING.md`) — raised compose `editor.js` cap to 32 KB (live preview, code blocks, reply flow); documented `highlight.min.js` and refreshed CSS/staff size targets to match the default theme.
+- **Footer** — language selector moved from Explore to Operator column.
+- **README screenshots** — refreshed boards home and admin dashboard images from latch.network.
+- **INSTALL.md / INSTALL-FEDORA.md** — drop pre-COPR `sync-latch` / `publish-latch-server` wording; point vhost and permissions fixes at public paths (`packaging/latch-httpd.conf`, `scripts/fix-latch-storage-perms.sh`).
+
+### Fixed
+- **Topic reply** — Reply no longer restores a stale quoted draft from localStorage (non-quote drafts are still restored); Quote still pre-fills the attributed quote; reply draft clears after submit.
+- **Code highlighting (dark theme)** — syntax colours use a high-contrast dark palette so keywords and strings stay readable on dark backgrounds.
+- **Header alignment** — theme toggle and sign-in / user menu align to the right edge of the main content column (matches boards Topics/Posts stats track); search bar centred in the header on desktop (equal side tracks in a 3-column grid).
+- **Release hygiene** — `router-dev.php` moved out of `source/public/` to `scripts/router-dev.php` (dev-only PHP built-in server router); excluded from release tarball and COPR `%install` so it is not web-accessible on production installs.
+
 ## [0.3.0.12] — 2026-07-04
 
 ### Added
@@ -181,6 +200,7 @@ php bin/latch install --url=https://forum.example.com --name="My Forum"
 cd /var/www/latch && sudo bash scripts/update.sh
 ```
 
+[0.3.0.13]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.13
 [0.3.0.12]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.12
 [0.3.0.1]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.1
 [0.3.0]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.1

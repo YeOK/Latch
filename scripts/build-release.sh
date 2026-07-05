@@ -36,6 +36,20 @@ VERSION="$(tr -d '[:space:]' < "${REPO_ROOT}/VERSION")"
 STAGE="${DIST}/latch-${VERSION}-stage"
 ARCHIVE="${DIST}/latch-${VERSION}.tar.gz"
 
+if [[ -f "${REPO_ROOT}/CHANGELOG.md" ]]; then
+    UNRELEASED_BULLETS="$(awk '
+        /^## \[Unreleased\]/ { in_unreleased=1; next }
+        /^## \[/ && in_unreleased { exit }
+        in_unreleased && /^- / { count++ }
+        END { print count + 0 }
+    ' "${REPO_ROOT}/CHANGELOG.md")"
+    if [[ "${UNRELEASED_BULLETS}" -gt 0 ]]; then
+        echo "Error: CHANGELOG.md has ${UNRELEASED_BULLETS} bullet(s) under [Unreleased]." >&2
+        echo "Fold them into ## [${VERSION}] (or bump VERSION) before building a release." >&2
+        exit 1
+    fi
+fi
+
 if command -v git >/dev/null 2>&1 && git -C "${REPO_ROOT}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     if [[ "${ALLOW_DIRTY}" != "1" ]] && [[ -n "$(git -C "${REPO_ROOT}" status --porcelain 2>/dev/null)" ]]; then
         echo "Error: working tree not clean. Commit or pass --allow-dirty." >&2
@@ -88,6 +102,8 @@ rsync -a \
     --exclude='scripts/latch-logs.sh' \
     --exclude='scripts/setup-api-test-client.sh' \
     --exclude='scripts/install-latch-security.sh' \
+    --exclude='scripts/dev-server.sh' \
+    --exclude='scripts/router-dev.php' \
     --exclude='dist/' \
     "${REPO_ROOT}/" "${STAGE}/"
 
@@ -112,6 +128,10 @@ if grep -RInE '(henpen\.(dev|org)|noreply@henpen\.org|yeok@192\.168|192\.168\.1\
 fi
 if [[ -f "${STAGE}/PLAN.md" ]] || [[ -d "${STAGE}/deploy/forum-data" ]] || [[ -f "${STAGE}/deploy/msmtp.conf" ]]; then
     echo "Error: operator-only paths must not ship (PLAN.md, deploy/forum-data/, deploy/msmtp.conf)" >&2
+    exit 1
+fi
+if [[ -f "${STAGE}/source/public/router-dev.php" ]]; then
+    echo "Error: source/public/router-dev.php must not ship (dev-only router belongs in scripts/)" >&2
     exit 1
 fi
 

@@ -410,6 +410,7 @@ final class Application
         $this->router->post('/messages/start', $this->bind($messages, 'start'));
         $this->router->post('/messages/:id/send', $this->bind($messages, 'send'));
         $this->router->post('/messages/:id/delete', $this->bind($messages, 'deleteMessage'));
+        $this->router->post('/messages/:id/delete-conversation', $this->bind($messages, 'deleteConversation'));
         $this->router->post('/messages/:id/read', $this->bind($messages, 'markRead'));
         $this->router->get('/messages/:id', $this->bind($messages, 'index'));
         $this->router->get('/messages', $this->bind($messages, 'index'));

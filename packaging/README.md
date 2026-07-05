@@ -12,3 +12,5 @@
 
 **Operators:** [source/docs/INSTALL-FEDORA.md](../source/docs/INSTALL-FEDORA.md)  
 **Maintainer setup:** local `deploy/copr-setup.md` (not in git)
+
+**Release checklist:** bump `VERSION` + `latch.spec`; move live `CHANGELOG.md` bullets out of `[Unreleased]` into that version; `review-git-tree.sh` must show `[Unreleased] is empty`; then tag, `build-release.sh`, COPR, GitHub release.

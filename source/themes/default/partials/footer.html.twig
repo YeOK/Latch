@@ -31,7 +31,6 @@
                         {% if allow_registration %}<li><a href="/register">{{ trans('footer.register') }}</a></li>{% endif %}
                     {% endif %}
                 </ul>
-                {% include 'partials/locale_switcher.html.twig' with { variant: 'footer' } %}
             </section>
             <section class="footer-links">
                 <h2 class="footer-heading">{% if gdpr_enabled %}{{ trans('footer.privacy_gdpr') }}{% else %}{{ trans('footer.privacy') }}{% endif %}</h2>
@@ -54,6 +53,7 @@
                     <p><a href="mailto:{{ privacy_contact_email }}">{{ privacy_contact_email }}</a></p>
                 {% endif %}
                 <p class="muted"><a href="https://latch.network" rel="noopener">latch.network</a></p>
+                {% include 'partials/locale_switcher.html.twig' with { variant: 'footer' } %}
             </section>
         </div>
         {% for html in plugin_footer_html|default([]) %}

@@ -182,4 +182,36 @@ final class DirectMessageTest extends TestCase
         $result = $this->service->sendToUser($alice, 2, 'Hello');
         $this->assertFalse($result['ok']);
     }
+
+    public function testUserCanDeleteOwnMessage(): void
+    {
+        $alice = $this->users->findById(1);
+        $this->assertNotNull($alice);
+        $send = $this->service->sendToUser($alice, 2, 'Hello Bob');
+        $this->assertTrue($send['ok']);
+
+        $conversationId = (int) $send['conversation_id'];
+        $messageId = (int) $send['message_id'];
+        $this->assertTrue($this->messages->softDeleteMessage($messageId, 1));
+        $this->assertSame([], $this->messages->listMessages($conversationId, 1, 10));
+    }
+
+    public function testEmptyConversationCanBeDeleted(): void
+    {
+        $conversationId = $this->messages->findOrCreateConversation(1, 2);
+        $this->assertSame(0, $this->messages->countActiveMessages($conversationId));
+        $this->assertTrue($this->messages->deleteConversationIfEmpty($conversationId, 1));
+        $this->assertNull($this->messages->getConversationForUser($conversationId, 1));
+    }
+
+    public function testConversationWithMessagesCannotBeDeleted(): void
+    {
+        $alice = $this->users->findById(1);
+        $this->assertNotNull($alice);
+        $send = $this->service->sendToUser($alice, 2, 'Still here');
+        $conversationId = (int) $send['conversation_id'];
+
+        $this->assertFalse($this->messages->deleteConversationIfEmpty($conversationId, 1));
+        $this->assertNotNull($this->messages->getConversationForUser($conversationId, 1));
+    }
 }

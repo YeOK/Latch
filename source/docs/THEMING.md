@@ -151,17 +151,20 @@ Third-party themes should set `supports_color_modes: true` in `theme.json` if bo
 
 Server-side cache (Phase 1.5) does not replace a lean theme. Phase 5 runs Lighthouse on key URLs; design for these **default-theme targets**:
 
-| Asset | Budget (uncompressed) | Default theme (Jun 2026) |
+| Asset | Budget (uncompressed) | Default theme (Jul 2026) |
 |-------|----------------------|--------------------------|
-| Primary CSS | ≤ 45 KB | ~38 KB (`theme.css`) |
-| Global JS (`theme.js`) | ≤ 12 KB | ~9 KB |
-| Compose JS (`editor.js`) | ≤ 12 KB | ~9 KB |
-| Staff JS (`staff-actions.js`) | ≤ 12 KB | ~10 KB (admin/mod pages only) |
+| Primary CSS | ≤ 110 KB | ~103 KB (`theme.css`) |
+| Global JS (`theme.js`) | ≤ 12 KB | ~11 KB |
+| Compose JS (`editor.js`) | ≤ 32 KB | ~25 KB |
+| Syntax highlight (`highlight.min.js`) | ≤ 130 KB | ~125 KB (compose/read topic pages only) |
+| Staff JS (`staff-actions.js`) | ≤ 20 KB | ~17 KB (admin/mod pages only) |
 | Tags JS (`tags.js`) | ≤ 4 KB | ~2 KB (compose/mod pages only) |
 | Webfonts | **0 KB** (default) | System stack only |
 | Decorative PNG/JPG in chrome | **0** | SVG logo + board icons only |
 
-**Total JS on a typical board page:** one deferred file (`theme.js`). Topic compose adds `editor.js`; mod/admin pages add `staff-actions.js` as needed.
+Budgets are **uncompressed source size** (what you see on disk). Gzip is much smaller — e.g. `editor.js` ~4.5 KB, `highlight.min.js` ~42 KB over the wire.
+
+**Total JS on a typical board page:** one deferred file (`theme.js`). Topic compose adds `editor.js` + `highlight.min.js`; mod/admin pages add `staff-actions.js` as needed. The editor is allowed a larger budget: it is the main authoring surface (live preview, markup toolbar, code blocks, reply flow).
 
 ### CSS rules
 
@@ -285,9 +288,9 @@ Custom themes may ship their own SVG pack in the same directory structure. Plugi
 
 ## Performance checklist (before shipping a theme)
 
-- [ ] Primary CSS ≤ 45 KB uncompressed
+- [ ] Primary CSS ≤ 110 KB uncompressed
 - [ ] No `@import` in CSS
-- [ ] Global JS ≤ 12 KB; compose JS only on compose pages
+- [ ] Global JS ≤ 12 KB; `editor.js` ≤ 32 KB; `highlight.min.js` compose-only
 - [ ] All scripts use `defer` and `?v={{ asset_version }}`
 - [ ] No webfonts unless justified (document download size)
 - [ ] No raster images in header, footer, or buttons

@@ -22,13 +22,13 @@ Most forums ask you to run a database server, a cache, a job queue, and a dozen 
 
 From the live install at **[latch.network](https://latch.network)**:
 
-**Boards home** — pinned topics, full-text search, light/dark theme, and forum stats.
+**Boards home** — board list with pinned topics, full-text search, stats, and footer navigation.
 
 ![Latch boards home — dark theme with pinned topics and forum stats](docs/images/boards-home.jpg)
 
-**Admin dashboard** — site lock for safe upgrades, one-click backup, search rebuild, and moderation queues at a glance.
+**Admin dashboard** — forum stats, system health (database, cache, cron, mail), version panel, and maintenance tools.
 
-![Latch admin dashboard — maintenance mode, backups, and forum overview](docs/images/admin-dashboard.jpg)
+![Latch admin dashboard — stats, system panel, and version info](docs/images/admin-dashboard.jpg)
 
 Try it in minutes — download a release tarball, run `php bin/latch install`, point your web server at `source/public/`. See [source/docs/INSTALL.md](source/docs/INSTALL.md).
 
@@ -37,7 +37,7 @@ Try it in minutes — download a release tarball, run `php bin/latch install`, p
 
 ## Status
 
-**v0.3.0.12** — public release (Phases 1–5 operator tooling + Phase 6 phpBB import v1).  
+**v0.3.0.13** — public release (post editor refresh, DM delete, UI polish, release hygiene).
 Live demo: **[latch.network](https://latch.network)** · Release notes: [CHANGELOG.md](CHANGELOG.md)
 
 ## Quick paths
@@ -56,12 +56,12 @@ Production: **https://latch.network** (Cloudflare proxy → home server Apache v
 ## Install (release tarball)
 
 ```bash
-tar -xzf latch-0.3.0.12.tar.gz && cd latch-0.3.0.12-stage/source
+tar -xzf latch-0.3.0.13.tar.gz && cd latch-0.3.0.13-stage/source
 composer install --no-dev
 php bin/latch install --url=https://forum.example.com --name="My Forum"
 ```
 
-Download: [GitHub Releases](https://github.com/YeOK/Latch/releases) · Build locally: `./scripts/build-release.sh` → `dist/latch-0.3.0.12.tar.gz`
+Download: [GitHub Releases](https://github.com/YeOK/Latch/releases) · Build locally: `./scripts/build-release.sh` → `dist/latch-0.3.0.13.tar.gz`
 
 **Fedora/RHEL:** COPR RPM — see [source/docs/INSTALL-FEDORA.md](source/docs/INSTALL-FEDORA.md).
 

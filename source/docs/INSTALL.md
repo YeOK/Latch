@@ -18,12 +18,12 @@ sudo dnf install -y php-pdo php-mbstring
 
 ## Release install (v0.3.0+)
 
-Download from **[GitHub Releases](https://github.com/YeOK/Latch/releases)** (`latch-0.3.0.12.tar.gz` + `SHA256SUMS`):
+Download from **[GitHub Releases](https://github.com/YeOK/Latch/releases)** (`latch-0.3.0.13.tar.gz` + `SHA256SUMS`):
 
 ```bash
 sha256sum -c SHA256SUMS
-tar -xzf latch-0.3.0.12.tar.gz
-cd latch-0.3.0.12-stage/source
+tar -xzf latch-0.3.0.13.tar.gz
+cd latch-0.3.0.13-stage/source
 composer install --no-dev
 php bin/latch install --url=https://forum.example.com --name="My Forum"
 ```
@@ -84,13 +84,13 @@ php bin/latch install \
 
 3. **Upgrades** — replace application files, then run `sudo bash scripts/update.sh` from the install root (see [UPGRADE.md](UPGRADE.md)). Existing `storage/database/latch.sqlite` and `config/local.php` are preserved.
 
-A reference install runs at **[latch.network](https://latch.network)**. Example vhost: `deploy/latch.conf` or `deploy/latch.network.conf`.
+A reference install runs at **[latch.network](https://latch.network)**. Example Apache vhost: `packaging/latch-httpd.conf` (also installed as `/etc/httpd/conf.d/latch.conf` on COPR). Fedora/RHEL: [INSTALL-FEDORA.md](INSTALL-FEDORA.md).
 
 ## Web server
 
 ### Apache
 
-See `deploy/latch.network.conf` for production, or `deploy/latch.conf` as a generic template. Key points:
+See `packaging/latch-httpd.conf` for a starter vhost. Key points:
 
 - `DocumentRoot` must point to `source/public`
 - `AllowOverride All` so `.htaccess` rewrite rules work
@@ -115,7 +115,7 @@ location ~ \.php$ {
 
 ## File permissions
 
-`storage/` must be writable by the web server user (`apache` on Fedora). The publish script sets **2770** directories and **660** files (group `apache`, no world access).
+`storage/` must be writable by the web server user (`apache` on Fedora). Production layouts use **2770** directories and **660** database files (group `apache`, no world access).
 
 Add your deploy user to the `apache` group so you can run CLI commands without sudo:
 
@@ -158,7 +158,12 @@ Or use the helper (no write access to `storage/database/` required):
 bash scripts/migrate-latch-db.sh
 ```
 
-For a permanent fix, run the full publish script once with sudo so `storage/` gets `2770` permissions and your deploy user stays in the `apache` group: `sudo bash scripts/publish-latch-server.sh`.
+For a permanent fix from the install root:
+
+```bash
+sudo bash scripts/fix-latch-storage-perms.sh /var/www/latch
+sudo usermod -aG apache your-deploy-user   # re-login afterward
+```
 
 ## Email
 
@@ -189,7 +194,7 @@ Verify manually:
 sudo -u apache php bin/latch cron daily
 ```
 
-Template without the helper script: `deploy/cron/latch.cron.example`.
+On Fedora COPR, systemd timers replace cron — see [INSTALL-FEDORA.md](INSTALL-FEDORA.md).
 
 **Docker:** run the same commands in a sidecar cron container or the host crontab pointing at the mounted `source/` volume.
 

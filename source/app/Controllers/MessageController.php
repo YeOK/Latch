@@ -53,7 +53,7 @@ final class MessageController
 
         Response::json([
             'ok' => true,
-            'conversations' => array_map(fn (array $item): array => $this->serializeConversation($item), $items),
+            'conversations' => array_map(fn (array $item): array => $this->serializeConversation($item, $user), $items),
             'unread_count' => $this->app->directMessages()->countUnreadForUser($userId),
         ]);
     }
@@ -83,9 +83,29 @@ final class MessageController
 
         Response::json([
             'ok' => true,
-            'conversation' => $this->serializeConversation($conversation),
+            'conversation' => $this->serializeConversation($conversation, $user),
             'messages' => array_map(fn (array $item): array => $this->serializeMessage($item, $user), $messages),
             'unread_count' => $this->app->directMessages()->countUnreadForUser($userId),
+        ]);
+    }
+
+    public function deleteConversation(array $params): void
+    {
+        $user = $this->requireUserJson();
+        $this->validateCsrf();
+
+        $conversationId = (int) ($params['id'] ?? 0);
+        if (!$this->app->directMessages()->deleteConversationIfEmpty($conversationId, (int) $user['id'])) {
+            Response::json([
+                'ok' => false,
+                'message' => 'Delete each message first, or the conversation was not found.',
+            ], 403);
+        }
+
+        Response::json([
+            'ok' => true,
+            'conversation_id' => $conversationId,
+            'unread_count' => $this->app->directMessages()->countUnreadForUser((int) $user['id']),
         ]);
     }
 
@@ -118,7 +138,7 @@ final class MessageController
         Response::json([
             'ok' => true,
             'conversation_id' => $conversationId,
-            'conversation' => $conversation !== null ? $this->serializeConversation($conversation) : null,
+            'conversation' => $conversation !== null ? $this->serializeConversation($conversation, $user) : null,
         ]);
     }
 
@@ -239,19 +259,28 @@ final class MessageController
      * @param array<string, mixed> $item
      * @return array<string, mixed>
      */
-    private function serializeConversation(array $item): array
+    /**
+     * @param array<string, mixed>|null $viewer
+     */
+    private function serializeConversation(array $item, ?array $viewer = null): array
     {
         $last = $item['last_message'] ?? null;
         if (is_array($last)) {
             $last['created_at_label'] = $this->dates->format((string) ($last['created_at'] ?? ''));
         }
 
+        $conversationId = (int) $item['id'];
+        $canDeleteConversation = $viewer !== null
+            && $this->app->directMessages()->isParticipant($conversationId, (int) $viewer['id'])
+            && $this->app->directMessages()->countActiveMessages($conversationId) === 0;
+
         return [
-            'id' => (int) $item['id'],
+            'id' => $conversationId,
             'updated_at' => (string) ($item['updated_at'] ?? ''),
             'other_user' => $item['other_user'] ?? [],
             'last_message' => $last,
             'unread' => !empty($item['unread']),
+            'can_delete_conversation' => $canDeleteConversation,
         ];
     }
 

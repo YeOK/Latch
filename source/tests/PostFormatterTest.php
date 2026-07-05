@@ -114,7 +114,7 @@ final class PostFormatterTest extends TestCase
             . '```',
         );
 
-        $this->assertStringContainsString('<pre class="code-block">', $html);
+        $this->assertStringContainsString('<pre class="code-block"', $html);
         $this->assertStringContainsString('str_ends_with', $html);
         $this->assertStringNotContainsString('```233', $html);
     }
@@ -139,6 +139,15 @@ final class PostFormatterTest extends TestCase
 
         $this->assertStringContainsString('<h3 class="post-heading">Overview</h3>', $html);
         $this->assertStringContainsString('<p>Paragraph text.</p>', $html);
+    }
+
+    public function testRendersLanguageCodeFence(): void
+    {
+        $html = $this->formatter->format("```php\n<?php echo 'hi';\n```");
+
+        $this->assertStringContainsString('<pre class="code-block" data-lang="php">', $html);
+        $this->assertStringContainsString('class="language-php"', $html);
+        $this->assertStringContainsString('echo &#039;hi&#039;', $html);
     }
 
     public function testRendersIndentedCodeFence(): void

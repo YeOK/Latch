@@ -32,6 +32,7 @@
         var threadTitle = app.querySelector('#messages-thread-title');
         var threadSubtitle = app.querySelector('#messages-thread-subtitle');
         var threadProfile = app.querySelector('#messages-thread-profile');
+        var deleteConversationBtn = app.querySelector('#messages-delete-conversation-btn');
         var sendForm = app.querySelector('#messages-send-form');
         var sendInput = app.querySelector('#messages-send-input');
         var sendError = app.querySelector('#messages-send-error');
@@ -236,6 +237,7 @@
                         threadBody.innerHTML =
                             '<p class="muted messages-status">No messages yet. Say hello.</p>';
                         lastMessageId = 0;
+                        setDeleteConversationVisible(true);
                     }
 
                     loadConversations();
@@ -253,6 +255,14 @@
                 return;
             }
             threadBody.scrollTop = threadBody.scrollHeight;
+        }
+
+        function setDeleteConversationVisible(canDelete) {
+            if (!deleteConversationBtn) {
+                return;
+            }
+            deleteConversationBtn.hidden = !canDelete;
+            deleteConversationBtn.classList.toggle('hidden', !canDelete);
         }
 
         function showThreadPanel(conversation) {
@@ -275,6 +285,9 @@
                 if (threadProfile) {
                     threadProfile.href = '/user/' + encodeURIComponent(conversation.other_user.username);
                 }
+                setDeleteConversationVisible(!!conversation.can_delete_conversation);
+            } else {
+                setDeleteConversationVisible(false);
             }
             app.classList.add('has-active-thread');
         }
@@ -287,8 +300,44 @@
                 threadPanel.hidden = true;
                 threadPanel.classList.add('hidden');
             }
+            setDeleteConversationVisible(false);
             app.classList.remove('has-active-thread');
             stopPolling();
+        }
+
+        function deleteConversation() {
+            if (!activeId) {
+                return Promise.resolve();
+            }
+            if (!window.confirm('Delete this conversation?')) {
+                return Promise.resolve();
+            }
+
+            return postForm('/messages/' + activeId + '/delete-conversation', {})
+                .then(function (result) {
+                    if (!result.ok || !result.payload.ok) {
+                        if (sendError) {
+                            sendError.textContent =
+                                (result.payload && result.payload.message) ||
+                                'Could not delete conversation.';
+                            sendError.hidden = false;
+                        }
+                        return;
+                    }
+
+                    if (typeof result.payload.unread_count === 'number') {
+                        setNavBadge(result.payload.unread_count);
+                    }
+
+                    resetToList(true);
+                    return loadConversations();
+                })
+                .catch(function () {
+                    if (sendError) {
+                        sendError.textContent = 'Could not delete conversation.';
+                        sendError.hidden = false;
+                    }
+                });
         }
 
         function loadThread(id, afterId) {
@@ -346,6 +395,11 @@
                         threadBody.innerHTML =
                             '<p class="muted messages-status">No messages yet. Say hello.</p>';
                         lastMessageId = 0;
+                        if (result.payload.conversation) {
+                            setDeleteConversationVisible(
+                                !!result.payload.conversation.can_delete_conversation,
+                            );
+                        }
                         return;
                     }
 
@@ -522,6 +576,12 @@
         if (backBtn) {
             backBtn.addEventListener('click', function () {
                 resetToList(true);
+            });
+        }
+
+        if (deleteConversationBtn) {
+            deleteConversationBtn.addEventListener('click', function () {
+                deleteConversation();
             });
         }
 

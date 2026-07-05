@@ -2,7 +2,7 @@
 
 Recommended for **Fedora/RHEL-like** hosts: `dnf` installs PHP, Apache, and extensions; the RPM lays out FHS paths; upgrades are `dnf upgrade latch`.
 
-**Production (latch.network)** is moving to this path instead of private `sync-latch.sh` deploys. Development and testing stay on your dev machine (and optional staging VM).
+**Production (latch.network)** runs the COPR RPM (`dnf upgrade latch`). Tarball installs use the same safety sequence in [UPGRADE.md](UPGRADE.md). Development and testing stay on your dev machine (optional staging VM for release gates).
 
 ## Enable COPR
 

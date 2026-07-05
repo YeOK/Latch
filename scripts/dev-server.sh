@@ -68,5 +68,5 @@ echo "    Root: ${SOURCE}/public"
 echo "    Stop: Ctrl+C"
 echo ""
 
-cd "${SOURCE}"
-exec php -S "${HOST}:${PORT}" -t public public/router-dev.php
+cd "${REPO_ROOT}"
+exec php -S "${HOST}:${PORT}" -t "${SOURCE}/public" "${SCRIPT_DIR}/router-dev.php"

@@ -19,7 +19,8 @@
         <link rel="stylesheet" href="{{ asset }}">
     {% endfor %}
 </head>
-<body{% if user %} data-logged-in="1" data-username="{{ user.username }}"{% endif %}{% if gdpr_enabled %} data-gdpr="1"{% endif %}{% if current_path starts with '/admin' %} class="page-admin"{% elseif current_path starts with '/profile' %} class="page-profile"{% endif %}>
+{% set body_class = current_path starts with '/admin' ? 'page-admin' : (current_path starts with '/profile' ? 'page-profile' : (current_path == '/' ? 'page-home' : '')) %}
+<body{% if user %} data-logged-in="1" data-username="{{ user.username }}"{% endif %}{% if gdpr_enabled %} data-gdpr="1"{% endif %}{% if body_class %} class="{{ body_class }}"{% endif %}>
     {% include 'partials/staff_report_bar.html.twig' %}
     {% include 'partials/members_only_banner.html.twig' %}
     <header class="site-header latch-header">

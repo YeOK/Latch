@@ -3,7 +3,7 @@
         'name' => 'latch/forum',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'df7e84a7c0b46a97100e383eb46ba31086478a33',
+        'reference' => '6016556612146e09ca786d771cc10250b546f11c',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -31,7 +31,7 @@
         'latch/forum' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'df7e84a7c0b46a97100e383eb46ba31086478a33',
+            'reference' => '6016556612146e09ca786d771cc10250b546f11c',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

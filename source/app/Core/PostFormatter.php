@@ -542,8 +542,9 @@ final class PostFormatter
         $safeLang = preg_replace('/[^a-z0-9_-]+/i', '-', $lang) ?? '';
         $safeLang = trim($safeLang, '-');
         $langAttr = $safeLang !== '' ? ' class="language-' . htmlspecialchars($safeLang, ENT_QUOTES, 'UTF-8') . '"' : '';
+        $dataLang = $safeLang !== '' ? ' data-lang="' . htmlspecialchars($safeLang, ENT_QUOTES, 'UTF-8') . '"' : '';
 
-        return '<pre class="code-block"><code' . $langAttr . '>' . $escaped . '</code></pre>';
+        return '<pre class="code-block"' . $dataLang . '><code' . $langAttr . '>' . $escaped . '</code></pre>';
     }
 
     private function renderQuote(string $author, string $content): string

@@ -10,7 +10,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.12
+Version:        0.3.0.13
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -89,6 +89,9 @@ rsync -a \
     --exclude='scripts/latch-logs.sh' \
     --exclude='scripts/setup-api-test-client.sh' \
     --exclude='scripts/install-latch-security.sh' \
+    --exclude='scripts/dev-server.sh' \
+    --exclude='scripts/router-dev.php' \
+    --exclude='source/public/router-dev.php' \
     ./ %{buildroot}%{latch_datadir}/
 
 install -m 0644 packaging/latch-httpd.conf %{buildroot}%{_sysconfdir}/httpd/conf.d/latch.conf
@@ -181,6 +184,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sun Jul 05 2026 YeOK <yeokky@gmail.com> - 0.3.0.13-1
+- Post editor live preview and code highlighting; DM delete; UI/header/footer polish; router-dev hygiene
+
 * Sat Jul 04 2026 YeOK <yeokky@gmail.com> - 0.3.0.12-1
 - Security hardening, smoke/security test gates, phpBB import v1, MARKUP docs
 

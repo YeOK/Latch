@@ -141,6 +141,39 @@ final class DirectMessageRepository
         return (bool) $stmt->fetchColumn();
     }
 
+    public function countActiveMessages(int $conversationId): int
+    {
+        if (!$this->isAvailable()) {
+            return 0;
+        }
+
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT COUNT(*) FROM dm_messages
+             WHERE conversation_id = :conversation_id AND deleted_at IS NULL'
+        );
+        $stmt->execute(['conversation_id' => $conversationId]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function deleteConversationIfEmpty(int $conversationId, int $userId): bool
+    {
+        if (!$this->isAvailable()) {
+            return false;
+        }
+        if (!$this->isParticipant($conversationId, $userId)) {
+            return false;
+        }
+        if ($this->countActiveMessages($conversationId) > 0) {
+            return false;
+        }
+
+        $delete = $this->db->pdo()->prepare('DELETE FROM dm_conversations WHERE id = :id');
+        $delete->execute(['id' => $conversationId]);
+
+        return $delete->rowCount() > 0;
+    }
+
     public function softDeleteMessage(int $messageId, int $userId, bool $isStaff = false): bool
     {
         if (!$this->isAvailable()) {
