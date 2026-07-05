@@ -1272,7 +1272,7 @@ body.cookie-consent-visible {
     text-decoration: underline;
 }
 
-body.page-forum main.container {
+body.page-forum :is(main.container, .site-footer .container) {
     width: min(var(--home-content-max, var(--content-max)), calc(100vw - 2 * var(--content-gutter)));
 }
 

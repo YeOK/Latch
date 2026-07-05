@@ -9,6 +9,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.3.0.18] — 2026-07-05
+
+### Changed
+- **Forum layout width** — `page-forum` now aligns the site footer with header and main column on both default and modern themes (`body.page-forum :is(main.container, .site-footer .container)`).
+- **COPR/RPM builds** — `%build` runs `composer install --no-dev` when mock builds have network access (`BuildRequires: composer`); committed `vendor/` remains for tarball and offline installs.
+
 ## [0.3.0.17] — 2026-07-05
 
 ### Changed

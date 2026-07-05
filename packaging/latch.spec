@@ -2,7 +2,8 @@
 # Sync Version: with repo VERSION file and git tag v{version}
 #
 # COPR: spec path packaging/latch.spec (maintainer notes: deploy/copr-setup.md, local only)
-# Before tagging: cd source && composer install --no-dev --optimize-autoloader && commit vendor/
+# COPR project setting: enable internet/network for mock builds.
+# %build runs composer install --no-dev; committed vendor/ remains a fallback for tarballs/git clones.
 
 %global latch_datadir %{_datadir}/latch
 %global latch_libdir %{_localstatedir}/lib/latch
@@ -10,7 +11,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.17
+Version:        0.3.0.18
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -23,6 +24,7 @@ BuildRequires:  php-cli
 BuildRequires:  php-mbstring
 BuildRequires:  php-pdo
 BuildRequires:  php-xml
+BuildRequires:  composer
 BuildRequires:  rsync
 
 Requires:       httpd
@@ -47,10 +49,17 @@ After upgrade: handled automatically via %%posttrans (lock, backup, migrate).
 %autosetup -n Latch-%{version}
 
 %build
-# COPR/mock builds are offline — production vendor/ must be committed (composer install --no-dev).
 cd source
+if command -v composer >/dev/null 2>&1; then
+    composer install --no-dev --optimize-autoloader --no-interaction
+elif [ -f composer.phar ]; then
+    php composer.phar install --no-dev --optimize-autoloader --no-interaction
+else
+    echo "composer not found; install BuildRequires: composer" >&2
+    exit 1
+fi
 if [ ! -f vendor/autoload.php ]; then
-    echo "vendor/autoload.php missing; run: cd source && composer install --no-dev --optimize-autoloader" >&2
+    echo "vendor/autoload.php missing after composer install" >&2
     exit 1
 fi
 
@@ -184,6 +193,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sun Jul 05 2026 YeOK <yeokky@gmail.com> - 0.3.0.18-1
+- Forum footer width alignment; COPR %build runs composer install --no-dev
+
 * Sun Jul 05 2026 YeOK <yeokky@gmail.com> - 0.3.0.17-1
 - app.version sync, forum layout width, header consistency
 
