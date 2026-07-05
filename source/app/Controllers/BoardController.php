@@ -112,7 +112,7 @@ final class BoardController
             'page' => $page,
             'total_pages' => max(1, (int) ceil($total / $perPage)),
             'topic_sort' => $sort,
-            'topic_sort_options' => TopicListSort::labels(),
+            'topic_sort_options' => TopicListSort::translatedLabels($this->app->trans(...)),
             'filter_tag' => $filterTag,
             'can_create_topic' => $this->app->boards()->canCreateTopic(
                 $board,

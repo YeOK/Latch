@@ -8,7 +8,7 @@
     {% endif %}
     <section class="page-header">
         <p class="breadcrumb">
-            <a href="/">Boards</a> /
+            <a href="/">{{ trans('common.boards') }}</a> /
             <a href="/board/{{ board.slug }}">{{ board.name }}</a> /
             {{ topic.title }}
         </p>
@@ -18,9 +18,9 @@
         <div class="page-header-row">
             <div class="page-header-title-wrap">
                 <h1>
-                <span class="badge" data-topic-pin-badge{% if not topic.is_pinned %} hidden{% endif %}>Pinned</span>
-                <span class="badge badge-muted" data-topic-lock-badge{% if not topic.is_locked %} hidden{% endif %}>Locked</span>
-                {% if topic.deleted_at %}<span class="badge badge-muted">Removed</span>{% endif %}
+                <span class="badge" data-topic-pin-badge{% if not topic.is_pinned %} hidden{% endif %}>{{ trans('common.pinned') }}</span>
+                <span class="badge badge-muted" data-topic-lock-badge{% if not topic.is_locked %} hidden{% endif %}>{{ trans('common.locked') }}</span>
+                {% if topic.deleted_at %}<span class="badge badge-muted">{{ trans('common.removed') }}</span>{% endif %}
                 {{ topic.title }}
                 </h1>
             </div>
@@ -31,8 +31,8 @@
                             id="topic-watch-btn"
                             data-topic-id="{{ topic.id }}"
                             data-watching="{{ is_watching ? '1' : '0' }}"
-                            title="{{ is_watching ? 'Unwatch topic' : 'Watch topic' }}"
-                            aria-label="{{ is_watching ? 'Unwatch topic' : 'Watch topic' }}"
+                            title="{{ is_watching ? trans('topic.unwatch') : trans('topic.watch') }}"
+                            aria-label="{{ is_watching ? trans('topic.unwatch') : trans('topic.watch') }}"
                             aria-pressed="{{ is_watching ? 'true' : 'false' }}">
                         {% include 'partials/icon.twig' with { name: 'eye', size: 18 } %}
                     </button>
@@ -66,7 +66,7 @@
             <details class="card mod-topic-details{% if is_mod %} mod-tools-active-only{% endif %}">
                 <summary class="mod-topic-details-summary">
                     {% include 'partials/icon.twig' with { name: 'edit', size: 16 } %}
-                    <span>{% if is_mod %}Edit topic{% else %}Edit tags{% endif %}</span>
+                    <span>{% if is_mod %}Edit topic{% else %}{{ trans('topic.edit_tags') }}{% endif %}</span>
                     {% include 'partials/icon.twig' with { name: 'chevron-down', size: 16 } %}
                 </summary>
                 <div class="mod-topic-details-body">
@@ -79,7 +79,7 @@
                             </label>
                         {% endif %}
                         <label>
-                            Tags
+                            {{ trans('topic.tags') }}
                             <input type="text" name="tags" value="{{ tags|column('name')|join(', ') }}" maxlength="200" list="tag-suggestions" autocomplete="off">
                         </label>
                         <button type="submit" class="btn btn-small btn-primary btn-icon" title="Save changes" aria-label="Save topic changes">
@@ -92,7 +92,7 @@
         {% endif %}
     </section>
 
-    <button type="button" class="scroll-top-btn" id="scroll-top" hidden title="Back to top" aria-label="Back to top">
+    <button type="button" class="scroll-top-btn" id="scroll-top" hidden title="{{ trans('topic.back_to_top') }}" aria-label="{{ trans('topic.back_to_top') }}">
         {% include 'partials/icon.twig' with { name: 'arrow-up', size: 22 } %}
     </button>
 
@@ -109,7 +109,7 @@
             {% elseif posts|length > 1 %}
                 <div class="topic-list-controls">
                     <label class="topic-post-sort">
-                        <select class="field-control topic-post-sort-select" id="topic-post-sort" aria-label="Sort posts">
+                        <select class="field-control topic-post-sort-select" id="topic-post-sort" aria-label="{{ trans('topic.sort_posts') }}">
                             {% for sort_key, sort_label in post_sort_options %}
                                 <option value="{{ sort_key }}"{% if post_sort|default('oldest') == sort_key %} selected{% endif %}>{{ sort_label }}</option>
                             {% endfor %}
@@ -158,8 +158,8 @@
                         <strong>{% include 'partials/username_link.twig' with { username: post.author_name } %}</strong>
                         <time>{{ post.created_at|format_datetime }}</time>
                         {% if post.updated_at %}
-                            <span class="badge badge-muted post-edited-badge" title="Last edited {{ post.last_edited_at|default(post.updated_at)|format_datetime }}">
-                                Edited{% if post.last_editor_username %} by {% include 'partials/username_link.twig' with { username: post.last_editor_username } %}{% endif %}
+                            <span class="badge badge-muted post-edited-badge" title="{{ trans('topic.last_edited', { time: post.last_edited_at|default(post.updated_at)|format_datetime }) }}">
+                                {{ trans('common.edited') }}{% if post.last_editor_username %} {{ trans('common.by') }} {% include 'partials/username_link.twig' with { username: post.last_editor_username } %}{% endif %}
                             </span>
                         {% endif %}
                         {% if is_mod and post.revision_count > 0 %}
@@ -179,14 +179,14 @@
                     </div>
                 </header>
                 {% if quarantined and not is_mod %}
-                    <div class="post-body post-content post-body--quarantined" role="status" aria-label="Post under staff review">
+                    <div class="post-body post-content post-body--quarantined" role="status" aria-label="{{ trans('topic.under_review_aria') }}">
                         <div class="post-quarantine-blur" aria-hidden="true"></div>
                         <div class="post-quarantine-overlay">
                             <div class="post-quarantine-shield" aria-hidden="true">
                                 {% include 'partials/icon.twig' with { name: 'shield', size: 28 } %}
                             </div>
-                            <p class="post-quarantine-label">Under review by staff</p>
-                            <p class="post-quarantine-hint muted">This post is hidden until moderation is complete.</p>
+                            <p class="post-quarantine-label">{{ trans('topic.under_review') }}</p>
+                            <p class="post-quarantine-hint muted">{{ trans('topic.under_review_hint') }}</p>
                         </div>
                     </div>
                 {% else %}
@@ -199,13 +199,13 @@
                     <div class="post-action-icons" data-staff-feedback>
                         {% if post.can_edit %}
                             <details class="post-edit-details">
-                                <summary class="btn btn-small btn-icon" title="Edit post" aria-label="Edit post">
+                                <summary class="btn btn-small btn-icon" title="{{ trans('topic.edit_post') }}" aria-label="{{ trans('topic.edit_post') }}">
                                     {% include 'partials/icon.twig' with { name: 'edit' } %}
                                 </summary>
                                 <form method="post" action="/post/{{ post.id }}/edit" class="form post-edit-form">
                                     {{ csrf_field() }}
                                     <label>
-                                        Edit message
+                                        {{ trans('topic.edit_message') }}
                                         {% include 'partials/composer.twig' with {
                                             draft_key: 'edit-post-' ~ post.id,
                                             required: true,
@@ -214,36 +214,36 @@
                                         } %}
                                     </label>
                                     <div class="post-edit-actions">
-                                        <button type="submit" class="btn btn-small btn-primary">Save changes</button>
+                                        <button type="submit" class="btn btn-small btn-primary">{{ trans('common.save_changes') }}</button>
                                     </div>
                                 </form>
                             </details>
                         {% endif %}
                         {% if user and not post.deleted_at and not quarantined and not pending %}
-                            <button type="button" class="btn btn-small btn-icon" title="Quote" aria-label="Quote {{ post.author_name }}"
+                            <button type="button" class="btn btn-small btn-icon" title="{{ trans('topic.quote') }}" aria-label="{{ trans('topic.quote_author', { author: post.author_name }) }}"
                                     data-quote-post data-quote-author="{{ post.author_name }}" data-quote-body="{{ post.body|slice(0, 2000)|e('html_attr') }}">
                                 {% include 'partials/icon.twig' with { name: 'quote' } %}
                             </button>
                             <details class="report-details">
-                                <summary class="btn btn-small btn-icon btn-report" title="Report" aria-label="Report post">
+                                <summary class="btn btn-small btn-icon btn-report" title="{{ trans('topic.report') }}" aria-label="{{ trans('topic.report') }}">
                                     {% include 'partials/icon.twig' with { name: 'flag' } %}
                                 </summary>
                                 <form method="post" action="/report/post/{{ post.id }}" class="form report-form">
                                     {{ csrf_field() }}
                                     <label>
-                                        Reason (required)
+                                        {{ trans('topic.report_reason') }}
                                         <select name="reason_code" required>
-                                            <option value="">Select…</option>
+                                            <option value="">{{ trans('common.select') }}</option>
                                             {% for code, cat in report_categories %}
                                                 <option value="{{ code }}">{{ cat.label }}</option>
                                             {% endfor %}
                                         </select>
                                     </label>
                                     <label>
-                                        Details (optional)
-                                        <textarea name="reason_detail" rows="2" maxlength="500" placeholder="Additional context"></textarea>
+                                        {{ trans('topic.report_details') }}
+                                        <textarea name="reason_detail" rows="2" maxlength="500" placeholder="{{ trans('topic.report_details_placeholder') }}"></textarea>
                                     </label>
-                                    <button type="submit" class="btn btn-small btn-primary btn-icon" title="Submit report" aria-label="Submit report">
+                                    <button type="submit" class="btn btn-small btn-primary btn-icon" title="{{ trans('topic.submit_report') }}" aria-label="{{ trans('topic.submit_report') }}">
                                         {% include 'partials/icon.twig' with { name: 'check' } %}
                                     </button>
                                 </form>
@@ -282,30 +282,30 @@
 
     {% if user and can_reply|default(true) and (not topic.is_locked or is_mod) and not topic.deleted_at %}
         <div class="reply-actions">
-            <button type="button" class="btn btn-primary" id="reply-toggle" aria-expanded="false" aria-controls="reply-panel">Reply</button>
+            <button type="button" class="btn btn-primary" id="reply-toggle" aria-expanded="false" aria-controls="reply-panel">{{ trans('common.reply') }}</button>
         </div>
-        <button type="button" class="scroll-reply-btn" id="scroll-reply" hidden>Reply</button>
+        <button type="button" class="scroll-reply-btn" id="scroll-reply" hidden>{{ trans('common.reply') }}</button>
         <section class="reply-form" id="reply-panel" hidden>
             <form method="post" action="/topic/{{ topic.id }}/reply" class="form form-compose">
                 {{ csrf_field() }}
                 <label>
-                    Your message
+                    {{ trans('topic.your_message') }}
                     {% include 'partials/composer.twig' with { draft_key: 'topic-' ~ topic.id, required: true, rows: 8 } %}
                 </label>
                 <div class="reply-form-actions">
-                    <button type="submit" class="btn btn-primary">Post reply</button>
-                    <button type="button" class="btn" id="reply-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">{{ trans('topic.post_reply') }}</button>
+                    <button type="button" class="btn" id="reply-cancel">{{ trans('common.cancel') }}</button>
                 </div>
             </form>
         </section>
     {% elseif topic.deleted_at %}
-        <p class="muted">This topic has been removed.</p>
+        <p class="muted">{{ trans('topic.removed') }}</p>
     {% elseif topic.is_locked %}
-        <p class="muted">This topic is locked. No new replies.</p>
+        <p class="muted">{{ trans('topic.locked') }}</p>
     {% elseif not can_reply|default(true) %}
-        <p class="muted">This board is read-only — you cannot post replies here.</p>
+        <p class="muted">{{ trans('topic.read_only') }}</p>
     {% else %}
-        <p class="muted"><a href="/login">Sign in</a> to reply.</p>
+        <p class="muted"><a href="/login">{{ trans('nav.sign_in') }}</a>{{ trans('topic.sign_in_to_reply')|replace({(trans('nav.sign_in')): ''})|raw }}</p>
     {% endif %}
 {% endblock %}
 

@@ -13,6 +13,6 @@
 **Operators:** [source/docs/INSTALL-FEDORA.md](../source/docs/INSTALL-FEDORA.md)  
 **Maintainer setup:** local `deploy/copr-setup.md` (not in git)
 
-**COPR builds:** enable **Use internet** on the COPR project; `%build` runs `composer install --no-dev` (`BuildRequires: composer`). Committed `source/vendor/` remains for tarball/git installs.
+**COPR builds:** enable **Use internet** on the COPR project; `%build` runs `composer install --no-dev` (`BuildRequires: composer`). `source/vendor/` is gitignored — only `composer.lock` is committed.
 
-**Release checklist:** bump `VERSION`, `source/config/default.php` (`app.version`), and `packaging/latch.spec` (`Version:`); update `SECURITY.md` supported versions; move live `CHANGELOG.md` bullets out of `[Unreleased]` into that version; `review-git-tree.sh` must show `[Unreleased] is empty`; then tag, `build-release.sh`, COPR, GitHub release.
+**Release checklist:** bump `VERSION`, `source/config/default.php` (`app.version`), and `packaging/latch.spec` (`Version:`); update `SECURITY.md` supported versions; move live `CHANGELOG.md` bullets out of `[Unreleased]` into that version; `review-git-tree.sh` must show `[Unreleased] is empty`; run `scripts/build-release.sh` (runs Composer, stages `vendor/` into the tarball); tag, COPR, GitHub release.

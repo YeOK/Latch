@@ -56,10 +56,11 @@ Production: **https://latch.network** (Cloudflare proxy → home server Apache v
 ## Install (release tarball)
 
 ```bash
-tar -xzf latch-0.3.0.13.tar.gz && cd latch-0.3.0.13-stage/source
-composer install --no-dev
-php bin/latch install --url=https://forum.example.com --name="My Forum"
+tar -xzf latch-0.3.0.18.tar.gz && cd latch-0.3.0.18-stage
+bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 ```
+
+Release tarballs include `vendor/` (built by `scripts/build-release.sh`). Git clones need Composer — `install.sh` runs `composer install` from `composer.lock` (or use `source/composer.phar`).
 
 Download: [GitHub Releases](https://github.com/YeOK/Latch/releases) · Build locally: `./scripts/build-release.sh` → `dist/latch-0.3.0.13.tar.gz`
 

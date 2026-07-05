@@ -9,7 +9,7 @@
     {% block seo %}{% include 'partials/seo_head.twig' %}{% endblock %}
     {% include 'partials/site_icons.html.twig' %}
     {% if not members_only or user %}
-        <link rel="alternate" type="application/rss+xml" title="{{ site.name }} RSS" href="/feed.xml">
+        <link rel="alternate" type="application/rss+xml" title="{{ site.name }} {{ trans('common.rss') }}" href="/feed.xml">
     {% endif %}
     <script nonce="{{ csp_nonce }}">
     (function(){try{var m=localStorage.getItem('latch_theme');if(!m){var c=document.cookie.match(/(?:^|; )latch_theme=([^;]*)/);m=c?decodeURIComponent(c[1]):'{{ theme_mode }}';}if(m==='dark'||(m==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.dataset.theme='dark';else if(m==='light')document.documentElement.dataset.theme='light';document.documentElement.dataset.themeMode=m;}catch(e){}})();
@@ -58,6 +58,7 @@
             {% include 'partials/messages_overlay.html.twig' %}
         {% endif %}
     {% endif %}
+    {% include 'partials/i18n_js.html.twig' %}
     <script src="/assets/js/theme.js?v={{ asset_version }}" defer></script>
     {% if user %}
         <script src="/assets/js/notifications.js?v={{ asset_version }}" defer></script>

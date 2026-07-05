@@ -15,7 +15,7 @@ declare(strict_types=1);
  */
 return [
     'app' => [
-        'version' => '0.3.0.18',
+        'version' => '0.3.0.19',
     ],
     'site' => [
         'name' => 'Latch',

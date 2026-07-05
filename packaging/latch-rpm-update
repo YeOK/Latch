@@ -24,7 +24,7 @@ if [[ ! -f /etc/latch/local.php ]] || [[ ! -f /var/lib/latch/storage/database/la
 fi
 
 if [[ -f "${REPO_UPDATE}" ]]; then
-    LATCH_ROOT="${LATCH_ROOT}" WEB_USER="${WEB_USER}" bash "${REPO_UPDATE}"
+    LATCH_ROOT="${LATCH_ROOT}" WEB_USER="${WEB_USER}" bash "${REPO_UPDATE}" --clear-cache
     exit $?
 fi
 

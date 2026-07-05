@@ -51,23 +51,34 @@
                             {% endif %}
                         </td>
                         <td>
+                            {% if audit.scanned_at %}
+                                {% set audit_scan_hint = 'Scanned ' ~ (audit.scanned_at|format_datetime) ~ (audit.from_cache ? ' (cached)' : '') %}
+                            {% else %}
+                                {% set audit_scan_hint = '' %}
+                            {% endif %}
                             {% if audit.passed %}
                                 {% if audit.enable_allowed %}
-                                    <span class="badge">Pass</span>
+                                    <span class="plugin-audit-status plugin-audit-status--pass"{% if audit_scan_hint %} title="{{ audit_scan_hint }}"{% endif %} aria-label="Audit passed{% if audit_scan_hint %}. {{ audit_scan_hint }}{% endif %}">
+                                        {% include 'partials/icon.twig' with { name: 'check', size: 16 } %}
+                                        <span class="visually-hidden">Pass</span>
+                                    </span>
                                 {% else %}
-                                    <span class="badge badge-quarantine">Blocked</span>
+                                    <span class="plugin-audit-status plugin-audit-status--blocked"{% if audit_scan_hint %} title="{{ audit_scan_hint }}"{% endif %} aria-label="Audit blocked{% if audit_scan_hint %}. {{ audit_scan_hint }}{% endif %}">
+                                        {% include 'partials/icon.twig' with { name: 'shield', size: 16 } %}
+                                        <span class="visually-hidden">Blocked</span>
+                                    </span>
                                 {% endif %}
                             {% else %}
-                                <span class="badge badge-quarantine">Failed</span>
+                                <span class="plugin-audit-status plugin-audit-status--failed"{% if audit_scan_hint %} title="{{ audit_scan_hint }}"{% endif %} aria-label="Audit failed{% if audit_scan_hint %}. {{ audit_scan_hint }}{% endif %}">
+                                    {% include 'partials/icon.twig' with { name: 'dismiss', size: 16 } %}
+                                    <span class="visually-hidden">Failed</span>
+                                </span>
                             {% endif %}
                             {% if audit.critical_count > 0 %}
                                 <div class="muted">{{ audit.critical_count }} critical</div>
                             {% endif %}
                             {% if audit.warn_count > 0 %}
                                 <div class="muted">{{ audit.warn_count }} warning{{ audit.warn_count == 1 ? '' : 's' }}</div>
-                            {% endif %}
-                            {% if audit.scanned_at %}
-                                <div class="muted">Scanned {{ audit.scanned_at }}{% if audit.from_cache %} (cached){% endif %}</div>
                             {% endif %}
                             {% if audit.critical_findings is not empty or audit.warn_findings is not empty %}
                                 <details class="plugin-audit-details">

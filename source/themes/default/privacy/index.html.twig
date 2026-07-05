@@ -1,47 +1,47 @@
 {% extends 'layouts/base.html.twig' %}
 
-{% block title %}Privacy policy — {{ site.name }}{% endblock %}
+{% block title %}{{ trans('legal.privacy_title') }} — {{ site.name }}{% endblock %}
 
 {% block content %}
     <section class="page-header">
-        <h1>Privacy policy</h1>
-        <p class="muted">How {{ operator_name }} handles your personal data on this forum.</p>
+        <h1>{{ trans('legal.privacy_title') }}</h1>
+        <p class="muted">{{ trans('legal.privacy_lead', { operator: operator_name }) }}</p>
     </section>
 
     <article class="legal-doc card">
-        <h2>Who is responsible</h2>
-        <p><strong>{{ operator_name }}</strong> is the data controller for this installation{% if contact_email %} (<a href="mailto:{{ contact_email }}">{{ contact_email }}</a>){% endif %}.</p>
-        <p>This site runs on <strong>Latch</strong>, self-hosted forum software. The operator configures hosting, backups, and community rules.</p>
+        <h2>{{ trans('legal.privacy_controller') }}</h2>
+        <p>{{ trans('legal.privacy_controller_body', { operator: operator_name }) }}{% if contact_email %} (<a href="mailto:{{ contact_email }}">{{ contact_email }}</a>){% endif %}.</p>
+        <p>{{ trans('legal.privacy_latch_note')|replace({'Latch': '<strong>Latch</strong>'})|raw }}</p>
 
-        <h2>What we collect</h2>
+        <h2>{{ trans('legal.privacy_collect') }}</h2>
         <ul>
-            <li><strong>Account data</strong> — username, email, password hash, optional avatar URL and profile bio.</li>
-            <li><strong>Content</strong> — topics, replies, and tags you post.</li>
-            <li><strong>Security &amp; session data</strong> — login timestamps, IP addresses for rate limiting, audit events, and active session fingerprints.</li>
-            <li><strong>Preferences</strong> — theme mode (light/dark/system) stored in your account or browser.</li>
+            <li>{{ trans('legal.privacy_collect_account')|replace({'Account data': '<strong>Account data</strong>'})|raw }}</li>
+            <li>{{ trans('legal.privacy_collect_content')|replace({'Content': '<strong>Content</strong>'})|raw }}</li>
+            <li>{{ trans('legal.privacy_collect_security')|replace({'Security & session data': '<strong>Security &amp; session data</strong>'})|raw }}</li>
+            <li>{{ trans('legal.privacy_collect_prefs')|replace({'Preferences': '<strong>Preferences</strong>'})|raw }}</li>
         </ul>
 
-        <h2>Why we use it</h2>
+        <h2>{{ trans('legal.privacy_why') }}</h2>
         <ul>
-            <li>Provide the forum service (contract / legitimate interest).</li>
-            <li>Keep accounts secure and prevent abuse (legitimate interest).</li>
-            <li>Moderate reports and enforce community standards (legitimate interest).</li>
+            <li>{{ trans('legal.privacy_why_service') }}</li>
+            <li>{{ trans('legal.privacy_why_security') }}</li>
+            <li>{{ trans('legal.privacy_why_moderation') }}</li>
         </ul>
 
-        <h2>Your rights (GDPR)</h2>
-        <p>If you are in the UK or EEA you may have the right to access, rectify, erase, restrict, or port your data, and to object to certain processing. You may also lodge a complaint with your supervisory authority.</p>
+        <h2>{{ trans('legal.privacy_rights') }}</h2>
+        <p>{{ trans('legal.privacy_rights_body') }}</p>
         <ul>
-            <li><a href="/profile/export">Export your data</a> (JSON) when signed in.</li>
-            <li>Delete your account from <a href="/profile">your profile</a> (posts may be anonymised).</li>
-            <li>Contact the operator{% if contact_email %} at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %} for other requests.</li>
+            <li>{{ trans('legal.privacy_export')|replace({'Export your data': '<a href="/profile/export">Export your data</a>'})|raw }}</li>
+            <li>{{ trans('legal.privacy_delete')|replace({'your profile': '<a href="/profile">your profile</a>'})|raw }}</li>
+            <li>{{ trans('legal.privacy_contact') }}{% if contact_email %} at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %}.</li>
         </ul>
 
-        <h2>Retention</h2>
-        <p>Account and post data are kept while your account exists. Security logs and audit entries may be retained for a limited period for incident response. Backups are the operator's responsibility.</p>
+        <h2>{{ trans('legal.privacy_retention') }}</h2>
+        <p>{{ trans('legal.privacy_retention_body') }}</p>
 
-        <h2>Processors &amp; transfers</h2>
-        <p>Latch does not phone home. Optional services (e.g. Gravatar for avatars, outbound email relay) are configured by the operator and may process data outside your region — check with {{ operator_name }}.</p>
+        <h2>{{ trans('legal.privacy_processors') }}</h2>
+        <p>{{ trans('legal.privacy_processors_body', { operator: operator_name }) }}</p>
 
-        <p class="muted legal-updated">Last updated {{ "now"|date("Y-m-d") }}.</p>
+        <p class="muted legal-updated">{{ trans('legal.last_updated', { date: "now"|date("Y-m-d") }) }}</p>
     </article>
 {% endblock %}

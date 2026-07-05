@@ -20,6 +20,16 @@
 
     var csrfMeta = document.querySelector('meta[name="csrf-token"]');
     var csrf = csrfMeta ? csrfMeta.content : '';
+    var i18n = window.LatchI18n || {};
+
+    function t(key, fallback) {
+        return i18n[key] || fallback || key;
+    }
+
+    function unreadAria(count) {
+        return t('notifications_unread_title', 'Notifications (' + count + ' unread)').replace('__COUNT__', String(count));
+    }
+
     var isOpen = false;
     var isLoading = false;
     var loadedOnce = false;
@@ -34,15 +44,12 @@
             badge.hidden = false;
             badge.classList.remove('is-hidden');
             btn.classList.add('has-unread');
-            btn.setAttribute(
-                'aria-label',
-                'Notifications (' + count + ' unread)',
-            );
+            btn.setAttribute('aria-label', unreadAria(count));
         } else {
             badge.hidden = true;
             badge.classList.add('is-hidden');
             btn.classList.remove('has-unread');
-            btn.setAttribute('aria-label', 'Notifications');
+            btn.setAttribute('aria-label', t('notifications_title', 'Notifications'));
         }
     }
 
@@ -77,7 +84,7 @@
 
         if (items.length === 0) {
             body.innerHTML =
-                '<p class="notification-panel-empty muted">No notifications yet. You will be notified when someone replies, quotes, likes, mentions you, or sends a message.</p>';
+                '<p class="notification-panel-empty muted">' + escapeHtml(t('notifications_empty', 'No notifications yet.')) + '</p>';
             return;
         }
 
@@ -87,7 +94,11 @@
             var markBtn = item.is_unread
                 ? '<button type="button" class="link-button notification-panel-item-mark" data-mark-id="' +
                   item.id +
-                  '" title="Mark as read" aria-label="Mark as read">✓</button>'
+                  '" title="' +
+                  escapeHtml(t('notifications_mark_read', 'Mark as read')) +
+                  '" aria-label="' +
+                  escapeHtml(t('notifications_mark_read', 'Mark as read')) +
+                  '">✓</button>'
                 : '';
             html +=
                 '<li class="notification-item' +
@@ -118,7 +129,9 @@
 
         if (payload.has_more) {
             html +=
-                '<p class="notification-panel-more muted"><a href="/notifications">Older notifications…</a></p>';
+                '<p class="notification-panel-more muted"><a href="/notifications">' +
+                escapeHtml(t('notifications_older_more', 'Older notifications…')) +
+                '</a></p>';
         }
 
         body.innerHTML = html;
@@ -127,9 +140,9 @@
     function loadFeed() {
         isLoading = true;
         if (statusEl) {
-            statusEl.textContent = 'Loading…';
+            statusEl.textContent = t('loading', 'Loading…');
         }
-        body.innerHTML = '<p class="notification-panel-status muted">Loading…</p>';
+        body.innerHTML = '<p class="notification-panel-status muted">' + escapeHtml(t('loading', 'Loading…')) + '</p>';
 
         fetch('/notifications/feed', {
             credentials: 'same-origin',
@@ -143,7 +156,7 @@
             .then(function (result) {
                 if (!result.ok || !result.payload.ok) {
                     body.innerHTML =
-                        '<p class="notification-panel-status muted">Could not load notifications.</p>';
+                        '<p class="notification-panel-status muted">' + escapeHtml(t('notifications_load_error', 'Could not load notifications.')) + '</p>';
                     return;
                 }
                 loadedOnce = true;
@@ -151,7 +164,7 @@
             })
             .catch(function () {
                 body.innerHTML =
-                    '<p class="notification-panel-status muted">Could not load notifications.</p>';
+                    '<p class="notification-panel-status muted">' + escapeHtml(t('notifications_load_error', 'Could not load notifications.')) + '</p>';
             })
             .finally(function () {
                 isLoading = false;
@@ -251,14 +264,14 @@
             postForm('/notifications/read-all')
                 .then(function (result) {
                     if (!result.ok || !result.payload.ok) {
-                        window.alert(result.payload.message || 'Could not mark all as read.');
+                        window.alert(result.payload.message || t('notifications_mark_all_error', 'Could not mark all as read.'));
                         return;
                     }
                     setBadge(0);
                     loadFeed();
                 })
                 .catch(function () {
-                    window.alert('Could not mark all as read.');
+                    window.alert(t('notifications_mark_all_error', 'Could not mark all as read.'));
                 })
                 .finally(function () {
                     markAllBtn.disabled = false;
@@ -286,7 +299,7 @@
         postForm('/notifications/' + id + '/read')
             .then(function (result) {
                 if (!result.ok || !result.payload.ok) {
-                    window.alert(result.payload.message || 'Could not mark as read.');
+                    window.alert(result.payload.message || t('notifications_mark_read_error', 'Could not mark as read.'));
                     return;
                 }
                 if (typeof result.payload.unread_count === 'number') {
@@ -302,7 +315,7 @@
                 }
             })
             .catch(function () {
-                window.alert('Could not mark as read.');
+                window.alert(t('notifications_mark_read_error', 'Could not mark as read.'));
             })
             .finally(function () {
                 markBtn.disabled = false;

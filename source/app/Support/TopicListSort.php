@@ -49,6 +49,20 @@ final class TopicListSort
     }
 
     /**
+     * @return array<string, string> sort key => translation key
+     */
+    public static function labelKeys(): array
+    {
+        return [
+            self::ACTIVITY => 'sort.topic_activity',
+            self::NEWEST => 'sort.topic_newest',
+            self::OLDEST => 'sort.topic_oldest',
+            self::REPLIES => 'sort.topic_replies',
+            self::UNREAD => 'sort.topic_unread',
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
     public static function labels(): array
@@ -60,6 +74,20 @@ final class TopicListSort
             self::REPLIES => 'Most replies',
             self::UNREAD => 'Unread first',
         ];
+    }
+
+    /**
+     * @param callable(string): string $translate
+     * @return array<string, string>
+     */
+    public static function translatedLabels(callable $translate): array
+    {
+        $labels = [];
+        foreach (self::labelKeys() as $sort => $key) {
+            $labels[$sort] = $translate($key);
+        }
+
+        return $labels;
     }
 
 }

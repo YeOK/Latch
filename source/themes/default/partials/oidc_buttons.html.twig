@@ -1,10 +1,10 @@
 {% if oidc_providers is not empty %}
     <div class="oidc-buttons">
-        <p class="oidc-buttons__label muted">Or continue with</p>
+        <p class="oidc-buttons__label muted">{{ trans('auth.oidc_continue') }}</p>
         <div class="oidc-buttons__row">
             {% for provider in oidc_providers %}
                 <a class="btn btn-oidc btn-oidc--{{ provider.key }}" href="{{ provider.url }}">
-                    Sign in with {{ provider.name }}
+                    {{ trans('auth.oidc_sign_in_with', { provider: provider.name }) }}
                 </a>
             {% endfor %}
         </div>

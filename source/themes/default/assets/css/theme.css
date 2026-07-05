@@ -1272,7 +1272,8 @@ body.cookie-consent-visible {
     text-decoration: underline;
 }
 
-body.page-forum :is(main.container, .site-footer .container) {
+/* Public forum track — width must not depend on page-forum (guest cache can serve stale body classes). */
+body:not(.page-admin):not(.page-profile) :is(main.container:not(.page-messages), .site-footer .container) {
     width: min(var(--home-content-max, var(--content-max)), calc(100vw - 2 * var(--content-gutter)));
 }
 
@@ -1694,6 +1695,32 @@ body.page-forum :is(main.container, .site-footer .container) {
     text-transform: uppercase;
     letter-spacing: 0.03em;
     color: var(--muted);
+}
+
+.plugin-audit-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--radius-sm, 4px);
+    border: 1px solid var(--border);
+    background: var(--surface-raised);
+    color: var(--muted);
+    cursor: help;
+}
+
+.plugin-audit-status--pass {
+    color: var(--success, #1a7f4b);
+    border-color: color-mix(in srgb, var(--success, #1a7f4b) 35%, var(--border));
+    background: color-mix(in srgb, var(--success, #1a7f4b) 10%, var(--surface));
+}
+
+.plugin-audit-status--blocked,
+.plugin-audit-status--failed {
+    color: var(--danger, #b42318);
+    border-color: color-mix(in srgb, var(--danger, #b42318) 35%, var(--border));
+    background: color-mix(in srgb, var(--danger, #b42318) 10%, var(--surface));
 }
 
 .post-list {
@@ -5510,4 +5537,67 @@ body.topic-mod-mode .post-actions {
 
 [dir="rtl"] .members-only-actions {
     flex-direction: row-reverse;
+}
+
+[dir="rtl"] .breadcrumb,
+[dir="rtl"] .page-header-row,
+[dir="rtl"] .board-panel-header,
+[dir="rtl"] .topic-row-main,
+[dir="rtl"] .post-meta,
+[dir="rtl"] .notifications-header-row,
+[dir="rtl"] .messages-thread-header,
+[dir="rtl"] .messages-compose-row,
+[dir="rtl"] .messages-send-row,
+[dir="rtl"] .profile-public-header,
+[dir="rtl"] .composer-toolbar,
+[dir="rtl"] .post-actions,
+[dir="rtl"] .reply-form-actions,
+[dir="rtl"] .cookie-consent-actions,
+[dir="rtl"] .footer-grid {
+    direction: rtl;
+}
+
+[dir="rtl"] .board-panel-view-all svg,
+[dir="rtl"] .pagination a,
+[dir="rtl"] .topic-watch-btn,
+[dir="rtl"] .messages-back-btn {
+    transform: scaleX(-1);
+}
+
+[dir="rtl"] .topic-row-meta,
+[dir="rtl"] .board-panel-stats,
+[dir="rtl"] .search-result-meta,
+[dir="rtl"] .notification-item-time,
+[dir="rtl"] .topic-row-date {
+    text-align: start;
+}
+
+[dir="rtl"] .mod-topic-check,
+[dir="rtl"] .mod-post-check {
+    margin-inline-start: 0;
+    margin-inline-end: 0.5rem;
+}
+
+[dir="rtl"] .notification-panel,
+[dir="rtl"] .user-menu-panel,
+[dir="rtl"] .composer-help-panel,
+[dir="rtl"] .composer-emote-panel {
+    inset-inline-end: 0;
+    inset-inline-start: auto;
+}
+
+[dir="rtl"] .messages-sidebar {
+    border-inline-end: 1px solid var(--border);
+    border-inline-start: none;
+}
+
+[dir="rtl"] .post-quote {
+    border-inline-start: 3px solid var(--border-strong);
+    border-inline-end: none;
+}
+
+[dir="rtl"] .scroll-top-btn,
+[dir="rtl"] .scroll-reply-btn {
+    inset-inline-end: auto;
+    inset-inline-start: 1.25rem;
 }

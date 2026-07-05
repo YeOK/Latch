@@ -129,7 +129,7 @@
         }
 
         loading = true;
-        body.innerHTML = '<p class="muted messages-overlay-loading">Loading…</p>';
+        body.innerHTML = '<p class="muted messages-overlay-loading">' + (i18n.loading || 'Loading…') + '</p>';
 
         fetchPage(parsed.pathname + parsed.search)
             .then(function (html) {
@@ -179,7 +179,7 @@
         isOpen = false;
         overlay.hidden = true;
         document.body.classList.remove('messages-overlay-open');
-        body.innerHTML = '<p class="muted messages-overlay-loading">Loading…</p>';
+        body.innerHTML = '<p class="muted messages-overlay-loading">' + (i18n.loading || 'Loading…') + '</p>';
 
         if (activeController && activeController.stopPolling) {
             activeController.stopPolling();
@@ -301,7 +301,13 @@
             return;
         }
 
-        var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        var i18n = window.LatchI18n || {};
+
+    function t(key, fallback) {
+        return i18n[key] || fallback || key;
+    }
+
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
         var csrf = csrfMeta ? csrfMeta.content : '';
         var bodyParams = new URLSearchParams();
         bodyParams.set('_csrf', csrf);
@@ -326,10 +332,10 @@
                     openConversation(result.payload.conversation_id);
                     return;
                 }
-                window.alert((result.payload && result.payload.message) || 'Could not open conversation.');
+                window.alert((result.payload && result.payload.message) || t('messages_open_error', 'Could not open conversation.'));
             })
             .catch(function () {
-                window.alert('Could not open conversation.');
+                window.alert(t('messages_open_error', 'Could not open conversation.'));
             });
     });
 

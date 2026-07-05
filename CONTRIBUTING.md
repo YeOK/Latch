@@ -4,6 +4,8 @@ Thank you for helping improve Latch. This project targets self-hosted PHP 8.2+ f
 
 ## Development setup
 
+`vendor/` is not in git. After clone, install dependencies from `composer.lock` (bundled `composer.phar` works if `composer` is not on PATH):
+
 ```bash
 cd source
 php composer.phar install

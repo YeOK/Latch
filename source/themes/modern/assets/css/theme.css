@@ -821,7 +821,8 @@ body.cookie-consent-visible {
     text-decoration: underline;
 }
 
-body.page-forum :is(main.container, .site-footer .container) {
+/* Public forum track — width must not depend on page-forum (guest cache can serve stale body classes). */
+body:not(.page-admin):not(.page-profile) :is(main.container:not(.page-messages), .site-footer .container) {
     width: min(var(--home-content-max, var(--content-max)), calc(100vw - 2 * var(--content-gutter)));
 }
 

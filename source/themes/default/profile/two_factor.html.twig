@@ -1,74 +1,74 @@
 {% extends 'layouts/base.html.twig' %}
 
-{% block title %}Two-factor authentication — {{ site.name }}{% endblock %}
+{% block title %}{{ trans('profile.two_factor_title') }} — {{ site.name }}{% endblock %}
 
 {% block content %}
     <section class="page-header">
-        <h1>Two-factor authentication</h1>
-        <p class="muted"><a href="/profile" data-account-panel>← Back to profile</a></p>
+        <h1>{{ trans('profile.two_factor_title') }}</h1>
+        <p class="muted"><a href="/profile" data-account-panel>{{ trans('profile.back_to_profile') }}</a></p>
     </section>
 
     {% if recovery_codes %}
         <section class="form-section">
-            <h2>Recovery codes</h2>
-            <p class="flash flash-error">Save these codes somewhere safe. Each can be used once if you lose your authenticator.</p>
+            <h2>{{ trans('profile.recovery_codes') }}</h2>
+            <p class="flash flash-error">{{ trans('profile.two_factor_recovery_saved') }}</p>
             <pre class="recovery-codes">{{ recovery_codes }}</pre>
         </section>
     {% endif %}
 
     <section class="form-section">
         {% if totp_enabled %}
-            <p><span class="badge">Enabled</span>
+            <p><span class="badge">{{ trans('profile.enabled') }}</span>
                 {% if recovery_codes_remaining > 0 %}
-                    · {{ recovery_codes_remaining }} recovery code{{ recovery_codes_remaining == 1 ? '' : 's' }} remaining
+                    · {{ recovery_codes_remaining == 1 ? trans('profile.recovery_remaining_one', {count: recovery_codes_remaining}) : trans('profile.recovery_remaining_many', {count: recovery_codes_remaining}) }}
                 {% else %}
-                    · <strong>No recovery codes left</strong> — regenerate below
+                    · <strong>{{ trans('profile.recovery_none') }}</strong> — {{ trans('profile.recovery_regenerate_hint') }}
                 {% endif %}
             </p>
 
             {% if not totp_mandatory %}
                 <form method="post" action="/profile/2fa/disable" class="form form-wide">
                     {{ csrf_field() }}
-                    <h2>Disable two-factor</h2>
+                    <h2>{{ trans('profile.two_factor_disable') }}</h2>
                     <label>
-                        Password
+                        {{ trans('profile.current_password') }}
                         <input type="password" name="password" required autocomplete="current-password">
                     </label>
                     <label>
-                        Authentication code
+                        {{ trans('auth.totp_auth_code') }}
                         <input type="text" name="code" inputmode="numeric" maxlength="6" required>
                     </label>
-                    <button type="submit" class="btn btn-danger">Disable</button>
+                    <button type="submit" class="btn btn-danger">{{ trans('profile.two_factor_disable') }}</button>
                 </form>
             {% else %}
-                <p class="muted">Two-factor authentication is required for administrators.</p>
+                <p class="muted">{{ trans('profile.two_factor_enabled') }}</p>
             {% endif %}
 
             <form method="post" action="/profile/2fa/recovery" class="form form-wide">
                 {{ csrf_field() }}
-                <h2>Regenerate recovery codes</h2>
-                <p class="muted">This replaces all existing recovery codes.</p>
+                <h2>{{ trans('profile.two_factor_regenerate') }}</h2>
+                <p class="muted">{{ trans('profile.recovery_replace_lead') }}</p>
                 <label>
-                    Password
+                    {{ trans('profile.current_password') }}
                     <input type="password" name="password" required autocomplete="current-password">
                 </label>
                 <label>
-                    Authentication code
+                    {{ trans('auth.totp_auth_code') }}
                     <input type="text" name="code" inputmode="numeric" maxlength="6" required>
                 </label>
-                <button type="submit" class="btn btn-primary">Generate new codes</button>
+                <button type="submit" class="btn btn-primary">{{ trans('profile.two_factor_regenerate') }}</button>
             </form>
         {% else %}
-            <p class="muted">Protect your account with a 6-digit code from an authenticator app.</p>
+            <p class="muted">{{ trans('profile.two_factor_disabled') }}</p>
             {% if totp_mandatory %}
-                <p class="flash flash-error">Required for your role before you can use admin features.</p>
+                <p class="flash flash-error">{{ trans('profile.two_factor_required_role') }}</p>
             {% endif %}
             {% if not totp_encryption_ready %}
-                <p class="flash flash-error">Set <code>security.encryption_key</code> in <code>config/local.php</code> before enabling two-factor authentication.</p>
+                <p class="flash flash-error">{{ trans('profile.two_factor_encryption_key') }}</p>
             {% else %}
                 <form method="post" action="/profile/2fa/enable">
                     {{ csrf_field() }}
-                    <button type="submit" class="btn btn-primary">Enable two-factor authentication</button>
+                    <button type="submit" class="btn btn-primary">{{ trans('auth.totp_enable') }}</button>
                 </form>
             {% endif %}
         {% endif %}

@@ -28,7 +28,7 @@ composer install --no-dev
 php bin/latch install --url=https://forum.example.com --name="My Forum"
 ```
 
-Or clone the public repo:
+Or clone the public repo (`vendor/` is not in git — `install.sh` runs Composer from `composer.lock`):
 
 ```bash
 git clone https://github.com/YeOK/Latch.git
@@ -36,7 +36,7 @@ cd Latch
 bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 ```
 
-(`install.sh` runs Composer, `bin/latch install`, `doctor`, and cron when invoked as root.)
+(`install.sh` runs Composer, `bin/latch install`, `doctor`, and cron when invoked as root. Requires `composer` on PATH or bundled `source/composer.phar`.)
 
 Point the web server **only** at `public/`. Keep `storage/` and `config/local.php` private.
 

@@ -1,0 +1,23 @@
+<script nonce="{{ csp_nonce }}">
+window.LatchI18n = {{ {
+    loading: trans('common.loading'),
+    notifications_title: trans('notifications.panel_title'),
+    notifications_unread_title: trans('common.unread_title', {label: trans('notifications.panel_title'), count: '__COUNT__'}),
+    notifications_empty: trans('notifications.panel_empty'),
+    notifications_mark_read: trans('notifications.mark_read'),
+    notifications_load_error: trans('notifications.load_error'),
+    notifications_mark_all_error: trans('notifications.mark_all_error'),
+    notifications_mark_read_error: trans('notifications.mark_read_error'),
+    notifications_older_more: trans('notifications.older_more'),
+    messages_loading_conversations: trans('messages.loading_conversations'),
+    messages_loading_messages: trans('messages.loading_messages'),
+    messages_no_conversations: trans('messages.no_conversations'),
+    messages_load_error: trans('messages.load_conversations_error'),
+    messages_delete_confirm: trans('messages.delete_confirm'),
+    messages_delete_error: trans('messages.delete_error'),
+    messages_start_error: trans('messages.start_error'),
+    messages_open_error: trans('messages.open_error'),
+    compose_loading_preview: trans('compose.loading_preview'),
+    copied: trans('common.copied'),
+}|json_encode|raw }};
+</script>

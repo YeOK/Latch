@@ -5,17 +5,17 @@
      data-viewer-vote="{{ post.viewer_vote|default('') }}">
     {% if can_vote %}
         <button type="button" class="post-vote-btn post-vote-like{% if post.viewer_vote == 'like' %} is-active{% endif %}"
-                data-vote="like" title="Like" aria-label="Like this post" aria-pressed="{{ post.viewer_vote == 'like' ? 'true' : 'false' }}">
+                data-vote="like" title="{{ trans('votes.like') }}" aria-label="{{ trans('votes.like_aria') }}" aria-pressed="{{ post.viewer_vote == 'like' ? 'true' : 'false' }}">
             {% include 'partials/icon.twig' with { name: 'thumb-up', size: 16 } %}
             <span class="post-vote-count" data-vote-count="like">{{ post.like_count|default(0) }}</span>
         </button>
         <button type="button" class="post-vote-btn post-vote-dislike{% if post.viewer_vote == 'dislike' %} is-active{% endif %}"
-                data-vote="dislike" title="Dislike" aria-label="Dislike this post" aria-pressed="{{ post.viewer_vote == 'dislike' ? 'true' : 'false' }}">
+                data-vote="dislike" title="{{ trans('votes.dislike') }}" aria-label="{{ trans('votes.dislike_aria') }}" aria-pressed="{{ post.viewer_vote == 'dislike' ? 'true' : 'false' }}">
             {% include 'partials/icon.twig' with { name: 'thumb-down', size: 16 } %}
             <span class="post-vote-count" data-vote-count="dislike">{{ post.dislike_count|default(0) }}</span>
         </button>
     {% else %}
-        <span class="post-vote-summary muted" aria-label="{{ post.like_count|default(0) }} likes, {{ post.dislike_count|default(0) }} dislikes">
+        <span class="post-vote-summary muted" aria-label="{{ trans('votes.summary_aria', { likes: post.like_count|default(0), dislikes: post.dislike_count|default(0) }) }}">
             <span class="post-vote-summary-item">
                 {% include 'partials/icon.twig' with { name: 'thumb-up', size: 14 } %}
                 {{ post.like_count|default(0) }}

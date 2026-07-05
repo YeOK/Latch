@@ -54,6 +54,7 @@ final class View
         $this->twig->addFilter(new TwigFilter('format_post', fn (string $body): string => $this->postFormatter->format($body), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('format_datetime', fn (?string $value): string => $dateFormatter->format($value)));
         $this->twig->addFilter(new TwigFilter('format_date', fn (?string $value): string => $dateFormatter->formatDate($value)));
+        $this->twig->addFilter(new TwigFilter('json_encode', static fn (mixed $value): string => json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)));
         $this->twig->addFunction(new TwigFunction('trans', function (string $key, array $replace = []): string {
             return $this->translator?->get($key, $replace) ?? $key;
         }));

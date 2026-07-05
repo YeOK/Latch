@@ -27,6 +27,12 @@
         return;
     }
 
+    var i18n = window.LatchI18n || {};
+
+    function loadingText() {
+        return i18n.loading || 'Loading…';
+    }
+
     function isPanelPath(pathname) {
         return PANEL_PREFIXES.some(function (prefix) {
             return pathname === prefix || pathname.indexOf(prefix + '/') === 0;
@@ -301,7 +307,7 @@
         }
 
         loading = true;
-        body.innerHTML = '<p class="muted account-overlay-loading">Loading…</p>';
+        body.innerHTML = '<p class="muted account-overlay-loading">' + loadingText() + '</p>';
         setStatus('');
 
         fetchPage(url)
@@ -380,7 +386,7 @@
         }
 
         loading = true;
-        adminMain.innerHTML = '<p class="muted account-overlay-loading">Loading…</p>';
+        adminMain.innerHTML = '<p class="muted account-overlay-loading">' + loadingText() + '</p>';
 
         fetchPage(url)
             .then(function (html) {
@@ -496,7 +502,7 @@
         }
 
         loading = true;
-        pageMain.innerHTML = '<p class="muted account-overlay-loading">Loading…</p>';
+        pageMain.innerHTML = '<p class="muted account-overlay-loading">' + loadingText() + '</p>';
 
         fetchPage(url)
             .then(function (html) {

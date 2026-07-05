@@ -4,14 +4,14 @@
     data-active-id="{{ active_conversation_id|default('') }}"
     data-csrf="{{ csrf_token }}"
 >
-    <aside class="messages-sidebar" aria-label="Conversations">
+    <aside class="messages-sidebar" aria-label="{{ trans('messages.conversations_aria') }}">
         <div class="messages-sidebar-toolbar">
             <button
                 type="button"
                 class="btn btn-small btn-icon"
                 id="messages-compose-btn"
-                title="New message"
-                aria-label="New message"
+                title="{{ trans('messages.new_message') }}"
+                aria-label="{{ trans('messages.new_message') }}"
             >
                 <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                     <path fill="currentColor" d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25Zm14.7-9.04a1 1 0 0 0 0-1.42l-2.5-2.5a1 1 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/>
@@ -21,8 +21,8 @@
                 type="button"
                 class="btn btn-small btn-icon"
                 id="messages-refresh-btn"
-                title="Refresh"
-                aria-label="Refresh conversations"
+                title="{{ trans('messages.refresh') }}"
+                aria-label="{{ trans('messages.refresh_aria') }}"
             >
                 <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                     <path fill="currentColor" d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.75 10h-2.1A6 6 0 1 1 12 6c1.66 0 3.14.67 4.22 1.78L13 11h7V4l-2.35 2.35Z"/>
@@ -30,10 +30,10 @@
             </button>
         </div>
         <div class="messages-compose hidden" id="messages-compose" hidden>
-            <label class="messages-compose-label" for="messages-compose-username">Message user</label>
+            <label class="messages-compose-label" for="messages-compose-username">{{ trans('messages.compose_user') }}</label>
             <div class="messages-compose-row">
                 <input type="text" id="messages-compose-username" placeholder="@username" autocomplete="off" spellcheck="false">
-                <button type="button" class="btn btn-small btn-primary btn-icon" id="messages-compose-start" title="Open conversation" aria-label="Open conversation">
+                <button type="button" class="btn btn-small btn-primary btn-icon" id="messages-compose-start" title="{{ trans('messages.open_conversation') }}" aria-label="{{ trans('messages.open_conversation') }}">
                     <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                         <path fill="currentColor" d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 0 7Z"/>
                     </svg>
@@ -42,13 +42,13 @@
             <p class="messages-compose-error muted" id="messages-compose-error" hidden></p>
         </div>
         <div class="messages-conversation-list" id="messages-conversation-list" role="list">
-            <p class="muted messages-status" id="messages-list-status">Loading conversations…</p>
+            <p class="muted messages-status" id="messages-list-status">{{ trans('messages.loading_conversations') }}</p>
         </div>
     </aside>
 
-    <section class="messages-thread" aria-label="Message thread">
+    <section class="messages-thread" aria-label="{{ trans('messages.thread_aria') }}">
         <div class="messages-thread-empty" id="messages-thread-empty"{% if active_conversation|default(null) %} hidden{% endif %}>
-            <p class="muted">Select a conversation or start a new message.</p>
+            <p class="muted">{{ trans('messages.select_conversation') }}</p>
         </div>
         <div class="messages-thread-panel{% if not active_conversation|default(null) %} hidden{% endif %}" id="messages-thread-panel"{% if not active_conversation|default(null) %} hidden{% endif %}>
             <header class="messages-thread-header">
@@ -56,8 +56,8 @@
                     type="button"
                     class="btn btn-small btn-icon messages-back-btn"
                     id="messages-back-btn"
-                    title="Back to list"
-                    aria-label="Back to conversation list"
+                    title="{{ trans('messages.back_to_list') }}"
+                    aria-label="{{ trans('messages.back_to_list_aria') }}"
                 >
                     <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                         <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2Z"/>
@@ -68,12 +68,12 @@
                         {% if active_conversation|default(null) %}
                             {{ active_conversation.other_user.username }}
                         {% else %}
-                            Conversation
+                            {{ trans('messages.conversation') }}
                         {% endif %}
                     </h2>
                     <p class="muted messages-thread-subtitle" id="messages-thread-subtitle">
                         {% if active_conversation|default(null) and active_conversation.other_user.is_staff %}
-                            Staff account
+                            {{ trans('messages.staff_account') }}
                         {% endif %}
                     </p>
                 </div>
@@ -81,8 +81,8 @@
                     type="button"
                     class="btn btn-small btn-icon messages-delete-conversation-btn hidden"
                     id="messages-delete-conversation-btn"
-                    title="Delete conversation"
-                    aria-label="Delete conversation"
+                    title="{{ trans('messages.delete_conversation') }}"
+                    aria-label="{{ trans('messages.delete_conversation') }}"
                     hidden
                 >
                     <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -93,8 +93,8 @@
                     class="btn btn-small btn-icon"
                     id="messages-thread-profile"
                     href="{% if active_conversation|default(null) %}/user/{{ active_conversation.other_user.username }}{% else %}#{% endif %}"
-                    title="View profile"
-                    aria-label="View profile"
+                    title="{{ trans('messages.view_profile') }}"
+                    aria-label="{{ trans('messages.view_profile') }}"
                 >
                     <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                         <path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4Z"/>
@@ -102,18 +102,18 @@
                 </a>
             </header>
             <div class="messages-thread-body" id="messages-thread-body" role="log" aria-live="polite">
-                <p class="muted messages-status" id="messages-thread-status">Loading messages…</p>
+                <p class="muted messages-status" id="messages-thread-status">{{ trans('messages.loading_messages') }}</p>
             </div>
             <form class="messages-compose-form" id="messages-send-form">
-                <label class="visually-hidden" for="messages-send-input">Message</label>
+                <label class="visually-hidden" for="messages-send-input">{{ trans('messages.conversation') }}</label>
                 <div class="messages-send-row">
-                    <textarea id="messages-send-input" rows="1" maxlength="4000" placeholder="Write a message…"></textarea>
+                    <textarea id="messages-send-input" rows="1" maxlength="4000" placeholder="{{ trans('messages.write_placeholder') }}"></textarea>
                     <button
                         type="submit"
                         class="btn btn-primary btn-icon messages-send-btn"
                         id="messages-send-btn"
-                        title="Send message"
-                        aria-label="Send message"
+                        title="{{ trans('messages.send') }}"
+                        aria-label="{{ trans('messages.send') }}"
                     >
                         <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                             <path fill="currentColor" d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2 0 7Z"/>

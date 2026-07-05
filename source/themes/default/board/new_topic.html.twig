@@ -1,31 +1,31 @@
 {% extends 'layouts/base.html.twig' %}
 
-{% block title %}New topic — {{ board.name }}{% endblock %}
+{% block title %}{{ trans('board.new_topic') }} — {{ board.name }}{% endblock %}
 
 {% block content %}
     <section class="page-header">
-        <p class="breadcrumb"><a href="/">Boards</a> / <a href="/board/{{ board.slug }}">{{ board.name }}</a> / New topic</p>
-        <h1>New topic in {{ board.name }}</h1>
-        <p class="muted">Use <strong>**bold**</strong>, <code>`code`</code>, <code>```fences```</code>, <code>[quote]…[/quote]</code>, <code>[spoiler]…[/spoiler]</code>, and emotes like <code>:smile:</code></p>
+        <p class="breadcrumb"><a href="/">{{ trans('common.boards') }}</a> / <a href="/board/{{ board.slug }}">{{ board.name }}</a> / {{ trans('board.new_topic_breadcrumb') }}</p>
+        <h1>{{ trans('board.new_topic_in', { board: board.name }) }}</h1>
+        <p class="muted">{{ trans('board.markup_hint') }}</p>
     </section>
 
     <form method="post" action="/board/{{ board.slug }}/new" class="form form-compose">
         {{ csrf_field() }}
         <label>
-            Title
+            {{ trans('board.title_label') }}
             <input type="text" name="title" required maxlength="{{ input_limits.topic_title_max }}" autofocus>
         </label>
         <label>
-            Tags (optional)
-            <input type="text" name="tags" maxlength="200" placeholder="e.g. php, security, announcement" list="tag-suggestions" autocomplete="off">
-            <span class="muted">Comma-separated, up to {{ max_tags }} tags.</span>
+            {{ trans('board.tags_optional') }}
+            <input type="text" name="tags" maxlength="200" placeholder="{{ trans('board.tags_placeholder') }}" list="tag-suggestions" autocomplete="off">
+            <span class="muted">{{ trans('board.tags_hint', { max: max_tags }) }}</span>
         </label>
         <datalist id="tag-suggestions"></datalist>
         <label>
-            Message
+            {{ trans('board.message') }}
             {% include 'partials/composer.twig' with { draft_key: 'new-topic-' ~ board.slug, required: true, rows: 10, autocomplete: 'one-time-code' } %}
         </label>
-        <button type="submit" class="btn btn-primary">Post topic</button>
+        <button type="submit" class="btn btn-primary">{{ trans('board.post_topic') }}</button>
     </form>
 {% endblock %}
 

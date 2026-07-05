@@ -4,8 +4,8 @@
         <a
             href="/messages"
             class="inbox-cluster-btn inbox-cluster-messages{% if (messages_unread|default(0)) > 0 %} has-unread{% endif %}{% if current_path starts with '/messages' %} is-active{% endif %}"
-            title="Messages{% if (messages_unread|default(0)) > 0 %} ({{ messages_unread }} unread){% endif %}"
-            aria-label="Messages{% if (messages_unread|default(0)) > 0 %} ({{ messages_unread }} unread){% endif %}"
+            title="{% if (messages_unread|default(0)) > 0 %}{{ trans('common.unread_title', { label: trans('user_menu.messages'), count: messages_unread }) }}{% else %}{{ trans('user_menu.messages') }}{% endif %}"
+            aria-label="{% if (messages_unread|default(0)) > 0 %}{{ trans('common.unread_title', { label: trans('user_menu.messages'), count: messages_unread }) }}{% else %}{{ trans('user_menu.messages') }}{% endif %}"
             id="messages-nav-link"
             data-messages-panel
             aria-haspopup="dialog"
@@ -28,24 +28,24 @@
                 aria-expanded="false"
                 aria-haspopup="dialog"
                 aria-controls="notification-panel"
-                title="Notifications{% if notification_unread > 0 %} ({{ notification_unread }} unread){% endif %}"
-                aria-label="Notifications{% if notification_unread > 0 %} ({{ notification_unread }} unread){% endif %}"
+                title="{% if notification_unread > 0 %}{{ trans('common.unread_title', { label: trans('notifications.panel_title'), count: notification_unread }) }}{% else %}{{ trans('notifications.panel_title') }}{% endif %}"
+                aria-label="{% if notification_unread > 0 %}{{ trans('common.unread_title', { label: trans('notifications.panel_title'), count: notification_unread }) }}{% else %}{{ trans('notifications.panel_title') }}{% endif %}"
             >
                 <svg class="inbox-cluster-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <path fill="currentColor" d="M12 22a2.2 2.2 0 0 0 2.1-1.5H9.9A2.2 2.2 0 0 0 12 22Zm7-5V11a7 7 0 1 0-14 0v6l-2 2v1h18v-1l-2-2Z"/>
                 </svg>
                 <span class="inbox-cluster-badge notification-bell-badge{% if notification_unread <= 0 %} is-hidden{% endif %}" id="notification-bell-badge"{% if notification_unread <= 0 %} hidden{% endif %}>{{ notification_unread > 99 ? '99+' : notification_unread }}</span>
             </button>
-            <div class="notification-panel" id="notification-panel" role="dialog" aria-label="Notifications" hidden>
+            <div class="notification-panel" id="notification-panel" role="dialog" aria-label="{{ trans('notifications.panel_title') }}" hidden>
                 <div class="notification-panel-header">
-                    <h2 class="notification-panel-title">Notifications</h2>
-                    <button type="button" class="link-button notification-panel-mark-all" id="notification-mark-all" hidden>Mark all read</button>
+                    <h2 class="notification-panel-title">{{ trans('notifications.panel_title') }}</h2>
+                    <button type="button" class="link-button notification-panel-mark-all" id="notification-mark-all" hidden>{{ trans('notifications.mark_all_read') }}</button>
                 </div>
                 <div class="notification-panel-body" id="notification-panel-body">
-                    <p class="notification-panel-status muted" id="notification-panel-status">Loading…</p>
+                    <p class="notification-panel-status muted" id="notification-panel-status">{{ trans('common.loading') }}</p>
                 </div>
                 <div class="notification-panel-footer">
-                    <a class="notification-panel-view-all" href="/notifications">View all notifications</a>
+                    <a class="notification-panel-view-all" href="/notifications">{{ trans('notifications.view_all') }}</a>
                 </div>
             </div>
         </div>

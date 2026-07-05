@@ -20,6 +20,9 @@ source/config/local.php
 *.swp
 .DS_Store
 
+# Composer (lock file is committed; install with composer or source/composer.phar)
+source/vendor/
+
 # Tests / build
 source/tests/.phpunit.cache/
 **/.phpunit.result.cache

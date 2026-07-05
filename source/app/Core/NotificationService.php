@@ -50,7 +50,7 @@ final class NotificationService
             (int) $actor['id'],
             null,
             null,
-            ['reason' => $reason, 'report_id' => $reportId, 'conversation_id' => $conversationId],
+            ['reason' => $reason, 'report_id' => $reportId, 'conversation_id' => $conversationId, 'topic_title' => ''],
         );
     }
 
@@ -106,7 +106,7 @@ final class NotificationService
                 $actorId,
                 $topicId,
                 $postId,
-                ['action' => 'reply'],
+                ['action' => 'reply', 'topic_title' => $this->truncateTitle($topicTitle)],
             );
             $alreadyNotified[$topicAuthorId] = true;
         }
@@ -186,7 +186,11 @@ final class NotificationService
                 $actorId,
                 $topicId,
                 $postId,
-                ['mentioned_username' => $mentionedUsername, 'action' => 'edit'],
+                [
+                    'mentioned_username' => $mentionedUsername,
+                    'action' => 'edit',
+                    'topic_title' => $this->truncateTitle($topicTitle),
+                ],
             );
             $alreadyNotified[$mentionedId] = true;
         }
@@ -227,7 +231,11 @@ final class NotificationService
             null,
             $topicId,
             $postId,
-            ['action' => 'pending_approval', 'is_new_topic' => $isNewTopic],
+            [
+                'action' => 'pending_approval',
+                'is_new_topic' => $isNewTopic,
+                'topic_title' => $topicTitle,
+            ],
         );
     }
 
@@ -256,7 +264,11 @@ final class NotificationService
             $actorId,
             (int) $topic['id'],
             null,
-            ['action' => $action, 'target' => 'topic'],
+            [
+                'action' => $action,
+                'target' => 'topic',
+                'topic_title' => $this->truncateTitle((string) $topic['title']),
+            ],
         );
     }
 
@@ -287,7 +299,11 @@ final class NotificationService
             $actorId,
             (int) $topic['id'],
             (int) $post['id'],
-            ['action' => $action, 'target' => 'post'],
+            [
+                'action' => $action,
+                'target' => 'post',
+                'topic_title' => $this->truncateTitle((string) $topic['title']),
+            ],
         );
     }
 
@@ -313,7 +329,11 @@ final class NotificationService
             $actorId,
             (int) $topic['id'],
             (int) $post['id'],
-            ['action' => 'quarantine', 'target' => 'post'],
+            [
+                'action' => 'quarantine',
+                'target' => 'post',
+                'topic_title' => $this->truncateTitle($topicTitle),
+            ],
         );
     }
 
@@ -341,7 +361,7 @@ final class NotificationService
             $actorId,
             (int) $topic['id'],
             (int) $post['id'],
-            null,
+            ['topic_title' => $this->truncateTitle($topicTitle)],
         );
     }
 
@@ -399,7 +419,7 @@ final class NotificationService
                 $actorId,
                 $topicId,
                 $postId,
-                ['quoted_username' => $quotedUsername],
+                ['quoted_username' => $quotedUsername, 'topic_title' => $this->truncateTitle($topicTitle)],
             );
             $alreadyNotified[$quotedId] = true;
         }
@@ -439,7 +459,10 @@ final class NotificationService
                 $actorId,
                 $topicId,
                 $postId,
-                ['mentioned_username' => $mentionedUsername],
+                [
+                    'mentioned_username' => $mentionedUsername,
+                    'topic_title' => $this->truncateTitle($topicTitle),
+                ],
             );
             $alreadyNotified[$mentionedId] = true;
         }

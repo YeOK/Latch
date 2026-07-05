@@ -14,6 +14,7 @@ namespace Latch\Controllers;
 use Latch\Core\Application;
 use Latch\Core\DateTimeFormatter;
 use Latch\Core\Response;
+use Latch\Support\FlashMessage;
 
 final class NotificationController
 {
@@ -40,6 +41,10 @@ final class NotificationController
         $offset = ($page - 1) * self::PER_PAGE;
 
         $items = $this->app->notifications()->listForUser($userId, self::PER_PAGE, $offset);
+        $items = $this->app->notificationMessageFormatter()->formatMany(
+            $items,
+            $this->app->translatorFor($this->app->userLocale()),
+        );
         $unread = $this->app->notifications()->countUnread($userId);
 
         $this->app->render('notifications/index.html.twig', [
@@ -55,12 +60,16 @@ final class NotificationController
         $this->app->auth()->requireLogin();
         $user = $this->app->auth()->user();
         if ($user === null) {
-            Response::json(['ok' => false, 'message' => 'Sign in required.'], 401);
+            Response::json(['ok' => false, 'message' => $this->app->trans('api.sign_in_required')], 401);
         }
 
         $userId = (int) $user['id'];
         $limit = max(1, min(self::FEED_LIMIT, (int) $this->app->request()->input('limit', self::FEED_LIMIT)));
         $items = $this->app->notifications()->listForUser($userId, $limit, 0);
+        $items = $this->app->notificationMessageFormatter()->formatMany(
+            $items,
+            $this->app->translatorFor($this->app->userLocale()),
+        );
 
         Response::json([
             'ok' => true,
@@ -76,7 +85,7 @@ final class NotificationController
         $user = $this->app->auth()->user();
         if ($user === null) {
             if ($this->wantsJson()) {
-                Response::json(['ok' => false, 'message' => 'Sign in required.'], 401);
+                Response::json(['ok' => false, 'message' => $this->app->trans('api.sign_in_required')], 401);
             }
             Response::redirect('/login');
         }
@@ -85,7 +94,7 @@ final class NotificationController
         $notification = $this->app->notifications()->findByIdForUser($id, (int) $user['id']);
         if ($notification === null) {
             if ($this->wantsJson()) {
-                Response::json(['ok' => false, 'message' => 'Notification not found.'], 404);
+                Response::json(['ok' => false, 'message' => $this->app->trans('api.notification_not_found')], 404);
             }
             Response::notFound('Notification not found');
         }
@@ -113,7 +122,7 @@ final class NotificationController
         $user = $this->app->auth()->user();
         if ($user === null) {
             if ($this->wantsJson()) {
-                Response::json(['ok' => false, 'message' => 'Sign in required.'], 401);
+                Response::json(['ok' => false, 'message' => $this->app->trans('api.sign_in_required')], 401);
             }
             Response::redirect('/login');
         }
@@ -139,7 +148,7 @@ final class NotificationController
         $user = $this->app->auth()->user();
         if ($user === null) {
             if ($this->wantsJson()) {
-                Response::json(['ok' => false, 'message' => 'Sign in required.'], 401);
+                Response::json(['ok' => false, 'message' => $this->app->trans('api.sign_in_required')], 401);
             }
             Response::redirect('/login');
         }
@@ -154,7 +163,7 @@ final class NotificationController
             ]);
         }
 
-        $this->app->session()->flash('success', 'All notifications marked as read.');
+        $this->app->flashTrans('success', FlashMessage::NOTIFICATIONS_MARKED_READ);
         Response::redirect('/notifications');
     }
 
@@ -165,10 +174,10 @@ final class NotificationController
         }
 
         if ($this->wantsJson()) {
-            Response::json(['ok' => false, 'message' => 'Invalid form token.'], 403);
+            Response::json(['ok' => false, 'message' => $this->app->trans('api.invalid_csrf')], 403);
         }
 
-        $this->app->session()->flash('error', 'Invalid form token.');
+        $this->app->flashTrans('error', FlashMessage::INVALID_CSRF);
         Response::redirect('/notifications');
     }
 

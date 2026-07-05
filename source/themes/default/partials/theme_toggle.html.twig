@@ -1,4 +1,5 @@
-<button type="button" class="theme-toggle" id="theme-toggle" aria-label="Theme: {{ theme_mode|capitalize }}" title="Theme: {{ theme_mode|capitalize }}" data-theme-mode="{{ theme_mode }}">
+{% set mode_label = theme_mode == 'light' ? trans('theme.light') : (theme_mode == 'dark' ? trans('theme.dark') : trans('theme.system')) %}
+<button type="button" class="theme-toggle" id="theme-toggle" aria-label="{{ trans('theme.toggle_label', { mode: mode_label }) }}" title="{{ trans('theme.toggle_label', { mode: mode_label }) }}" data-theme-mode="{{ theme_mode }}">
     <span class="theme-icon theme-icon-light" data-theme-icon="light"{% if theme_mode != 'light' %} hidden{% endif %} aria-hidden="true">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>

@@ -28,7 +28,7 @@ final class TranslatorTest extends TestCase
         $this->assertSame('Iniciar sesión', $translator->get('nav.sign_in'));
     }
 
-    public function testFallbackToEnglish(): void
+    public function testArabicCatalogAndEnglishFallback(): void
     {
         $translator = new Translator(
             dirname(__DIR__) . '/lang',
@@ -36,8 +36,23 @@ final class TranslatorTest extends TestCase
             new HookRegistry(),
         );
 
-        $this->assertSame('Sign out', $translator->get('user_menu.sign_out'));
+        $this->assertSame('تسجيل الخروج', $translator->get('user_menu.sign_out'));
         $this->assertSame('تسجيل الدخول', $translator->get('nav.sign_in'));
+        $this->assertSame('missing.translation.key', $translator->get('missing.translation.key'));
+    }
+
+    public function testFallbackToEnglishForMissingKey(): void
+    {
+        $dir = sys_get_temp_dir() . '/latch-lang-' . bin2hex(random_bytes(4));
+        mkdir($dir);
+        file_put_contents($dir . '/en.php', "<?php return ['demo' => ['only_en' => 'English only']];");
+        file_put_contents($dir . '/ar.php', "<?php return ['demo' => []];");
+
+        $translator = new Translator($dir, 'ar', new HookRegistry());
+        $this->assertSame('English only', $translator->get('demo.only_en'));
+
+        array_map('unlink', glob($dir . '/*') ?: []);
+        rmdir($dir);
     }
 
     public function testReplacementParameters(): void

@@ -8,6 +8,11 @@
 
     var csrfMeta = document.querySelector('meta[name="csrf-token"]');
     var defaultCsrf = csrfMeta ? csrfMeta.content : '';
+    var i18n = window.LatchI18n || {};
+
+    function t(key, fallback) {
+        return i18n[key] || fallback || key;
+    }
 
     function escapeHtml(text) {
         var div = document.createElement('div');
@@ -120,7 +125,7 @@
 
         function loadConversations() {
             if (listStatus) {
-                listStatus.textContent = 'Loading conversations…';
+                listStatus.textContent = t('messages_loading_conversations', 'Loading conversations…');
                 listStatus.hidden = false;
             }
 
@@ -137,7 +142,7 @@
                     if (!result.ok || !result.payload.ok) {
                         if (listEl) {
                             listEl.innerHTML =
-                                '<p class="muted messages-status">Could not load conversations.</p>';
+                                '<p class="muted messages-status">' + escapeHtml(t('messages_load_error', 'Could not load conversations.')) + '</p>';
                         }
                         return;
                     }
@@ -153,7 +158,7 @@
 
                     if (items.length === 0) {
                         listEl.innerHTML =
-                            '<p class="muted messages-status">No conversations yet. Start one with the compose button.</p>';
+                            '<p class="muted messages-status">' + escapeHtml(t('messages_no_conversations', 'No conversations yet. Start one with the compose button.')) + '</p>';
                         return;
                     }
 
@@ -162,7 +167,7 @@
                 .catch(function () {
                     if (listEl) {
                         listEl.innerHTML =
-                            '<p class="muted messages-status">Could not load conversations.</p>';
+                            '<p class="muted messages-status">' + escapeHtml(t('messages_load_error', 'Could not load conversations.')) + '</p>';
                     }
                 });
         }
@@ -314,7 +319,7 @@
             if (!activeId) {
                 return Promise.resolve();
             }
-            if (!window.confirm('Delete this conversation?')) {
+            if (!window.confirm(t('messages_delete_confirm', 'Delete this conversation?'))) {
                 return Promise.resolve();
             }
 
@@ -324,7 +329,7 @@
                         if (sendError) {
                             sendError.textContent =
                                 (result.payload && result.payload.message) ||
-                                'Could not delete conversation.';
+                                t('messages_delete_error', 'Could not delete conversation.');
                             sendError.hidden = false;
                         }
                         return;
@@ -339,7 +344,7 @@
                 })
                 .catch(function () {
                     if (sendError) {
-                        sendError.textContent = 'Could not delete conversation.';
+                        sendError.textContent = t('messages_delete_error', 'Could not delete conversation.');
                         sendError.hidden = false;
                     }
                 });
@@ -355,7 +360,7 @@
                 url += '?after=' + encodeURIComponent(String(afterId));
             } else if (threadBody) {
                 threadBody.innerHTML =
-                    '<p class="muted messages-status" id="messages-thread-status">Loading messages…</p>';
+                    '<p class="muted messages-status" id="messages-thread-status">' + escapeHtml(t('messages_loading_messages', 'Loading messages…')) + '</p>';
             }
 
             return fetch(url, {
@@ -532,7 +537,7 @@
                             if (composeError) {
                                 composeError.textContent =
                                     (result.payload && result.payload.message) ||
-                                    'Could not start conversation.';
+                                    t('messages_start_error', 'Could not start conversation.');
                                 composeError.hidden = false;
                             }
                             return;
@@ -549,7 +554,7 @@
                     })
                     .catch(function () {
                         if (composeError) {
-                            composeError.textContent = 'Could not start conversation.';
+                            composeError.textContent = t('messages_start_error', 'Could not start conversation.');
                             composeError.hidden = false;
                         }
                     })

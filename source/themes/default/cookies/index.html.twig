@@ -1,60 +1,60 @@
 {% extends 'layouts/base.html.twig' %}
 
-{% block title %}Cookie policy — {{ site.name }}{% endblock %}
+{% block title %}{{ trans('legal.cookies_title') }} — {{ site.name }}{% endblock %}
 
 {% block content %}
     <section class="page-header">
-        <h1>Cookie policy</h1>
-        <p class="muted">Cookies and local storage used by {{ operator_name }} on this forum.</p>
+        <h1>{{ trans('legal.cookies_title') }}</h1>
+        <p class="muted">{{ trans('legal.cookies_lead', { operator: operator_name }) }}</p>
     </section>
 
     <article class="legal-doc card">
-        <h2>Essential cookies</h2>
-        <p>Latch sets only what is needed to run the forum. We do not use advertising or analytics cookies in core software.</p>
+        <h2>{{ trans('legal.cookies_essential') }}</h2>
+        <p>{{ trans('legal.cookies_essential_body') }}</p>
 
         <table class="data-table cookie-table">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Purpose</th>
-                    <th>Duration</th>
+                    <th>{{ trans('legal.cookies_table_name') }}</th>
+                    <th>{{ trans('legal.cookies_table_purpose') }}</th>
+                    <th>{{ trans('legal.cookies_table_duration') }}</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td><code>PHPSESSID</code></td>
-                    <td>Session — keeps you signed in and protects forms (CSRF).</td>
-                    <td>Session / browser close</td>
+                    <td>{{ trans('legal.cookies_phpsessid') }}</td>
+                    <td>{{ trans('legal.cookies_duration_session') }}</td>
                 </tr>
                 <tr>
                     <td><code>latch_theme</code></td>
-                    <td>Remembers light, dark, or system theme for guests.</td>
-                    <td>1 year</td>
+                    <td>{{ trans('legal.cookies_theme') }}</td>
+                    <td>{{ trans('legal.cookies_duration_year') }}</td>
                 </tr>
                 {% if gdpr_enabled %}
                 <tr>
                     <td><code>latch_cookie_consent</code></td>
-                    <td>Records your cookie consent choice.</td>
-                    <td>1 year</td>
+                    <td>{{ trans('legal.cookies_consent') }}</td>
+                    <td>{{ trans('legal.cookies_duration_year') }}</td>
                 </tr>
                 {% endif %}
             </tbody>
         </table>
 
-        <h2>Local storage</h2>
-        <p>Your browser may store draft post text and theme preference locally for convenience. This stays on your device and is not sent to the server until you post.</p>
+        <h2>{{ trans('legal.cookies_local_storage') }}</h2>
+        <p>{{ trans('legal.cookies_local_storage_body') }}</p>
 
-        <h2>Third parties</h2>
-        <p>If Gravatar is enabled, your email hash may be sent to Gravatar when loading default avatars. External avatar URLs you provide are loaded directly by your browser from that host.</p>
+        <h2>{{ trans('legal.cookies_third_party') }}</h2>
+        <p>{{ trans('legal.cookies_third_party_body') }}</p>
 
-        <h2>Managing cookies</h2>
-        <p>You can clear cookies in your browser settings. Rejecting non-essential cookies (when EU hosting mode is on) limits preference storage to your current session.</p>
+        <h2>{{ trans('legal.cookies_manage') }}</h2>
+        <p>{{ trans('legal.cookies_manage_body') }}</p>
         {% if gdpr_enabled %}
-            <p><button type="button" class="btn btn-small" id="cookie-policy-settings">Change cookie settings</button></p>
+            <p><button type="button" class="btn btn-small" id="cookie-policy-settings">{{ trans('legal.cookies_change_settings') }}</button></p>
         {% endif %}
 
-        <p>Questions? Contact <strong>{{ operator_name }}</strong>{% if contact_email %} at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %}.</p>
+        <p>{{ trans('legal.cookies_questions', { operator: '<strong>' ~ operator_name ~ '</strong>' })|raw }}{% if contact_email %} at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %}</p>
 
-        <p class="muted legal-updated">Last updated {{ "now"|date("Y-m-d") }}.</p>
+        <p class="muted legal-updated">{{ trans('legal.last_updated', { date: "now"|date("Y-m-d") }) }}</p>
     </article>
 {% endblock %}

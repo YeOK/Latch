@@ -1,15 +1,15 @@
 {% extends 'layouts/base.html.twig' %}
 
-{% block title %}{% if query %}Search: {{ query }} — {% endif %}{{ site.name }}{% endblock %}
+{% block title %}{% if query %}{{ trans('search.title_with_query', { query: query }) }} — {% endif %}{{ site.name }}{% endblock %}
 
 {% block content %}
     <section class="page-header">
-        <p class="breadcrumb"><a href="/">Boards</a> / Search</p>
-        <h1>Search</h1>
+        <p class="breadcrumb"><a href="/">{{ trans('common.boards') }}</a> / {{ trans('search.title') }}</p>
+        <h1>{{ trans('search.title') }}</h1>
         {% include 'partials/search_field.html.twig' with {
             variant: 'inline',
             value: query,
-            label: 'Search topics and posts',
+            label: trans('search.label_page'),
             minlength: 2,
             required: true,
             autofocus: true,
@@ -21,9 +21,9 @@
         <p class="flash flash-error">{{ search_error }}</p>
     {% elseif query %}
         {% if results is empty %}
-            <p class="empty">No results for “{{ query }}”.</p>
+            <p class="empty">{{ trans('search.no_results', { query: query }) }}</p>
         {% else %}
-            <p class="muted search-result-count">{{ total }} topic{{ total == 1 ? '' : 's' }} found</p>
+            <p class="muted search-result-count">{{ trans(total == 1 ? 'search.result_one' : 'search.result_many', { count: total }) }}</p>
             <ul class="search-results">
                 {% for row in results %}
                     <li class="search-result card">
@@ -32,7 +32,7 @@
                         </h2>
                         <p class="search-result-meta muted">
                             <a href="/board/{{ row.board_slug }}">{{ row.board_name }}</a>
-                            · Last activity <time>{{ row.last_post_at|format_datetime }}</time>
+                            · {{ trans('search.last_activity') }} <time>{{ row.last_post_at|format_datetime }}</time>
                         </p>
                         {% if row.excerpt %}
                             <p class="search-result-excerpt">{{ row.excerpt|raw }}</p>
@@ -47,16 +47,16 @@
             {% if total_pages > 1 %}
                 <nav class="pagination">
                     {% if page > 1 %}
-                        <a href="/search?q={{ query|url_encode }}&page={{ page - 1 }}">← Previous</a>
+                        <a href="/search?q={{ query|url_encode }}&page={{ page - 1 }}">{{ trans('common.previous') }}</a>
                     {% endif %}
-                    <span>Page {{ page }} of {{ total_pages }}</span>
+                    <span>{{ trans('common.page_of', { page: page, total: total_pages }) }}</span>
                     {% if page < total_pages %}
-                        <a href="/search?q={{ query|url_encode }}&page={{ page + 1 }}">Next →</a>
+                        <a href="/search?q={{ query|url_encode }}&page={{ page + 1 }}">{{ trans('common.next') }}</a>
                     {% endif %}
                 </nav>
             {% endif %}
         {% endif %}
     {% else %}
-        <p class="muted">Search topic titles, post content, and tags across all boards you can access.</p>
+        <p class="muted">{{ trans('search.helper') }}</p>
     {% endif %}
 {% endblock %}

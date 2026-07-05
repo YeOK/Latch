@@ -13,15 +13,15 @@
             } %}
             <div class="profile-public-meta">
                 <h1>{{ profile.username }}</h1>
-                <p class="muted profile-public-joined">Member since {{ profile.created_at|slice(0, 10) }}</p>
+                <p class="muted profile-public-joined">{{ trans('user.member_since', { date: profile.created_at|slice(0, 10) }) }}</p>
                 <dl class="profile-stats">
                     <div>
                         <dt>{{ profile.post_count }}</dt>
-                        <dd>Post{{ profile.post_count == 1 ? '' : 's' }}</dd>
+                        <dd>{{ trans('user.posts') }}</dd>
                     </div>
                     <div>
                         <dt>{{ profile.topic_count }}</dt>
-                        <dd>Topic{{ profile.topic_count == 1 ? '' : 's' }} started</dd>
+                        <dd>{{ profile.topic_count == 1 ? trans('user.topic_started') : trans('user.topics_started') }}</dd>
                     </div>
                 </dl>
                 {% if profile.bio %}
@@ -29,18 +29,18 @@
                 {% endif %}
                 {% if profile.reputation.is_member and profile.reputation.rank and profile.reputation.components is not empty %}
                     <dl class="profile-reputation-breakdown muted">
-                        <dt>Standing</dt>
+                        <dt>{{ trans('user.standing') }}</dt>
                         <dd>
-                            Score {{ profile.reputation.score|number_format(1) }}
+                            {{ trans('user.score', { score: profile.reputation.score|number_format(1) }) }}
                             {% if profile.reputation.next_rank %}
-                                · {{ profile.reputation.next_rank.points_needed }} pts to {{ profile.reputation.next_rank.label }}
+                                · {{ trans('user.pts_to', { pts: profile.reputation.next_rank.points_needed, rank: profile.reputation.next_rank.label }) }}
                             {% endif %}
                         </dd>
-                        <dt>Breakdown</dt>
+                        <dt>{{ trans('user.breakdown') }}</dt>
                         <dd>
-                            Participation {{ profile.reputation.components.topics }} topics / {{ profile.reputation.components.replies }} replies ·
-                            Quality +{{ profile.reputation.components.capped_likes }}/−{{ profile.reputation.components.capped_dislikes }} ·
-                            Engagement {{ profile.reputation.components.topics_read_90d }} reads / {{ profile.reputation.components.watched_topics }} watched
+                            {{ trans('user.participation', { topics: profile.reputation.components.topics, replies: profile.reputation.components.replies }) }} ·
+                            {{ trans('user.quality', { likes: profile.reputation.components.capped_likes, dislikes: profile.reputation.components.capped_dislikes }) }} ·
+                            {{ trans('user.engagement', { reads: profile.reputation.components.topics_read_90d, watched: profile.reputation.components.watched_topics }) }}
                         </dd>
                     </dl>
                 {% endif %}
@@ -51,14 +51,14 @@
                             class="btn btn-icon profile-message-btn"
                             id="profile-message-btn"
                             data-username="{{ profile.username }}"
-                            title="Send message"
-                            aria-label="Send message to {{ profile.username }}"
+                            title="{{ trans('user.send_message') }}"
+                            aria-label="{{ trans('user.send_message_to', { user: profile.username }) }}"
                         >
                             {% include 'partials/icon.twig' with { name: 'message', size: 20 } %}
                         </button>
                     {% endif %}
                     {% if is_own_profile %}
-                        <a href="/profile" class="btn btn-small">Edit your profile</a>
+                        <a href="/profile" class="btn btn-small">{{ trans('user.edit_profile') }}</a>
                     {% endif %}
                 </div>
             </div>
@@ -66,8 +66,8 @@
                 {% set staff_glyph = profile.role == 'admin' ? 'A' : 'M' %}
                 <div
                     class="profile-emblem profile-emblem--staff profile-emblem--{{ profile.role }}"
-                    title="{{ profile.staff_label }} — {% if profile.role == 'admin' %}Site administrator{% else %}Site staff member{% endif %}"
-                    aria-label="{{ profile.staff_label }}{% if profile.role == 'admin' %}, site administrator{% else %}, site staff member{% endif %}"
+                    title="{{ profile.staff_label }} — {% if profile.role == 'admin' %}{{ trans('user.site_administrator') }}{% else %}{{ trans('user.site_staff') }}{% endif %}"
+                    aria-label="{{ profile.staff_label }}{% if profile.role == 'admin' %}, {{ trans('user.site_administrator')|lower }}{% else %}, {{ trans('user.site_staff')|lower }}{% endif %}"
                 >
                     <span class="profile-emblem-icon" aria-hidden="true">
                         {% include 'partials/icon.twig' with { name: 'shield-filled', size: 56 } %}
@@ -77,7 +77,7 @@
             {% elseif profile.reputation.is_member and profile.reputation.rank %}
                 <div
                     class="profile-emblem profile-emblem--rank"
-                    title="Rank {{ profile.reputation.rank }} · {{ profile.reputation.label }} — Score {{ profile.reputation.score|number_format(1) }}{% if profile.reputation.next_rank %} · {{ profile.reputation.next_rank.points_needed }} pts to {{ profile.reputation.next_rank.label }}{% endif %}"
+                    title="{{ trans('user.rank_title', { rank: profile.reputation.rank, label: profile.reputation.label, score: profile.reputation.score|number_format(1) }) }}{% if profile.reputation.next_rank %} · {{ trans('user.pts_to', { pts: profile.reputation.next_rank.points_needed, rank: profile.reputation.next_rank.label }) }}{% endif %}"
                     aria-label="Member rank {{ profile.reputation.rank }} of 5, {{ profile.reputation.label }}, score {{ profile.reputation.score|number_format(1) }}"
                 >
                     <span class="profile-emblem-icon" aria-hidden="true">
@@ -90,21 +90,21 @@
     </section>
 
     <section class="profile-activity">
-        <h2>Recent posts</h2>
+        <h2>{{ trans('user.recent_posts') }}</h2>
         {% if recent_posts is empty %}
-            <p class="empty muted">No public posts yet.</p>
+            <p class="empty muted">{{ trans('user.no_posts') }}</p>
         {% else %}
             <ul class="profile-activity-list" role="list">
                 {% for post in recent_posts %}
                     <li class="profile-activity-item card">
                         <p class="profile-activity-title">
                             <a href="/topic/{{ post.topic_id }}#post-{{ post.id }}">{{ post.topic_title }}</a>
-                            <span class="muted">in <a href="/board/{{ post.board_slug }}">{{ post.board_name }}</a></span>
+                            <span class="muted">{{ trans('user.in_board', { board: '<a href="/board/' ~ post.board_slug ~ '">' ~ post.board_name ~ '</a>' })|raw }}</span>
                         </p>
                         <p class="profile-activity-excerpt muted">{{ post.excerpt }}</p>
                         <time class="profile-activity-date muted">{{ post.created_at|format_datetime }}</time>
                         {% if post.quarantined_at and is_mod %}
-                            <span class="badge badge-quarantine">Quarantined</span>
+                            <span class="badge badge-quarantine">{{ trans('user.quarantined') }}</span>
                         {% endif %}
                     </li>
                 {% endfor %}

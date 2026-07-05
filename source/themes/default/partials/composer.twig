@@ -2,27 +2,27 @@
 <div class="composer" data-editor data-preview-url="/preview" data-draft-key="{{ draft_key|default('') }}">
     <div class="composer-honeypot" aria-hidden="true">
         <label>
-            Website
+            {{ trans('compose.website') }}
             <input type="text" name="website" tabindex="-1" autocomplete="off">
         </label>
     </div>
-    <div class="composer-toolbar" aria-label="Formatting">
-        <button type="button" class="composer-btn" data-action="bold" title="Bold (**text**)"><strong>B</strong></button>
-        <button type="button" class="composer-btn" data-action="italic" title="Italic (*text*)"><em>I</em></button>
-        <button type="button" class="composer-btn" data-action="link" title="Link ([url=…]…[/url])">Link</button>
-        <button type="button" class="composer-btn" data-action="quote" title="Quote ([quote]…[/quote])">Quote</button>
-        <button type="button" class="composer-btn" data-action="list" title="Bullet list (- item)" aria-label="Bullet list">• List</button>
-        <button type="button" class="composer-btn" data-action="heading" title="Heading (## text)" aria-label="Heading">H</button>
-        <button type="button" class="composer-btn" data-action="code" title="Code block (```lang … ```)">Code</button>
-        <button type="button" class="composer-btn" data-action="inline-code" title="Inline code (`code`)">{ }</button>
-        <button type="button" class="composer-btn" data-action="spoiler" title="Spoiler ([spoiler]…[/spoiler])">Spoiler</button>
-        <button type="button" class="composer-btn" data-action="mention" title="Mention (@username)" aria-label="Mention">@</button>
+    <div class="composer-toolbar" aria-label="{{ trans('compose.formatting') }}">
+        <button type="button" class="composer-btn" data-action="bold" title="{{ trans('compose.bold') }} (**text**)"><strong>B</strong></button>
+        <button type="button" class="composer-btn" data-action="italic" title="{{ trans('compose.italic') }} (*text*)"><em>I</em></button>
+        <button type="button" class="composer-btn" data-action="link" title="{{ trans('compose.link') }} ([url=…]…[/url])">{{ trans('compose.link') }}</button>
+        <button type="button" class="composer-btn" data-action="quote" title="{{ trans('compose.quote') }} ([quote]…[/quote])">{{ trans('compose.quote') }}</button>
+        <button type="button" class="composer-btn" data-action="list" title="{{ trans('compose.list') }} (- item)" aria-label="{{ trans('compose.list') }}">• {{ trans('compose.list') }}</button>
+        <button type="button" class="composer-btn" data-action="heading" title="{{ trans('compose.heading') }} (## text)" aria-label="{{ trans('compose.heading') }}">H</button>
+        <button type="button" class="composer-btn" data-action="code" title="{{ trans('compose.code') }} (```lang … ```)">{{ trans('compose.code') }}</button>
+        <button type="button" class="composer-btn" data-action="inline-code" title="{{ trans('compose.inline_code') }} (`code`)">{ }</button>
+        <button type="button" class="composer-btn" data-action="spoiler" title="{{ trans('compose.spoiler') }} ([spoiler]…[/spoiler])">{{ trans('compose.spoiler') }}</button>
+        <button type="button" class="composer-btn" data-action="mention" title="{{ trans('compose.mention') }} (@username)" aria-label="{{ trans('compose.mention') }}">@</button>
         {% for html in plugin_composer_toolbar %}
             {{ html|raw }}
         {% endfor %}
         <div class="composer-toolbar-end">
             <div class="composer-emote-picker">
-                <button type="button" class="composer-btn composer-emote-toggle" aria-expanded="false" aria-haspopup="true" title="Emotes">😊</button>
+                <button type="button" class="composer-btn composer-emote-toggle" aria-expanded="false" aria-haspopup="true" title="{{ trans('compose.emotes') }}">😊</button>
                 <div class="composer-emote-panel" hidden>
                     {% for code, emoji in post_smileys() %}
                         <button type="button" class="composer-emote-item" data-emote="{{ code }}" title="{{ code }}">{{ emoji }}</button>
@@ -30,20 +30,20 @@
                 </div>
             </div>
             <div class="composer-help-picker">
-                <button type="button" class="composer-btn composer-help-toggle" aria-expanded="false" aria-haspopup="dialog" title="Markup help">?</button>
-                <div class="composer-help-panel" role="dialog" aria-label="Markup help" hidden>
-                    <p class="composer-help-intro muted">Write markup, not HTML. Use the toolbar or type:</p>
+                <button type="button" class="composer-btn composer-help-toggle" aria-expanded="false" aria-haspopup="dialog" title="{{ trans('compose.markup_help') }}">?</button>
+                <div class="composer-help-panel" role="dialog" aria-label="{{ trans('compose.markup_help') }}" hidden>
+                    <p class="composer-help-intro muted">{{ trans('compose.markup_intro') }}</p>
                     <dl class="composer-help-list">
-                        <dt><code>**bold**</code></dt><dd>Bold</dd>
-                        <dt><code>*italic*</code></dt><dd>Italic</dd>
-                        <dt><code>`code`</code></dt><dd>Inline code</dd>
-                        <dt><code>[url=https://…]text[/url]</code></dt><dd>Link (HTTPS)</dd>
+                        <dt><code>**bold**</code></dt><dd>{{ trans('compose.bold') }}</dd>
+                        <dt><code>*italic*</code></dt><dd>{{ trans('compose.italic') }}</dd>
+                        <dt><code>`code`</code></dt><dd>{{ trans('compose.inline_code') }}</dd>
+                        <dt><code>[url=https://…]text[/url]</code></dt><dd>{{ trans('compose.link') }} (HTTPS)</dd>
                         <dt><code>[quote author="name"]</code></dt><dd>Quoted reply</dd>
                         <dt><code>- item</code></dt><dd>Bullet list (blank line before list)</dd>
                         <dt><code>## Heading</code></dt><dd>Section heading</dd>
-                        <dt><code>```php</code> … <code>```</code></dt><dd>Code block (change language in the bar below)</dd>
+                        <dt><code>```php</code> … <code>```</code></dt><dd>{{ trans('compose.code_block') }} (change language in the bar below)</dd>
                         <dt><code>[spoiler]…[/spoiler]</code></dt><dd>Hidden until opened</dd>
-                        <dt><code>@username</code></dt><dd>Mention a member</dd>
+                        <dt><code>@username</code></dt><dd>{{ trans('compose.mention') }}</dd>
                         <dt><code>:smile:</code></dt><dd>Emoji shortcode</dd>
                     </dl>
                 </div>
@@ -51,8 +51,8 @@
         </div>
     </div>
     <div class="composer-code-bar" hidden>
-        <span class="composer-code-bar-label">Code block</span>
-        <select class="composer-code-lang" aria-label="Code language">
+        <span class="composer-code-bar-label">{{ trans('compose.code_block') }}</span>
+        <select class="composer-code-lang" aria-label="{{ trans('compose.code_language') }}">
             <option value="php">PHP</option>
             <option value="javascript">JavaScript</option>
             <option value="typescript">TypeScript</option>
@@ -66,7 +66,7 @@
             <option value="go">Go</option>
             <option value="java">Java</option>
             <option value="cpp">C++</option>
-            <option value="">Plain text</option>
+            <option value="">{{ trans('compose.plain_text') }}</option>
         </select>
     </div>
     <div class="composer-split">
@@ -87,8 +87,8 @@
             >{{ value|default('') }}</textarea>
         </div>
         <div class="composer-live-preview" aria-live="polite">
-            <p class="composer-preview-heading muted">Preview</p>
-            <div class="composer-preview post-content muted">Start typing to see formatted preview.</div>
+            <p class="composer-preview-heading muted">{{ trans('compose.preview') }}</p>
+            <div class="composer-preview post-content muted">{{ trans('compose.preview_empty') }}</div>
         </div>
     </div>
 </div>

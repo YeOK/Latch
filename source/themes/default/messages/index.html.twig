@@ -1,13 +1,13 @@
 {% extends 'layouts/base.html.twig' %}
 
-{% block title %}Messages — {{ site.name }}{% endblock %}
+{% block title %}{{ trans('messages.title') }} — {{ site.name }}{% endblock %}
 
 {% block main_class %} page-messages{% endblock %}
 
 {% block content %}
     <section class="page-header messages-page-header">
-        <h1>Messages</h1>
-        <p class="muted">Private conversations with other members. Staff can always reach you for moderation.</p>
+        <h1>{{ trans('messages.title') }}</h1>
+        <p class="muted">{{ trans('messages.subtitle') }}</p>
     </section>
 
     {% include 'partials/messages_app.html.twig' with {

@@ -4,24 +4,24 @@
 
 {% block content %}
     <section class="page-header">
-        <p class="breadcrumb"><a href="/">Boards</a> / Tag</p>
+        <p class="breadcrumb"><a href="/">{{ trans('common.boards') }}</a> / {{ trans('common.tag') }}</p>
         <h1><span class="tag-pill tag-pill-large">#{{ tag.name }}</span></h1>
-        <p class="muted">Topics labelled with this tag across all boards.</p>
+        <p class="muted">{{ trans('tag.description') }}</p>
     </section>
 
     {% if topics is empty %}
-        <p class="empty">No topics with this tag yet.</p>
+        <p class="empty">{{ trans('tag.empty') }}</p>
     {% else %}
         {% include 'partials/topic_list.html.twig' with { topics: topics } %}
 
         {% if total_pages > 1 %}
             <nav class="pagination">
                 {% if page > 1 %}
-                    <a href="/tag/{{ tag.slug }}?page={{ page - 1 }}">← Previous</a>
+                    <a href="/tag/{{ tag.slug }}?page={{ page - 1 }}">{{ trans('common.previous') }}</a>
                 {% endif %}
-                <span>Page {{ page }} of {{ total_pages }}</span>
+                <span>{{ trans('common.page_of', { page: page, total: total_pages }) }}</span>
                 {% if page < total_pages %}
-                    <a href="/tag/{{ tag.slug }}?page={{ page + 1 }}">Next →</a>
+                    <a href="/tag/{{ tag.slug }}?page={{ page + 1 }}">{{ trans('common.next') }}</a>
                 {% endif %}
             </nav>
         {% endif %}

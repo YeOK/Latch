@@ -9,11 +9,26 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.3.0.19] — 2026-07-05
+
+### Fixed
+- **Forum layout width (board vs topic)** — public `main` and footer width no longer depend on the `page-forum` body class, so board and topic/post views stay aligned with the header even when guest page cache serves stale HTML without `page-forum` (default + modern themes).
+- **Home page (members-only lead)** — Twig `replace` map no longer uses an invalid dynamic key; fixes HTTP 500 on `/` when registration is disabled.
+
+### Added
+- **Internationalization (Phase 7)** — guest/member Twig templates, legal pages, profile and auth flows, board/topic sort labels, and first-party JS overlays (`window.LatchI18n`) use `lang/{locale}.php` via `trans()`. Catalog: `en`, `es`, `de`, `fr`, `ar` (complete Arabic; English fallback for missing keys). RTL layout hooks for Arabic in default `theme.css`. `LocaleCatalogTest` asserts key parity across locale files.
+- **PHP i18n (Phase 8)** — `NotificationMessageFormatter` localizes notification feed/page text at read time (`notify.*` keys); report reason labels use `report.*`; `Application::flashTrans()` + `FlashMessage` key constants for controller migration; `api.*` for JSON errors. Notification `meta_json` now stores `topic_title` on new events.
+
+### Changed
+- **Admin plugins audit column** — pass/fail shown as icons; scan timestamp and cache status moved to hover tooltip.
+- **RPM upgrades** — `packaging/latch-rpm-update` runs `scripts/update.sh --clear-cache` so `dnf upgrade latch` purges guest HTML after deploys (theme/layout fixes take effect without a manual `cache-clear`).
+- **Packaging hygiene** — `source/vendor/` removed from git; `composer.lock` is the source of truth. COPR `%build`, `scripts/build-release.sh`, and `scripts/install.sh` run `composer install --no-dev` (bundled `source/composer.phar` fallback). Release tarballs still ship a populated `vendor/`.
+
 ## [0.3.0.18] — 2026-07-05
 
 ### Changed
 - **Forum layout width** — `page-forum` now aligns the site footer with header and main column on both default and modern themes (`body.page-forum :is(main.container, .site-footer .container)`).
-- **COPR/RPM builds** — `%build` runs `composer install --no-dev` when mock builds have network access (`BuildRequires: composer`); committed `vendor/` remains for tarball and offline installs.
+- **COPR/RPM builds** — `%build` runs `composer install --no-dev` when mock builds have network access (`BuildRequires: composer`); release tarballs still ship `vendor/` (built by `build-release.sh`).
 
 ## [0.3.0.17] — 2026-07-05
 
@@ -241,7 +256,8 @@ First **public** release. Latch is an MIT-licensed, self-hosted PHP + SQLite for
 ### Known limitations (planned follow-ups)
 - **Packagist / Docker** install layers — tarball + git clone for 0.3.0
 - **phpBB import** — design only (`docs/design/phpbb-import.md`); Phase 6
-- **i18n polish** — partial template coverage; Phase 7
+- **Admin UI localization** — admin templates remain English-only
+- **Controller flash migration** — most `session()->flash()` calls still use hardcoded English; migrate to `flashTrans()` + `FlashMessage` incrementally
 - **OIDC E2E** — code ships; providers need operator credentials and manual checklist (`docs/TESTING.md`)
 - **Custom avatar URL plugin** — optional; not bundled in 0.3.0
 

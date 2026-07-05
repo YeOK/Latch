@@ -1,6 +1,6 @@
 {# Expects: topics (list), board_slug (optional — omit on tag/search pages that include board link) #}
 {% if topics is empty %}
-    <p class="empty">No topics yet.</p>
+    <p class="empty">{{ trans('home.no_topics_yet') }}</p>
 {% else %}
     <ul class="topic-list" role="list">
         {% for topic in topics %}
@@ -24,13 +24,13 @@
                     } %}
                     <div class="topic-row-body">
                         <div class="topic-row-title">
-                            {% if topic.is_unread is defined and topic.is_unread %}<span class="badge badge-unread" title="New posts">New</span>{% endif %}
-                            {% if topic.is_pinned %}<span class="badge">Pinned</span>{% endif %}
-                            {% if topic.is_locked %}<span class="badge badge-muted">Locked</span>{% endif %}
+                            {% if topic.is_unread is defined and topic.is_unread %}<span class="badge badge-unread" title="{{ trans('common.new_posts') }}">{{ trans('common.new') }}</span>{% endif %}
+                            {% if topic.is_pinned %}<span class="badge">{{ trans('common.pinned') }}</span>{% endif %}
+                            {% if topic.is_locked %}<span class="badge badge-muted">{{ trans('common.locked') }}</span>{% endif %}
                             <a href="/topic/{{ topic.id }}"{% if topic.is_unread is defined and topic.is_unread %} class="topic-unread-link"{% endif %}>{{ topic.title }}</a>
                         </div>
                         <p class="topic-row-author muted">
-                            by {% include 'partials/username_link.twig' with { username: topic.author_name } %}
+                            {{ trans('common.by') }} {% include 'partials/username_link.twig' with { username: topic.author_name } %}
                             {% if topic.board_slug is defined and topic.board_name is defined %}
                                 · <a href="/board/{{ topic.board_slug }}">{{ topic.board_name }}</a>
                             {% endif %}
@@ -41,7 +41,7 @@
                     </div>
                 </div>
                 <div class="topic-row-meta">
-                    <span class="topic-row-stat">{{ topic.post_count }} post{{ topic.post_count == 1 ? '' : 's' }}</span>
+                    <span class="topic-row-stat">{{ topic.post_count }} {{ topic.post_count == 1 ? trans('common.post') : trans('common.posts') }}</span>
                     <time class="topic-row-date">{{ topic.last_post_at|format_datetime }}</time>
                 </div>
             </li>

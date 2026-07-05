@@ -109,7 +109,20 @@ User-facing strings use PHP translation files in `lang/{locale}.php` (dot keys).
 | RTL | Arabic (`ar`) sets `dir="rtl"` on `<html>`; use logical CSS where possible |
 | Fallback | Missing keys fall back to `lang/en.php` |
 
-Supported catalog codes: `en`, `es`, `de`, `fr`, `ar` (see `Latch\Core\Locale`). **`ar` is partial** (falls back to English). Full template coverage, complete Arabic, and RTL layout polish are **Phase 7** (after public git) — see `PLAN.md`. Plugins can merge strings via the `locale.translations` filter hook — see `docs/PLUGINS.md`.
+Supported catalog codes: `en`, `es`, `de`, `fr`, `ar` (see `Latch\Core\Locale`). Guest and member templates, legal pages, profile/auth flows, sort labels, and first-party JS overlays use `trans()`; admin UI stays English. Arabic sets `dir="rtl"` with RTL layout hooks in `theme.css`. Missing keys fall back to `lang/en.php`. Plugins can merge strings via the `locale.translations` filter hook — see `docs/PLUGINS.md`. Client scripts read `window.LatchI18n` from `partials/i18n_js.html.twig`.
+
+#### PHP-generated strings (Phase 8)
+
+Server-side copy uses the same `lang/{locale}.php` files:
+
+| Namespace | Use |
+|-----------|-----|
+| `notify.*` | In-app notifications — `NotificationMessageFormatter` resolves display text at read time from `event_type` + `meta_json` (English `message` column kept for email/legacy) |
+| `report.*` | Report reason labels — `ReportReasons::translatedCategories()` |
+| `flash.*` | Session flashes — migrate controllers to `Application::flashTrans()` with keys from `Latch\Support\FlashMessage` |
+| `api.*` | JSON error payloads |
+
+Helpers: `Application::transForLocale()`, `translatorFor()`, `flashTrans()`, `userLocale()`. New notifications should include `topic_title` in `meta_json` for reliable formatting.
 
 ---
 

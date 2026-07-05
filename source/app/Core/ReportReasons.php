@@ -70,6 +70,43 @@ final class ReportReasons
         return $this->categories()[$code]['label'] ?? $code;
     }
 
+    /**
+     * @return array<string, string> reason code => translation key
+     */
+    public static function labelKeys(): array
+    {
+        return [
+            'spam' => 'report.spam',
+            'harassment' => 'report.harassment',
+            'hate' => 'report.hate',
+            'illegal' => 'report.illegal',
+            'off_topic' => 'report.off_topic',
+            'other' => 'report.other',
+        ];
+    }
+
+    /**
+     * @param callable(string): string $translate
+     * @return array<string, array{label: string, severity: string}>
+     */
+    public function translatedCategories(callable $translate): array
+    {
+        $categories = [];
+        foreach ($this->categories() as $code => $entry) {
+            $key = self::labelKeys()[$code] ?? null;
+            $label = $key !== null ? $translate($key) : (string) $entry['label'];
+            if ($key !== null && $label === $key) {
+                $label = (string) $entry['label'];
+            }
+            $categories[$code] = [
+                'label' => $label,
+                'severity' => (string) $entry['severity'],
+            ];
+        }
+
+        return $categories;
+    }
+
     public function severityFor(string $code): string
     {
         return $this->categories()[$code]['severity'] ?? self::SEVERITY_MEDIUM;

@@ -1,31 +1,31 @@
 {% extends 'layouts/base.html.twig' %}
 
-{% block title %}Watched topics — {{ site.name }}{% endblock %}
+{% block title %}{{ trans('watched.title') }} — {{ site.name }}{% endblock %}
 
 {% block content %}
     <section class="page-header">
-        <h1>Watched topics</h1>
+        <h1>{{ trans('watched.title') }}</h1>
         <p class="muted">
             {% if unread_count > 0 %}
-                {{ unread_count }} with new posts since your last visit
+                {{ trans('watched.unread_summary', { count: unread_count }) }}
             {% else %}
-                No new posts in watched topics.
+                {{ trans('watched.no_unread') }}
             {% endif %}
         </p>
     </section>
 
     {% if topics is empty %}
-        <p class="muted watched-empty">You are not watching any topics yet. Open a thread and use <strong>Watch</strong> to follow it, or post in a topic to watch it automatically.</p>
+        <p class="muted watched-empty">{{ trans('watched.empty') }}</p>
     {% else %}
         {% include 'partials/topic_list.html.twig' with { topics: topics } %}
         {% if total_pages > 1 %}
-            <nav class="pagination" aria-label="Watched topic pages">
+            <nav class="pagination" aria-label="{{ trans('watched.pages_aria') }}">
                 {% if page > 1 %}
-                    <a class="btn btn-small" href="/watched?page={{ page - 1 }}">← Newer</a>
+                    <a class="btn btn-small" href="/watched?page={{ page - 1 }}">{{ trans('common.newer') }}</a>
                 {% endif %}
-                <span class="muted">Page {{ page }} of {{ total_pages }}</span>
+                <span class="muted">{{ trans('common.page_of', { page: page, total: total_pages }) }}</span>
                 {% if page < total_pages %}
-                    <a class="btn btn-small" href="/watched?page={{ page + 1 }}">Older →</a>
+                    <a class="btn btn-small" href="/watched?page={{ page + 1 }}">{{ trans('common.older') }}</a>
                 {% endif %}
             </nav>
         {% endif %}

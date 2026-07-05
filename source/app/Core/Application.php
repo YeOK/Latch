@@ -124,6 +124,7 @@ final class Application
     private InputValidator $inputValidator;
     private NotificationRepository $notifications;
     private NotificationService $notificationService;
+    private NotificationMessageFormatter $notificationMessageFormatter;
     private DirectMessageRepository $directMessages;
     private UserBlockRepository $userBlocks;
     private MessageService $messages;
@@ -232,6 +233,7 @@ final class Application
         );
         $this->notifications = new NotificationRepository($this->db);
         $emailNotifications = new EmailNotificationService($this->mail, $this->settings, $this->users);
+        $this->notificationMessageFormatter = new NotificationMessageFormatter();
         $this->notificationService = new NotificationService(
             $this->notifications,
             $this->users,
@@ -971,6 +973,38 @@ final class Application
     public function notificationService(): NotificationService
     {
         return $this->notificationService;
+    }
+
+    public function notificationMessageFormatter(): NotificationMessageFormatter
+    {
+        return $this->notificationMessageFormatter;
+    }
+
+    public function userLocale(): string
+    {
+        return $this->resolvedLocale();
+    }
+
+    public function translatorFor(string $locale): Translator
+    {
+        return new Translator(
+            LATCH_ROOT . '/lang',
+            Locale::normalize($locale),
+            $this->hookRegistry,
+        );
+    }
+
+    public function transForLocale(string $locale, string $key, array $replace = []): string
+    {
+        return $this->translatorFor($locale)->get($key, $replace);
+    }
+
+    /**
+     * @param array<string, string|int|float> $replace
+     */
+    public function flashTrans(string $type, string $key, array $replace = []): void
+    {
+        $this->session()->flash($type, $this->trans($key, $replace));
     }
 
     public function directMessages(): DirectMessageRepository

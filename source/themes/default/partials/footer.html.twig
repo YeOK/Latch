@@ -43,7 +43,7 @@
                     {% endif %}
                 </ul>
                 {% if gdpr_enabled %}
-                    <p class="footer-gdpr-note muted">EU hosting mode: essential cookies only until you accept. Session and preference data are processed to run this forum.</p>
+                    <p class="footer-gdpr-note muted">{{ trans('footer.gdpr_note') }}</p>
                 {% endif %}
             </section>
             <section class="footer-links">
@@ -60,8 +60,8 @@
             {{ html|raw }}
         {% endfor %}
         <p class="footer-meta">
-            © {{ "now"|date("Y") }} {{ privacy_operator_name }} · Powered by <a href="https://latch.network" rel="noopener">Latch</a>
-            {% if gdpr_enabled %} · <button type="button" class="link-button" id="footer-cookie-settings">Cookie settings</button>{% endif %}
+            {{ trans('footer.copyright', { year: "now"|date("Y"), operator: privacy_operator_name }) }} · {{ trans('footer.powered_by') }} <a href="https://latch.network" rel="noopener">Latch</a>
+            {% if gdpr_enabled %} · <button type="button" class="link-button" id="footer-cookie-settings">{{ trans('footer.cookie_settings') }}</button>{% endif %}
         </p>
     </div>
 </footer>

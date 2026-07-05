@@ -42,7 +42,12 @@ echo "==> Composer (production dependencies)"
     elif [[ -f composer.phar ]]; then
         php composer.phar install --no-dev --optimize-autoloader --no-interaction
     else
-        echo "Warning: composer not found — using existing vendor/ if present" >&2
+        echo "Error: composer not found — install composer or use bundled source/composer.phar" >&2
+        exit 1
+    fi
+    if [[ ! -f vendor/autoload.php ]]; then
+        echo "Error: vendor/autoload.php missing after composer install" >&2
+        exit 1
     fi
 )
 

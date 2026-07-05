@@ -1,38 +1,38 @@
 {% extends 'layouts/base.html.twig' %}
 
-{% block title %}Set up two-factor — {{ site.name }}{% endblock %}
+{% block title %}{{ trans('auth.totp_setup_title') }} — {{ site.name }}{% endblock %}
 
 {% block content %}
     <section class="auth-card form-wide">
-        <h1>Set up two-factor authentication</h1>
+        <h1>{{ trans('auth.totp_setup_title') }}</h1>
         {% if setup_required %}
-            <p class="flash flash-error">Administrators must enable two-factor authentication before continuing.</p>
+            <p class="flash flash-error">{{ trans('auth.totp_setup_required') }}</p>
         {% endif %}
         <ol class="muted">
-            <li>Install an authenticator app (Google Authenticator, Authy, 1Password, etc.).</li>
-            <li>Scan the QR code below, or enter the secret manually.</li>
-            <li>Enter the 6-digit code to confirm.</li>
+            <li>{{ trans('auth.totp_setup_step_app') }}</li>
+            <li>{{ trans('auth.totp_setup_step_scan') }}</li>
+            <li>{{ trans('auth.totp_setup_step_confirm') }}</li>
         </ol>
 
         <div class="totp-setup-qr" aria-hidden="false">
             {{ qr_svg|raw }}
         </div>
-        <p class="muted totp-scan-hint">Hold your phone steady and fill the frame with the code. Increase screen brightness if scanning fails.</p>
+        <p class="muted totp-scan-hint">{{ trans('auth.totp_scan_hint') }}</p>
 
         <details class="muted" open>
-            <summary>Can't scan? Enter the secret manually</summary>
+            <summary>{{ trans('auth.totp_manual_summary') }}</summary>
             <p><code class="totp-secret">{{ secret_display }}</code></p>
-            <p><a href="{{ provisioning_uri }}">Open in authenticator app</a> (mobile)</p>
+            <p><a href="{{ provisioning_uri }}">{{ trans('auth.totp_open_app') }}</a> (mobile)</p>
         </details>
 
         <form method="post" action="{{ form_action }}" class="form">
             {{ csrf_field() }}
             <label>
-                Confirm with a code from your app
+                {{ trans('auth.totp_confirm_code') }}
                 <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required autofocus>
             </label>
-            <button type="submit" class="btn btn-primary">Enable two-factor</button>
+            <button type="submit" class="btn btn-primary">{{ trans('auth.totp_enable') }}</button>
         </form>
-        <p class="muted"><a href="/login/2fa/cancel">Back to sign in</a></p>
+        <p class="muted"><a href="/login/2fa/cancel">{{ trans('auth.back_to_sign_in') }}</a></p>
     </section>
 {% endblock %}

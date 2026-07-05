@@ -3,7 +3,7 @@
 #
 # COPR: spec path packaging/latch.spec (maintainer notes: deploy/copr-setup.md, local only)
 # COPR project setting: enable internet/network for mock builds.
-# %build runs composer install --no-dev; committed vendor/ remains a fallback for tarballs/git clones.
+# %build runs composer install --no-dev (vendor/ is not in git; composer.lock is source of truth).
 
 %global latch_datadir %{_datadir}/latch
 %global latch_libdir %{_localstatedir}/lib/latch
@@ -11,7 +11,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.18
+Version:        0.3.0.19
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 

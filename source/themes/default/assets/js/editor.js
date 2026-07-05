@@ -522,7 +522,7 @@
                 return;
             }
 
-            previewPanel.textContent = 'Loading preview…';
+            previewPanel.textContent = (window.LatchI18n && window.LatchI18n.compose_loading_preview) || 'Loading preview…';
             previewPanel.classList.add('muted');
             fetch(previewUrl, {
                     method: 'POST',

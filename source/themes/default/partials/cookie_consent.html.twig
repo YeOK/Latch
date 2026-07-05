@@ -1,15 +1,14 @@
 {% if gdpr_enabled %}
     <div class="cookie-consent" id="cookie-consent" role="dialog" aria-labelledby="cookie-consent-title" aria-describedby="cookie-consent-desc" hidden>
         <div class="cookie-consent-inner">
-            <p id="cookie-consent-title" class="cookie-consent-title"><strong>Cookies on this site</strong></p>
+            <p id="cookie-consent-title" class="cookie-consent-title"><strong>{{ trans('cookie_consent.title') }}</strong></p>
             <p id="cookie-consent-desc" class="cookie-consent-desc">
-                {{ privacy_operator_name }} uses essential cookies to keep you signed in, remember your theme choice, and protect forms.
-                No advertising or third-party tracking cookies are set by Latch.
-                <a href="/cookies">Read our cookie policy</a> or <a href="/privacy">privacy policy</a>.
+                {{ trans('cookie_consent.body', { operator: privacy_operator_name }) }}
+                <a href="/cookies">{{ trans('cookie_consent.read_cookie_policy') }}</a> or <a href="/privacy">{{ trans('cookie_consent.read_privacy_policy') }}</a>.
             </p>
             <div class="cookie-consent-actions">
-                <button type="button" class="btn btn-small btn-primary" id="cookie-consent-accept">Accept essential cookies</button>
-                <button type="button" class="btn btn-small" id="cookie-consent-reject">Reject non-essential</button>
+                <button type="button" class="btn btn-small btn-primary" id="cookie-consent-accept">{{ trans('cookie_consent.accept') }}</button>
+                <button type="button" class="btn btn-small" id="cookie-consent-reject">{{ trans('cookie_consent.reject') }}</button>
             </div>
         </div>
     </div>

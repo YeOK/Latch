@@ -81,6 +81,18 @@ final class PostListSort
     }
 
     /**
+     * @return array<string, string> sort key => translation key
+     */
+    public static function labelKeys(): array
+    {
+        return [
+            self::OLDEST => 'sort.post_oldest',
+            self::NEWEST => 'sort.post_newest',
+            self::TOP => 'sort.post_top',
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
     public static function labels(): array
@@ -90,6 +102,20 @@ final class PostListSort
             self::NEWEST => 'Newest first',
             self::TOP => 'Most likes',
         ];
+    }
+
+    /**
+     * @param callable(string): string $translate
+     * @return array<string, string>
+     */
+    public static function translatedLabels(callable $translate): array
+    {
+        $labels = [];
+        foreach (self::labelKeys() as $sort => $key) {
+            $labels[$sort] = $translate($key);
+        }
+
+        return $labels;
     }
 
 }
