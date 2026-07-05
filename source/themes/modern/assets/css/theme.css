@@ -821,7 +821,7 @@ body.cookie-consent-visible {
     text-decoration: underline;
 }
 
-main.container.page-home {
+body.page-forum main.container {
     width: min(var(--home-content-max, var(--content-max)), calc(100vw - 2 * var(--content-gutter)));
 }
 

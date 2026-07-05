@@ -359,7 +359,7 @@ Browser quality is checked with **Chrome DevTools → Lighthouse**, not a `bin/l
 
 **Dev baseline (2026-07-05, guest home):** Performance **100**, Accessibility **100**, Best Practices **100**, SEO **100**.
 
-**Production baseline before v0.3.0.16 (v0.3.0.15):** 100 / 94 / 81 / 100 — Best Practices and Accessibility gaps fixed in `[Unreleased]` (CSP cache nonce rewrite, footer link underline, header brand accessible name).
+**Production baseline before v0.3.0.16 (v0.3.0.15):** 100 / 94 / 81 / 100 — Best Practices and Accessibility gaps fixed in v0.3.0.16 (CSP cache nonce rewrite, footer link underline, header brand accessible name).
 
 Server-side timing (`bin/latch benchmark`) is separate — it measures PHP/SQLite, not paint or LCP.
 

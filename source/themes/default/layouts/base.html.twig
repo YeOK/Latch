@@ -19,7 +19,8 @@
         <link rel="stylesheet" href="{{ asset }}">
     {% endfor %}
 </head>
-{% set body_class = current_path starts with '/admin' ? 'page-admin' : (current_path starts with '/profile' ? 'page-profile' : (current_path == '/' ? 'page-home' : '')) %}
+{% set is_forum_page = current_path == '/' or current_path starts with '/board/' or current_path starts with '/topic/' or current_path starts with '/tag/' or current_path starts with '/search' or current_path starts with '/watched' %}
+{% set body_class = current_path starts with '/admin' ? 'page-admin' : (current_path starts with '/profile' ? 'page-profile' : (is_forum_page ? (current_path == '/' ? 'page-home page-forum' : 'page-forum') : '')) %}
 <body{% if user %} data-logged-in="1" data-username="{{ user.username }}"{% endif %}{% if gdpr_enabled %} data-gdpr="1"{% endif %}{% if body_class %} class="{{ body_class }}"{% endif %}>
     {% include 'partials/staff_report_bar.html.twig' %}
     {% include 'partials/members_only_banner.html.twig' %}

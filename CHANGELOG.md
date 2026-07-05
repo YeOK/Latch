@@ -9,6 +9,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.3.0.17] — 2026-07-05
+
+### Changed
+- **Forum layout width** — home, board, topic, tag, search, and watched pages share one content track (`page-forum`); header and main column stay aligned on all forum views.
+
+### Fixed
+- **`app.version` display** — `config/default.php` stays in sync with `VERSION` / git tag (fixes `/health` and admin version panel showing 0.3.0.15 after 0.3.0.16 RPM deploy).
+- **Header consistency** — site header uses the same width and desktop height on every public page, not only the home page.
+
 ## [0.3.0.16] — 2026-07-05
 
 ### Changed
