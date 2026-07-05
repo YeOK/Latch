@@ -325,10 +325,14 @@
                 }
             })
             .catch(function () {
-                body.innerHTML =
-                    '<p class="muted account-overlay-loading">Could not load this page. <a href="' +
-                    url +
-                    '">Open in full page</a>.</p>';
+                body.replaceChildren();
+                var message = document.createElement('p');
+                message.className = 'muted account-overlay-loading';
+                var fallback = document.createElement('a');
+                fallback.href = parsed.pathname + parsed.search;
+                fallback.textContent = 'Open in full page';
+                message.append('Could not load this page. ', fallback, '.');
+                body.appendChild(message);
             })
             .finally(function () {
                 loading = false;

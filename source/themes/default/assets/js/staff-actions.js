@@ -208,12 +208,27 @@
         }
     }
 
-    function eyeIconHtml(userId, username) {
-        return ''
-            + '<a class="btn btn-small btn-icon" href="/admin/users/' + userId + '" title="View ' + username + '" aria-label="View ' + username + '">'
-            + '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">'
+    function normalizeUserId(userId) {
+        return String(userId || '').replace(/[^0-9]/g, '');
+    }
+
+    function appendEyeIcon(container, userId, username) {
+        var id = normalizeUserId(userId);
+        if (!id) {
+            return;
+        }
+
+        var link = document.createElement('a');
+        link.className = 'btn btn-small btn-icon';
+        link.href = '/admin/users/' + id;
+        var label = 'View ' + String(username || 'user');
+        link.title = label;
+        link.setAttribute('aria-label', label);
+        link.innerHTML =
+            '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">'
             + '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'
-            + '<circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg></a>';
+            + '<circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>';
+        container.appendChild(link);
     }
 
     function handleUsersRowBan(panel, data) {
@@ -227,14 +242,26 @@
         row.classList.add('row-muted');
         var statusCell = row.querySelector('[data-user-status]');
         if (statusCell) {
-            statusCell.innerHTML = '<span class="badge badge-muted">Banned</span>';
+            statusCell.replaceChildren();
+            var badge = document.createElement('span');
+            badge.className = 'badge badge-muted';
+            badge.textContent = 'Banned';
+            statusCell.appendChild(badge);
             if (data.banned_until) {
-                statusCell.innerHTML += ' <span class="muted">until ' + sliceDate(data.banned_until) + '</span>';
+                statusCell.appendChild(document.createTextNode(' '));
+                var until = document.createElement('span');
+                until.className = 'muted';
+                until.textContent = 'until ' + sliceDate(data.banned_until);
+                statusCell.appendChild(until);
             }
         }
         var actionsCell = row.querySelector('[data-user-actions]');
         if (actionsCell) {
-            actionsCell.innerHTML = '<div class="staff-action-icons">' + eyeIconHtml(userId, name) + '</div>';
+            actionsCell.replaceChildren();
+            var icons = document.createElement('div');
+            icons.className = 'staff-action-icons';
+            appendEyeIcon(icons, userId, name);
+            actionsCell.appendChild(icons);
         }
     }
 
