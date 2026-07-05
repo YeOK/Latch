@@ -1,6 +1,6 @@
 {% set brand_variant = brand_variant|default('header') %}
 {% set is_footer = brand_variant == 'footer' %}
-<a href="/" class="{% if is_footer %}footer-brand-link footer-brand-link-custom{% else %}header-brand header-brand-custom{% endif %}" aria-label="{{ site.name }} home">
+<a href="/" class="{% if is_footer %}footer-brand-link footer-brand-link-custom{% else %}header-brand header-brand-custom{% endif %}">
     <img class="{% if is_footer %}footer-brand-mark-img{% else %}header-brand-mark-img{% endif %}" src="/assets/img/latch-logo.svg?v={{ asset_version }}" width="{% if is_footer %}28{% else %}40{% endif %}" height="{% if is_footer %}28{% else %}40{% endif %}" alt="">
     <span class="header-brand-text">
         <span class="header-brand-name">{{ site.name }}</span>

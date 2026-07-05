@@ -837,6 +837,11 @@ main.container {
     font-size: 0.85rem;
 }
 
+.site-footer p a {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
 .legal-doc {
     padding: 1.25rem 1.5rem;
     max-width: 48rem;

@@ -347,12 +347,29 @@ See [OIDC.md](OIDC.md) for provider setup detail.
 
 ---
 
+## Lighthouse (Chrome — manual release check)
+
+Browser quality is checked with **Chrome DevTools → Lighthouse**, not a `bin/latch` command. Run before tagging when you change the theme, CSP, or guest page cache.
+
+1. Open the site in Chrome (local dev server or staging).
+2. DevTools → **Lighthouse** tab.
+3. Mode: **Navigation**; categories: Performance, Accessibility, Best Practices, SEO.
+4. Audit guest **`/`** (home). Optionally repeat on `/board/{slug}` and `/topic/{id}`.
+5. Save the JSON report if you want a before/after record.
+
+**Dev baseline (2026-07-05, guest home):** Performance **100**, Accessibility **100**, Best Practices **100**, SEO **100**.
+
+**Production baseline before v0.3.0.16 (v0.3.0.15):** 100 / 94 / 81 / 100 — Best Practices and Accessibility gaps fixed in `[Unreleased]` (CSP cache nonce rewrite, footer link underline, header brand accessible name).
+
+Server-side timing (`bin/latch benchmark`) is separate — it measures PHP/SQLite, not paint or LCP.
+
+---
+
 ## Planned (not implemented)
 
 | Command | Purpose |
 |---------|---------|
 | `bin/latch test --stress` | Concurrency / WAL load scripts (`tests/stress/`) — staging only |
-| `bin/latch test --perf` | Lighthouse / Web Vitals budgets |
 | WebAuthn E2E | Design stub: `docs/design/webauthn.md` |
 
 ---

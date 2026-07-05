@@ -149,7 +149,7 @@ Third-party themes should set `supports_color_modes: true` in `theme.json` if bo
 
 ## Performance budgets
 
-Server-side cache (Phase 1.5) does not replace a lean theme. Phase 5 runs Lighthouse on key URLs; design for these **default-theme targets**:
+Server-side cache (Phase 1.5) does not replace a lean theme. Before releases, spot-check key URLs with **Chrome DevTools Lighthouse** (see `docs/TESTING.md`); design for these **default-theme targets**:
 
 | Asset | Budget (uncompressed) | Default theme (Jul 2026) |
 |-------|----------------------|--------------------------|
@@ -309,7 +309,7 @@ Custom themes may ship their own SVG pack in the same directory structure. Plugi
 2. **Color modes** — light, dark, and system; toggle while on page.
 3. **Mobile** — sticky header, collapsible search, user menu, reply panel.
 4. **Guest cache** — with `members_only` off, confirm board pages return cacheable HTML for guests (no personalised content in cached output).
-5. **Phase 5 (later)** — `bin/latch test --perf` / Lighthouse CI on `/`, `/board/{slug}`, `/topic/{id}`.
+5. **Lighthouse** — Chrome DevTools audit on `/`, `/board/{slug}`, `/topic/{id}` before tags (`docs/TESTING.md`). Dev guest home baseline: **100 / 100 / 100 / 100** (2026-07-05).
 
 ---
 

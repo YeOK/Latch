@@ -79,5 +79,5 @@ The board UI sends large selections in **chunks of 20 topics** with progress fee
 ## Related
 
 - Guest page cache: Phase 1.5 (`Cache` tags on home/board/topic)
-- Phase 5: Lighthouse / Web Vitals budget in CI
+- Chrome Lighthouse: manual release check on guest home (`docs/TESTING.md`); dev baseline **100 / 100 / 100 / 100** (2026-07-05)
 - Cron `ANALYZE`: weekly job keeps planner stats fresh
