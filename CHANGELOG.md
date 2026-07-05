@@ -7,6 +7,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Bulk topic moderation (scale)** — `BulkTopicActionService` defers cache and FTS side effects; board UI chunks large selections (20 topics/request) with progress; **Delete all mod trash** batches cache invalidation.
+
 ## [0.3.0.15] — 2026-07-05
 
 ### Added

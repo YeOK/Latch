@@ -62,6 +62,20 @@ See [INSTALL.md](INSTALL.md#sqlite-tuning-optional) for override examples. Tunin
 
 Plugin security scans are cached under `storage/cache/plugin-audits/{slug}.json` (invalidated when plugin files change). Admin **Plugins** reuses the cache; `cron daily` refreshes all non-ignored plugins. Ignored plugins (`plugin ignore`) are skipped entirely — see [PLUGINS.md](PLUGINS.md).
 
+## Bulk topic moderation
+
+Board bulk pin/lock/remove (`POST /mod/topics/bulk`) batches expensive side effects:
+
+| Before (per topic) | After (per request) |
+|--------------------|---------------------|
+| 4 cache tag invalidations (incl. `site`) | One deduped flush at end |
+| FTS remove/reindex per archived post | Deferred `removeTopic` once per source topic |
+| Per-author notification | Skipped in bulk (audit log still records each topic) |
+
+The board UI sends large selections in **chunks of 20 topics** with progress feedback (`board-mod-tools.js`), so a 80-topic delete becomes four short requests instead of one long freeze.
+
+**Guidance:** pin/lock batches are cheap; bulk **remove** is heavier (mod-trash archive per post). For md-import teardown or 100+ topics, use chunked bulk remove or **Delete all mod trash** on Maintenance after archiving.
+
 ## Related
 
 - Guest page cache: Phase 1.5 (`Cache` tags on home/board/topic)

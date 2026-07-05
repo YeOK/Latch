@@ -76,8 +76,12 @@ final class ModerationTrashService
         return $board;
     }
 
-    public function archivePost(int $postId, int $staffUserId): ?int
-    {
+    public function archivePost(
+        int $postId,
+        int $staffUserId,
+        ?ModerationTrashBatch $batch = null,
+        bool $deferSourceMaintenance = false,
+    ): ?int {
         if (!Schema::postsHaveTrashQueue($this->db)) {
             return null;
         }
@@ -112,13 +116,17 @@ final class ModerationTrashService
 
         $this->posts->reassignPosts([$postId], (int) $archiveTopic['id']);
         $this->topics->touchLastPost((int) $archiveTopic['id'], (string) ($post['created_at'] ?? null));
-        $this->afterSourceTopicChange($sourceTopic);
-        $this->indexArchiveTopic((int) $archiveTopic['id']);
+        if (!$deferSourceMaintenance) {
+            $this->afterSourceTopicChange($sourceTopic, $batch);
+        }
+        if ($batch === null) {
+            $this->indexArchiveTopic((int) $archiveTopic['id']);
+        }
 
         return (int) $archiveTopic['id'];
     }
 
-    public function archiveTopic(int $topicId, int $staffUserId): int
+    public function archiveTopic(int $topicId, int $staffUserId, ?ModerationTrashBatch $batch = null): int
     {
         $sourceTopic = $this->topics->findById($topicId);
         if ($sourceTopic === null || ($sourceTopic['deleted_at'] ?? null) !== null) {
@@ -132,9 +140,10 @@ final class ModerationTrashService
 
         $postIds = $this->topics->activePostIds($topicId);
         $archived = 0;
+        $deferSource = $batch !== null;
 
         foreach ($postIds as $postId) {
-            if ($this->archivePost($postId, $staffUserId) !== null) {
+            if ($this->archivePost($postId, $staffUserId, $batch, $deferSource) !== null) {
                 $archived++;
             }
         }
@@ -143,7 +152,14 @@ final class ModerationTrashService
         if ($sourceTopic !== null && ($sourceTopic['deleted_at'] ?? null) === null) {
             if ($this->topics->activePostIds($topicId) === []) {
                 $this->topics->softDelete($topicId);
-                $this->search?->removeTopic($topicId);
+                if ($batch !== null) {
+                    $batch->deferSearchRemove($topicId);
+                } else {
+                    $this->search?->removeTopic($topicId);
+                }
+            } elseif ($batch === null) {
+                $this->topics->recalculateLastPostAt($topicId);
+                $this->indexArchiveTopic($topicId);
             }
         }
 
@@ -326,20 +342,26 @@ final class ModerationTrashService
     /**
      * @param array<string, mixed> $sourceTopic
      */
-    private function afterSourceTopicChange(array $sourceTopic): void
+    private function afterSourceTopicChange(array $sourceTopic, ?ModerationTrashBatch $batch = null): void
     {
         $topicId = (int) $sourceTopic['id'];
         $remaining = $this->topics->activePostIds($topicId);
 
         if ($remaining === []) {
             $this->topics->softDelete($topicId);
-            $this->search?->removeTopic($topicId);
+            if ($batch !== null) {
+                $batch->deferSearchRemove($topicId);
+            } else {
+                $this->search?->removeTopic($topicId);
+            }
 
             return;
         }
 
         $this->topics->recalculateLastPostAt($topicId);
-        $this->indexArchiveTopic($topicId);
+        if ($batch === null) {
+            $this->indexArchiveTopic($topicId);
+        }
     }
 
     private function indexArchiveTopic(int $topicId): void

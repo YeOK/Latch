@@ -23,6 +23,7 @@
 
     var modActive = false;
     var loading = false;
+    var chunkSize = 20;
 
     var actionLabels = {
         pin: 'Pin',
@@ -171,6 +172,69 @@
         return formData;
     }
 
+    function chunkArray(items, size) {
+        var chunks = [];
+        for (var i = 0; i < items.length; i += size) {
+            chunks.push(items.slice(i, i + size));
+        }
+        return chunks;
+    }
+
+    function buildFormDataForIds(action, ids) {
+        var formData = buildFormData(action);
+        formData.delete('topic_ids[]');
+        ids.forEach(function (id) {
+            formData.append('topic_ids[]', String(id));
+        });
+        return formData;
+    }
+
+    function runChunkedAction(action, ids) {
+        var chunks = chunkArray(ids, chunkSize);
+        var total = ids.length;
+        var completed = 0;
+        var lastMessage = '';
+        var redirectUrl = '';
+
+        function runNext(index) {
+            if (index >= chunks.length) {
+                showFeedback(lastMessage || 'Done.', false);
+                if (modActive) {
+                    persistModActive(true);
+                }
+                if (redirectUrl) {
+                    window.location.href = redirectUrl;
+                } else {
+                    window.location.reload();
+                }
+                return;
+            }
+
+            var chunk = chunks[index];
+            var label = actionLabels[action] || 'Update';
+            showFeedback(
+                label + ' ' + Math.min(completed + chunk.length, total) + '/' + total + '…',
+                false,
+            );
+
+            staffFetch(buildFormDataForIds(action, chunk)).then(function (result) {
+                if (!result.ok || !result.body.ok) {
+                    showFeedback(result.body.message || 'Could not update topics.', true);
+                    return;
+                }
+
+                completed += chunk.length;
+                lastMessage = result.body.message || lastMessage;
+                if (result.body.redirect) {
+                    redirectUrl = result.body.redirect;
+                }
+                runNext(index + 1);
+            });
+        }
+
+        runNext(0);
+    }
+
     function confirmAction(action) {
         var ids = selectedIds();
         if (ids.length === 0) {
@@ -184,25 +248,36 @@
                   ids.length +
                   ' topic(s) from the board? Posts may be moved to the moderation trash.'
                 : label + ' ' + ids.length + ' topic(s)?';
+        if (ids.length > chunkSize) {
+            message +=
+                '\n\nLarge selection: updates run in batches of ' +
+                chunkSize +
+                ' to keep the site responsive.';
+        }
         if (!window.confirm(message)) {
             return;
         }
 
-        staffFetch(buildFormData(action)).then(function (result) {
-            if (!result.ok || !result.body.ok) {
-                showFeedback(result.body.message || 'Could not update topics.', true);
-                return;
-            }
-            showFeedback(result.body.message, false);
-            if (modActive) {
-                persistModActive(true);
-            }
-            if (result.body.redirect) {
-                window.location.href = result.body.redirect;
-            } else {
-                window.location.reload();
-            }
-        });
+        if (ids.length <= chunkSize) {
+            staffFetch(buildFormData(action)).then(function (result) {
+                if (!result.ok || !result.body.ok) {
+                    showFeedback(result.body.message || 'Could not update topics.', true);
+                    return;
+                }
+                showFeedback(result.body.message, false);
+                if (modActive) {
+                    persistModActive(true);
+                }
+                if (result.body.redirect) {
+                    window.location.href = result.body.redirect;
+                } else {
+                    window.location.reload();
+                }
+            });
+            return;
+        }
+
+        runChunkedAction(action, ids);
     }
 
     if (toggle) {

@@ -15,6 +15,7 @@ use Latch\Core\Application;
 use Latch\Core\Cache;
 use Latch\Core\ModerationTrashService;
 use Latch\Core\Response;
+use Latch\Support\BulkTopicActionService;
 use Latch\Support\ModerationTrashResponder;
 use Latch\Support\StaffActionResponder;
 use RuntimeException;
@@ -515,132 +516,17 @@ final class ModController
             $this->finishStaffAction(false, 'Select at least one topic.', $this->bulkTopicsRedirect());
         }
 
-        $staff = $this->app->auth()->user();
-        $staffId = (int) ($staff['id'] ?? 0);
-        $processed = 0;
-        $skipped = 0;
-        $archivedPosts = 0;
-
-        foreach ($ids as $id) {
-            $topic = $this->app->topics()->findById($id);
-            if ($topic === null || !empty($topic['deleted_at'])) {
-                $skipped++;
-                continue;
-            }
-
-            $board = $this->app->boards()->findById((int) $topic['board_id']);
-            if ($board !== null && $this->app->moderationTrash()->isTrashBoard($board)) {
-                $skipped++;
-                continue;
-            }
-
-            if ($action === 'pin' && !empty($topic['is_pinned'])) {
-                $skipped++;
-                continue;
-            }
-            if ($action === 'unpin' && empty($topic['is_pinned'])) {
-                $skipped++;
-                continue;
-            }
-            if ($action === 'lock' && !empty($topic['is_locked'])) {
-                $skipped++;
-                continue;
-            }
-            if ($action === 'unlock' && empty($topic['is_locked'])) {
-                $skipped++;
-                continue;
-            }
-
-            if ($action === 'pin') {
-                $this->app->topics()->setPinned($id, true);
-                $this->logModAction('topic.pin', 'topic', $id, ['bulk' => true]);
-                if ($staff !== null) {
-                    $this->app->notificationService()->onStaffTopicAction(
-                        'topic.pin',
-                        $topic,
-                        $staff,
-                        'Your topic "' . $this->topicTitleLabel($topic) . '" was pinned by @' . $staff['username'],
-                    );
-                }
-            } elseif ($action === 'unpin') {
-                $this->app->topics()->setPinned($id, false);
-                $this->logModAction('topic.unpin', 'topic', $id, ['bulk' => true]);
-                if ($staff !== null) {
-                    $this->app->notificationService()->onStaffTopicAction(
-                        'topic.unpin',
-                        $topic,
-                        $staff,
-                        'Your topic "' . $this->topicTitleLabel($topic) . '" was unpinned by @' . $staff['username'],
-                    );
-                }
-            } elseif ($action === 'lock') {
-                $this->app->topics()->setLocked($id, true);
-                $this->logModAction('topic.lock', 'topic', $id, ['bulk' => true]);
-                if ($staff !== null) {
-                    $this->app->notificationService()->onStaffTopicAction(
-                        'topic.lock',
-                        $topic,
-                        $staff,
-                        'Your topic "' . $this->topicTitleLabel($topic) . '" was locked by @' . $staff['username'],
-                    );
-                }
-            } elseif ($action === 'unlock') {
-                $this->app->topics()->setLocked($id, false);
-                $this->logModAction('topic.unlock', 'topic', $id, ['bulk' => true]);
-                if ($staff !== null) {
-                    $this->app->notificationService()->onStaffTopicAction(
-                        'topic.unlock',
-                        $topic,
-                        $staff,
-                        'Your topic "' . $this->topicTitleLabel($topic) . '" was unlocked by @' . $staff['username'],
-                    );
-                }
-            } else {
-                $archived = $this->app->moderationTrash()->archiveTopic($id, $staffId);
-                $archivedPosts += $archived;
-                $this->logModAction('topic.delete', 'topic', $id, [
-                    'bulk' => true,
-                    'archived_posts' => $archived,
-                ]);
-                if ($staff !== null) {
-                    $this->app->notificationService()->onStaffTopicAction(
-                        'topic.delete',
-                        $topic,
-                        $staff,
-                        'Your topic "' . $this->topicTitleLabel($topic) . '" was removed by @' . $staff['username'],
-                    );
-                }
-            }
-
-            $this->invalidateTopicCache($topic);
-            $processed++;
-        }
-
-        $labels = [
-            'pin' => 'Pinned',
-            'unpin' => 'Unpinned',
-            'lock' => 'Locked',
-            'unlock' => 'Unlocked',
-            'delete' => 'Removed',
-        ];
-        $verb = $labels[$action] ?? 'Updated';
-        $message = $processed > 0
-            ? "{$verb} {$processed} topic(s)."
-            : 'No topics were updated.';
-        if ($skipped > 0) {
-            $message .= " Skipped {$skipped}.";
-        }
-        if ($action === 'delete' && $archivedPosts > 0) {
-            $trashBoard = $this->app->moderationTrash()->trashBoard();
-            $trashName = (string) ($trashBoard['name'] ?? 'Moderation trash');
-            $message .= " {$archivedPosts} post(s) moved to {$trashName}.";
-        }
+        $staffId = (int) ($this->app->auth()->user()['id'] ?? 0);
+        $result = (new BulkTopicActionService($this->app))->execute($action, $ids, $staffId);
 
         $this->finishStaffAction(
-            $processed > 0,
-            $message,
+            $result['ok'],
+            $result['message'],
             $this->bulkTopicsRedirect(),
-            ['processed' => $processed, 'skipped' => $skipped],
+            [
+                'processed' => $result['processed'],
+                'skipped' => $result['skipped'],
+            ],
         );
     }
 

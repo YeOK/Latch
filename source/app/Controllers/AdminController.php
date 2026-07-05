@@ -305,6 +305,7 @@ final class AdminController
             }
         }
 
+        $cache = new \Latch\Core\BulkCacheCollector();
         foreach (array_keys($restoreTopicIds) as $restoreTopicId) {
             $topic = $this->app->topics()->findById($restoreTopicId);
             if ($topic === null) {
@@ -312,26 +313,24 @@ final class AdminController
             }
 
             $this->app->topics()->recalculateLastPostAt($restoreTopicId);
+            $cache->addTopic($topic);
+        }
+
+        foreach (array_keys($restoreTopicIds) as $restoreTopicId) {
             $this->app->indexSearchTopic($restoreTopicId);
-            $this->app->invalidateCacheTags([
-                Cache::tagTopic($restoreTopicId),
-                Cache::tagBoard((int) $topic['board_id']),
-                Cache::tagSite(),
-            ]);
         }
 
         foreach (array_keys($authorUserIds) as $authorUserId) {
-            $this->app->invalidateCacheTags([Cache::tagUser($authorUserId)]);
+            $cache->addUser($authorUserId);
         }
 
         $trashBoard = $this->app->moderationTrash()->trashBoard();
         $trashBoardId = $trashBoard !== null ? (int) $trashBoard['id'] : 0;
         if ($trashBoardId > 0) {
-            $this->app->invalidateCacheTags([
-                Cache::tagBoard($trashBoardId),
-                Cache::tagSite(),
-            ]);
+            $cache->addBoard($trashBoardId);
         }
+
+        $cache->flush($this->app);
 
         $actor = $this->app->auth()->user();
         $actorId = (int) ($actor['id'] ?? 0);
