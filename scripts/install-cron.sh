@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 2026 Latch contributors
+# SPDX-License-Identifier: MIT
 # Install Latch maintenance crontab for the web server user.
 #
 # Usage:
@@ -17,7 +19,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LATCH_ROOT="${LATCH_ROOT:-${SCRIPT_DIR}/../source}"
 WEB_USER="${WEB_USER:-apache}"
-CRON_TEMPLATE="${SCRIPT_DIR}/../deploy/cron/latch.cron.example"
+CRON_TEMPLATE="${SCRIPT_DIR}/cron/latch.cron.example"
 MARKER="# latch-cron-installed"
 
 if [[ ! -f "${LATCH_ROOT}/bin/latch" ]]; then

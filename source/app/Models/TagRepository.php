@@ -2,10 +2,18 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Models;
 
 use Latch\Core\Database;
 use Latch\Core\TopicTags;
+use Latch\Support\DeletedAuthorSql;
 use Latch\Support\Str;
 
 final class TagRepository
@@ -153,13 +161,13 @@ final class TagRepository
             : "(SELECT COUNT(*) FROM posts p WHERE p.topic_id = t.id AND p.deleted_at IS NULL AND p.approval_status = 'approved')";
 
         $stmt = $this->db->pdo()->prepare(
-            "SELECT t.*, u.username AS author_name, u.email AS author_email,
+            'SELECT t.*, ' . DeletedAuthorSql::authorName() . ", u.email AS author_email,
                     b.slug AS board_slug, b.name AS board_name,
                     {$postCountSql} AS post_count
              FROM topic_tags tt
              JOIN tags tg ON tg.id = tt.tag_id
              JOIN topics t ON t.id = tt.topic_id
-             JOIN users u ON u.id = t.user_id
+             LEFT JOIN users u ON u.id = t.user_id
              JOIN boards b ON b.id = t.board_id
              WHERE tg.slug = :slug AND t.deleted_at IS NULL{$approvalWhere}
              ORDER BY t.last_post_at DESC

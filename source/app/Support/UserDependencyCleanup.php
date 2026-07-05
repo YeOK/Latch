@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Support;
 
 use PDO;
@@ -45,6 +52,10 @@ final class UserDependencyCleanup
 
         $this->deleteWhere($pdo, 'dm_conversations', 'user_low = :id OR user_high = :id', $bind);
         $this->deleteWhere($pdo, 'user_blocks', 'blocker_id = :id OR blocked_id = :id', $bind);
+        $this->deleteWhere($pdo, 'user_warnings', 'issued_by = :id', $bind);
+        $this->deleteWhere($pdo, 'post_revisions', 'editor_id = :id', $bind);
+        $this->nullifyColumn($pdo, 'oauth_clients', 'created_by_user_id', 'created_by_user_id = :id', $bind);
+        $this->nullifyColumn($pdo, 'posts', 'trashed_by_user_id', 'trashed_by_user_id = :id', $bind);
     }
 
     /**
@@ -83,6 +94,48 @@ final class UserDependencyCleanup
             $removed['user_blocks'] = $blocks;
         }
 
+        $warnings = $this->deleteWhere(
+            $pdo,
+            'user_warnings',
+            'issued_by NOT IN (SELECT id FROM users)',
+            [],
+        );
+        if ($warnings > 0) {
+            $removed['user_warnings_issued_by'] = $warnings;
+        }
+
+        $revisions = $this->deleteWhere(
+            $pdo,
+            'post_revisions',
+            'editor_id NOT IN (SELECT id FROM users)',
+            [],
+        );
+        if ($revisions > 0) {
+            $removed['post_revisions'] = $revisions;
+        }
+
+        $clients = $this->nullifyColumn(
+            $pdo,
+            'oauth_clients',
+            'created_by_user_id',
+            'created_by_user_id IS NOT NULL AND created_by_user_id NOT IN (SELECT id FROM users)',
+            [],
+        );
+        if ($clients > 0) {
+            $removed['oauth_clients'] = $clients;
+        }
+
+        $trash = $this->nullifyColumn(
+            $pdo,
+            'posts',
+            'trashed_by_user_id',
+            'trashed_by_user_id IS NOT NULL AND trashed_by_user_id NOT IN (SELECT id FROM users)',
+            [],
+        );
+        if ($trash > 0) {
+            $removed['posts_trashed_by'] = $trash;
+        }
+
         return $removed;
     }
 
@@ -109,6 +162,48 @@ final class UserDependencyCleanup
             "{$column} NOT IN (SELECT id FROM users)",
             [],
         );
+    }
+
+    /**
+     * @param array<string, int|string> $bind
+     */
+    private function nullifyColumn(PDO $pdo, string $table, string $column, string $where, array $bind): int
+    {
+        if (!$this->tableExists($pdo, $table) || !$this->columnExists($pdo, $table, $column)) {
+            return 0;
+        }
+
+        $stmt = $pdo->prepare("UPDATE {$table} SET {$column} = NULL WHERE {$where}");
+        $stmt->execute($bind);
+
+        return $stmt->rowCount();
+    }
+
+    private function columnExists(PDO $pdo, string $table, string $column): bool
+    {
+        static $cache = [];
+
+        $cacheKey = spl_object_id($pdo) . ':' . $table . ':' . $column;
+        if (array_key_exists($cacheKey, $cache)) {
+            return $cache[$cacheKey];
+        }
+
+        if (!$this->tableExists($pdo, $table)) {
+            return $cache[$cacheKey] = false;
+        }
+
+        $stmt = $pdo->query("PRAGMA table_info({$table})");
+        if ($stmt === false) {
+            return $cache[$cacheKey] = false;
+        }
+
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            if (($row['name'] ?? '') === $column) {
+                return $cache[$cacheKey] = true;
+            }
+        }
+
+        return $cache[$cacheKey] = false;
     }
 
     private function tableExists(PDO $pdo, string $table): bool

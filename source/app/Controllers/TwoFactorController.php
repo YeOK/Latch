@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Controllers;
 
 use Latch\Core\Application;
@@ -12,6 +19,19 @@ final class TwoFactorController
 {
     public function __construct(private readonly Application $app)
     {
+    }
+
+    public function cancelPendingLogin(array $params = []): void
+    {
+        if ($this->app->auth()->check()) {
+            Response::redirect('/');
+        }
+
+        if ($this->app->auth()->hasTotpPending()) {
+            $this->app->auth()->clearTotpPending();
+        }
+
+        Response::redirect('/login');
     }
 
     public function showChallenge(array $params = []): void

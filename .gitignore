@@ -22,6 +22,7 @@ source/config/local.php
 
 # Tests / build
 source/tests/.phpunit.cache/
+**/.phpunit.result.cache
 source/tests/api/config.local.php
 source/tests/smoke/config.local.php
 source/tests/api/user-token.local.json
@@ -31,6 +32,7 @@ dist/
 
 # Operator-only (excluded from release tarball; keep local)
 PLAN.md
+deploy
 deploy/
 .github/
 docs/COPR.md
@@ -42,3 +44,7 @@ scripts/post-forum-updates.sh
 scripts/post-documentation.php
 scripts/post-security-news.php
 scripts/update-roadmap-post.php
+scripts/latch-logs.sh
+scripts/setup-api-test-client.sh
+scripts/install-latch-security.sh
+scripts/cleanup-latch-server.sh

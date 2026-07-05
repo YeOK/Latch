@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Controllers;
 
 use Latch\Core\Application;
@@ -73,7 +80,7 @@ final class ReportController
             }
         } elseif ($targetType === 'user') {
             $target = $this->app->users()->findById($targetId);
-            if ($target === null || $this->app->users()->isBanned($target)) {
+            if ($target === null || $this->app->users()->isDeleted($target) || $this->app->users()->isBanned($target)) {
                 Response::notFound('User not found');
             }
             if ((int) $user['id'] === $targetId) {

@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Controllers;
 
 use Latch\Core\Application;
@@ -56,6 +63,19 @@ final class AuthController
 
         $user = $this->app->users()->findByUsername($username);
         $passwordOk = $user !== null && password_verify($password, (string) $user['password_hash']);
+
+        if ($user !== null && $passwordOk && $this->app->users()->isDeleted($user)) {
+            $this->app->rateLimiter()->recordLoginAttempt($ip, $username !== '' ? $username : null, false);
+            $this->app->securityLog()->log('login_deleted', [
+                'ip' => $ip,
+                'user_id' => (int) $user['id'],
+                'username' => $user['username'],
+            ]);
+            $this->app->session()->flash('error', $this->app->users()->deletedLoginMessage());
+            $this->renderLoginFailure();
+
+            return;
+        }
 
         if ($user !== null && $passwordOk && $this->app->users()->isBanned($user)) {
             $this->app->rateLimiter()->recordLoginAttempt($ip, $username !== '' ? $username : null, false);

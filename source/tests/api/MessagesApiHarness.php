@@ -3,6 +3,13 @@
 declare(strict_types=1);
 
 /**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
+/**
  * Interactive harness for messages API + user-delegated OAuth (PKCE).
  *
  * Usage:

@@ -3,6 +3,13 @@
 declare(strict_types=1);
 
 /**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
+/**
  * Copy to config.local.php and fill in OAuth client credentials.
  * config.local.php is gitignored — safe for production secrets on the server.
  *

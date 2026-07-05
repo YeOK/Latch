@@ -2,9 +2,17 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Models;
 
 use Latch\Core\Database;
+use Latch\Support\DeletedAuthorSql;
 
 final class PostRevisionRepository
 {
@@ -32,9 +40,10 @@ final class PostRevisionRepository
     public function listForPost(int $postId): array
     {
         $stmt = $this->db->pdo()->prepare(
-            'SELECT r.id, r.post_id, r.editor_id, r.body, r.created_at, u.username AS editor_username
-             FROM post_revisions r
-             JOIN users u ON u.id = r.editor_id
+            'SELECT r.id, r.post_id, r.editor_id, r.body, r.created_at, '
+            . DeletedAuthorSql::usernameAlias('editor_username')
+            . ' FROM post_revisions r
+             LEFT JOIN users u ON u.id = r.editor_id
              WHERE r.post_id = :post_id
              ORDER BY r.created_at DESC, r.id DESC'
         );
@@ -69,13 +78,15 @@ final class PostRevisionRepository
         $placeholders = implode(',', array_fill(0, count($postIds), '?'));
         $stmt = $this->db->pdo()->prepare(
             "SELECT post_id, editor_id, editor_username, edited_at FROM (
-                SELECT r.post_id, r.editor_id, u.username AS editor_username, r.created_at AS edited_at,
+                SELECT r.post_id, r.editor_id, "
+            . DeletedAuthorSql::usernameAlias('editor_username')
+            . ", r.created_at AS edited_at,
                        ROW_NUMBER() OVER (
                            PARTITION BY r.post_id
                            ORDER BY r.created_at DESC, r.id DESC
                        ) AS row_num
                 FROM post_revisions r
-                JOIN users u ON u.id = r.editor_id
+                LEFT JOIN users u ON u.id = r.editor_id
                 WHERE r.post_id IN ({$placeholders})
              ) ranked
              WHERE row_num = 1"
@@ -100,9 +111,10 @@ final class PostRevisionRepository
     public function findById(int $id): ?array
     {
         $stmt = $this->db->pdo()->prepare(
-            'SELECT r.id, r.post_id, r.editor_id, r.body, r.created_at, u.username AS editor_username
-             FROM post_revisions r
-             JOIN users u ON u.id = r.editor_id
+            'SELECT r.id, r.post_id, r.editor_id, r.body, r.created_at, '
+            . DeletedAuthorSql::usernameAlias('editor_username')
+            . ' FROM post_revisions r
+             LEFT JOIN users u ON u.id = r.editor_id
              WHERE r.id = :id'
         );
         $stmt->execute(['id' => $id]);

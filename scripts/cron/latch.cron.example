@@ -1,0 +1,13 @@
+# Latch scheduled maintenance — install with scripts/install-cron.sh
+# Run as the web server user (apache on Fedora). Guest page cache is NOT cleared here.
+#
+# LATCH_ROOT=/var/www/latch/source
+
+# Hourly: rate-limit buckets, reputation queue flush
+0 * * * * cd __LATCH_ROOT__ && /usr/bin/php bin/latch cron hourly >> storage/logs/cron.log 2>&1
+
+# Daily: token/session prunes, notifications, reputation full pass
+15 3 * * * cd __LATCH_ROOT__ && /usr/bin/php bin/latch cron daily >> storage/logs/cron.log 2>&1
+
+# Weekly: ANALYZE, DM/topic_reads cleanup; first Sunday includes audit_log prune
+30 4 * * 0 cd __LATCH_ROOT__ && /usr/bin/php bin/latch cron weekly --audit >> storage/logs/cron.log 2>&1

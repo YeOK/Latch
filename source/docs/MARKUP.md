@@ -32,7 +32,7 @@ This document is the **author and integrator** reference. Theme authors styling 
 
 Visit [Latch](https://latch.network) or [url=https://latch.network]Latch[/url].
 
-[quote author="yeok"]
+[quote author="alice"]
 Previous message here.
 [/quote]
 

@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Core;
 
 use Latch\Models\UserRepository;
@@ -42,6 +49,12 @@ final class Auth
 
         $user = $this->users->findById((int) $id);
         if ($user === null) {
+            $this->logout();
+
+            return null;
+        }
+
+        if ($this->users->isDeleted($user)) {
             $this->logout();
 
             return null;

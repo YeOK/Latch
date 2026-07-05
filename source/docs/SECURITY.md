@@ -101,7 +101,7 @@ Manual `.recover` and break-glass steps: [UPGRADE.md](UPGRADE.md) § Manual reco
 ## GDPR / data rights
 
 - Users can export profile + posts as JSON from `/profile`
-- Users can delete their own account (founder excluded); posts remain with anonymised author
+- Users can delete their own account (founder excluded); posts remain with anonymised author; the account row is hard-purged after 30 days (daily cron)
 
 ## Guest page cache
 

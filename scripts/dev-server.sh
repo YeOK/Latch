@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 2026 Latch contributors
+# SPDX-License-Identifier: MIT
 # Local Latch dev server (PHP built-in — no Apache).
 #
 # Usage:

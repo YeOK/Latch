@@ -2,11 +2,19 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Models;
 
 use Latch\Core\BoardAcl;
 use Latch\Core\Database;
 use Latch\Core\InputValidator;
+use Latch\Support\DeletedAuthorSql;
 use Latch\Support\Schema;
 use RuntimeException;
 
@@ -102,10 +110,10 @@ final class PostRepository
             $viewerJoin = ' LEFT JOIN post_reactions pr ON pr.post_id = p.id AND pr.user_id = :viewer_vote_user_id';
         }
 
-        $sql = 'SELECT p.*, u.username AS author_name, u.email AS author_email'
+        $sql = 'SELECT p.*, ' . DeletedAuthorSql::authorName() . ', u.email AS author_email'
             . ($viewerUserId !== null ? ', pr.vote AS viewer_vote' : '')
             . ' FROM posts p
-                JOIN users u ON u.id = p.user_id'
+                LEFT JOIN users u ON u.id = p.user_id'
             . $viewerJoin
             . ' WHERE p.topic_id = :topic_id';
 
@@ -229,16 +237,16 @@ final class PostRepository
     {
         $limit = max(1, min(200, $limit));
         $stmt = $this->db->pdo()->prepare(
-            "SELECT p.*, u.username AS author_name,
+            'SELECT p.*, ' . DeletedAuthorSql::authorName() . ',
                     t.title AS topic_title, t.id AS topic_id,
                     b.slug AS board_slug, b.name AS board_name
              FROM posts p
-             JOIN users u ON u.id = p.user_id
+             LEFT JOIN users u ON u.id = p.user_id
              JOIN topics t ON t.id = p.topic_id AND t.deleted_at IS NULL
              JOIN boards b ON b.id = t.board_id
              WHERE p.approval_status = :pending AND p.deleted_at IS NULL
              ORDER BY p.created_at ASC
-             LIMIT :limit"
+             LIMIT :limit'
         );
         $stmt->bindValue('pending', self::APPROVAL_PENDING);
         $stmt->bindValue('limit', $limit, \PDO::PARAM_INT);
@@ -504,21 +512,21 @@ final class PostRepository
     {
         $limit = max(1, min(200, $limit));
         $stmt = $this->db->pdo()->prepare(
-            "SELECT p.*,
-                    u.username AS author_name,
+            'SELECT p.*,
+                    ' . DeletedAuthorSql::authorName() . ',
                     t.title AS topic_title,
                     b.slug AS board_slug,
                     b.name AS board_name,
                     r.reason_code AS report_reason_code,
                     r.severity AS report_severity
              FROM posts p
-             JOIN users u ON u.id = p.user_id
+             LEFT JOIN users u ON u.id = p.user_id
              JOIN topics t ON t.id = p.topic_id AND t.deleted_at IS NULL
              JOIN boards b ON b.id = t.board_id
              LEFT JOIN reports r ON r.id = p.quarantined_by_report_id
-             WHERE p.quarantined_at IS NOT NULL AND p.deleted_at IS NULL" . $this->excludeTrashedSql('p.') . "
+             WHERE p.quarantined_at IS NOT NULL AND p.deleted_at IS NULL' . $this->excludeTrashedSql('p.') . '
              ORDER BY p.quarantined_at DESC
-             LIMIT :limit"
+             LIMIT :limit'
         );
         $stmt->bindValue('limit', $limit, \PDO::PARAM_INT);
         $stmt->execute();

@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Controllers;
 
 use Latch\Core\Application;
@@ -93,6 +100,16 @@ final class OidcController
 
         $user = $resolved['user'];
         $ip = $this->app->request()->ip();
+
+        if ($this->app->users()->isDeleted($user)) {
+            $this->app->securityLog()->log('login_deleted', [
+                'ip' => $ip,
+                'user_id' => (int) $user['id'],
+                'username' => $user['username'],
+                'provider' => $provider,
+            ]);
+            $this->fail($this->app->users()->deletedLoginMessage());
+        }
 
         if ($this->app->users()->isBanned($user)) {
             $this->app->securityLog()->log('login_banned', [

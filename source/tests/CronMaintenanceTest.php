@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Tests;
 
 use Latch\Core\CronService;
@@ -41,7 +48,8 @@ final class CronMaintenanceTest extends TestCase
                 username TEXT,
                 role TEXT DEFAULT 'member',
                 banned_at TEXT,
-                banned_until TEXT
+                banned_until TEXT,
+                deleted_at TEXT
              );
              CREATE TABLE login_attempts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -149,7 +157,8 @@ final class CronMaintenanceTest extends TestCase
              INSERT INTO settings (key, value) VALUES
                 ('cron_login_attempts_retain_days', '14'),
                 ('cron_read_notification_retain_days', '90'),
-                ('cron_notification_cap', '500');"
+                ('cron_notification_cap', '500'),
+                ('cron_deleted_user_retain_days', '30');"
         );
 
         $old = gmdate('c', time() - (20 * 86400));
@@ -250,6 +259,21 @@ final class CronMaintenanceTest extends TestCase
 
         $this->assertSame(1, $stats['user_orphans']);
         $this->assertSame(0, (int) $this->db->pdo()->query('SELECT COUNT(*) FROM email_verifications')->fetchColumn());
+    }
+
+    public function testDailyPurgesExpiredDeletedUsers(): void
+    {
+        $expired = gmdate('c', time() - (31 * 86400));
+        $this->db->pdo()->exec(
+            "INSERT INTO users (id, username, role, deleted_at) VALUES (3, 'deleted_3', 'member', '{$expired}');
+             INSERT INTO users (id, username, role, deleted_at) VALUES (4, 'deleted_4', 'member', '" . gmdate('c') . "');"
+        );
+
+        $stats = $this->cron->runDaily();
+
+        $this->assertSame(1, $stats['deleted_users']);
+        $this->assertFalse($this->db->pdo()->query('SELECT id FROM users WHERE id = 3')->fetchColumn());
+        $this->assertSame(4, (int) $this->db->pdo()->query('SELECT id FROM users WHERE id = 4')->fetchColumn());
     }
 
     public function testHourlyPrunesRateLimitTablesWhenPresent(): void

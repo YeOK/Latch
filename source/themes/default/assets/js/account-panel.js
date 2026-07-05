@@ -1,4 +1,9 @@
 /**
+ * Copyright (c) 2026 Latch contributors
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
  * In-page account/admin/profile navigation and AJAX form handling.
  *
  * Forms with data-account-bypass submit normally (full page) — use for file uploads and

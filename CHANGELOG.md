@@ -7,6 +7,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0.14] — 2026-07-05
+
+### Changed
+- **Copyright headers** — MIT `SPDX-License-Identifier` notices added to first-party PHP, shell scripts, and theme/plugin assets; `scripts/add-copyright-headers.py` backfills new files.
+- **Public tree hygiene** — `.gitignore` blocks operator deploy symlinks (`latch-logs.sh`, `setup-api-test-client.sh`, etc.); test fixtures and docs examples use generic usernames instead of operator handles (COPR/git `yeok` paths unchanged).
+- **Account deletion** — self-deleted users set `deleted_at` instead of `banned_at`; admin **Users** has a **Deleted** tab separate from **Banned**; migration `032` backfills existing self-deleted rows; daily cron hard-purges self-deleted accounts after **30 days** (`cron_deleted_user_retain_days`) while posts/topics remain (author shows as `[deleted]`).
+- **`db-check`** — `foreign_key_check` ignores expected author orphans (`posts` / `topics` / `post_revisions` → missing `users` row) after retention purge; real FK problems still fail the gate.
+- **Install / security bootstrap** — `bin/latch install` writes `security.encryption_key` into new `local.php` and runs `security-bootstrap` when the key is still missing; `doctor` fails on installed instances without a valid key; **INSTALL.md** documents 2FA and bootstrap in the first-deploy path.
+- **First-time install script** — `scripts/install.sh` wraps Composer, `bin/latch install`, `doctor`, and optional cron for tarball/git installs; cron template ships at `scripts/cron/latch.cron.example` (fixes broken `install-cron.sh` on public trees).
+- **Operator preflight** — `doctor` warns when daily cron has not run in 48h; admin **Deleted** tab shows retention from `cron_deleted_user_retain_days`; `UserDependencyCleanup` clears `issued_by` / `editor_id` / OAuth client / trash staff references on purge.
+- **Release gates** — smoke suite adds account deletion, profile delete, report queue, DMs, 2FA cancel, and doctor checks; security suite adds OIDC authorization URL tests; `LATCH_TEST_URL` / `LATCH_URL` enable HTTP smoke without a config file.
+- **CONTRIBUTING.md** — contributor setup, test gates, and release notes for OSS onboarding.
+
+### Fixed
+- **Two-factor sign-in** — “Back to sign in” clears the pending 2FA session instead of looping back to the code prompt.
+- **New topic composer** — no longer pre-fills from a stale quote/reply draft or browser `body` field cache; quote-shaped localStorage drafts are discarded; draft clears after a successful post.
+
 ## [0.3.0.13] — 2026-07-05
 
 ### Added

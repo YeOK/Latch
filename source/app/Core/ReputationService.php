@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Core;
 
 use Latch\Models\PostRepository;
@@ -111,7 +118,7 @@ final class ReputationService
             return ['score' => 0.0, 'rank' => null, 'components' => []];
         }
 
-        if ($this->users->isBanned($user)) {
+        if ($this->users->isDeleted($user) || $this->users->isBanned($user)) {
             $this->users->updateReputation($userId, 0.0, null, gmdate('c'));
 
             return ['score' => 0.0, 'rank' => null, 'components' => []];

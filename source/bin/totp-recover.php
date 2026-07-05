@@ -4,6 +4,13 @@
 declare(strict_types=1);
 
 /**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
+/**
  * One-off TOTP secret recovery — re-wrap secrets after a failed security-bootstrap.
  * Run as apache: sudo -u apache php bin/totp-recover.php
  */

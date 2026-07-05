@@ -10,7 +10,8 @@
             {{ target.email }} · <span id="admin-user-meta-role">{{ target.role }}</span>
             · joined {{ target.created_at|slice(0, 10) }}
             · <a href="/user/{{ target.username }}">Public profile</a>
-            <span id="admin-user-ban-badge"{% if not is_banned %} hidden{% endif %}> · <span class="badge badge-muted">Banned</span></span>
+            <span id="admin-user-deleted-badge"{% if not is_deleted %} hidden{% endif %}> · <span class="badge badge-muted">Deleted</span></span>
+            <span id="admin-user-ban-badge"{% if not is_banned or is_deleted %} hidden{% endif %}> · <span class="badge badge-muted">Banned</span></span>
         </p>
     </section>
 
@@ -36,7 +37,11 @@
                         <dt>Rank override</dt><dd id="admin-user-rank-override">Locked at {{ target.rank_override }}</dd>
                     {% endif %}
                 {% endif %}
-                <div id="admin-user-banned-since-row"{% if not target.banned_at %} hidden{% endif %}>
+                <div id="admin-user-deleted-since-row"{% if not target.deleted_at %} hidden{% endif %}>
+                    <dt>Deleted</dt>
+                    <dd id="admin-user-deleted-since">{{ target.deleted_at ? target.deleted_at|format_datetime : '' }}</dd>
+                </div>
+                <div id="admin-user-banned-since-row"{% if not target.banned_at or target.deleted_at %} hidden{% endif %}>
                     <dt>Banned since</dt>
                     <dd id="admin-user-banned-since">{{ target.banned_at ? target.banned_at|format_datetime : '' }}</dd>
                 </div>
@@ -52,7 +57,7 @@
 
             <div class="user-actions" data-staff-feedback>
                 <div class="staff-action-icons">
-                    <div id="admin-user-icons-normal"{% if is_banned %} hidden{% endif %}>
+                    <div id="admin-user-icons-normal"{% if is_banned or is_deleted %} hidden{% endif %}>
                         {% if target.id != user.id and target.id != 1 %}
                             <details class="staff-action-panel"
                                      data-staff-post="/admin/users/{{ target.id }}/role"
@@ -116,7 +121,7 @@
                             </details>
                         {% endif %}
                     </div>
-                    <div id="admin-user-icons-banned"{% if not is_banned %} hidden{% endif %}>
+                    <div id="admin-user-icons-banned"{% if not is_banned or is_deleted %} hidden{% endif %}>
                         <details class="staff-action-panel"
                                  data-staff-post="/admin/users/{{ target.id }}/unban"
                                  data-staff-success="admin-user">

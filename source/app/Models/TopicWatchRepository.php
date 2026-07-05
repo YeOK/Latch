@@ -2,9 +2,17 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Models;
 
 use Latch\Core\Database;
+use Latch\Support\DeletedAuthorSql;
 
 final class TopicWatchRepository
 {
@@ -185,7 +193,7 @@ final class TopicWatchRepository
     public function listWatchedTopics(int $userId, int $limit = 50, int $offset = 0): array
     {
         $stmt = $this->db->pdo()->prepare(
-            "SELECT t.*, u.username AS author_name, u.email AS author_email,
+            'SELECT t.*, ' . DeletedAuthorSql::authorName() . ", u.email AS author_email,
                     b.slug AS board_slug, b.name AS board_name,
                     tr.last_read_at,
                     (SELECT COUNT(*) FROM posts p
@@ -193,7 +201,7 @@ final class TopicWatchRepository
                     CASE WHEN tr.last_read_at IS NOT NULL AND " . self::LATEST_APPROVED_POST_AT_SQL . " > tr.last_read_at THEN 1 ELSE 0 END AS is_unread
              FROM topic_watches tw
              JOIN topics t ON t.id = tw.topic_id
-             JOIN users u ON u.id = t.user_id
+             LEFT JOIN users u ON u.id = t.user_id
              JOIN boards b ON b.id = t.board_id
              LEFT JOIN topic_reads tr ON tr.topic_id = t.id AND tr.user_id = tw.user_id
              WHERE tw.user_id = :user_id AND t.deleted_at IS NULL

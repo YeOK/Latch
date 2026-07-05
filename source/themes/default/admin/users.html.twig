@@ -5,15 +5,19 @@
 {% block admin_content %}
     <section class="page-header">
         <h1>User management</h1>
-        <p class="muted">{{ total }} matching · {{ banned_count }} banned</p>
+        <p class="muted">{{ total }} matching · {{ banned_count }} banned{% if deleted_count %} · {{ deleted_count }} deleted{% endif %}</p>
     </section>
 
     <nav class="filter-tabs" aria-label="User filters">
         <a class="filter-tab{% if filter == 'members' %} is-active{% endif %}" href="/admin/users?filter=members">Members</a>
         <a class="filter-tab{% if filter == 'staff' %} is-active{% endif %}" href="/admin/users?filter=staff">Staff</a>
         <a class="filter-tab{% if filter == 'banned' %} is-active{% endif %}" href="/admin/users?filter=banned">Banned{% if banned_count %} ({{ banned_count }}){% endif %}</a>
+        <a class="filter-tab{% if filter == 'deleted' %} is-active{% endif %}" href="/admin/users?filter=deleted">Deleted{% if deleted_count %} ({{ deleted_count }}){% endif %}</a>
         <a class="filter-tab{% if filter == 'all' %} is-active{% endif %}" href="/admin/users?filter=all">All</a>
     </nav>
+    {% if filter == 'deleted' %}
+        <p class="muted">Self-deleted accounts are hard-purged after {{ deleted_retain_days }} days (daily cron). Posts remain; authors show as <code>[deleted]</code>.</p>
+    {% endif %}
 
     <div class="site-search-toolbar">
         {% include 'partials/search_field.html.twig' with {
@@ -64,6 +68,7 @@
 
     <form id="bulk-users-form" method="post" action="/admin/users/bulk-ban">
         {{ csrf_field() }}
+    {% if filter != 'deleted' %}
     <div class="bulk-user-actions" id="bulk-user-actions" hidden>
         <span id="bulk-user-count" class="muted">0 selected</span>
         <details class="staff-action-panel" data-staff-post="/admin/users/bulk-ban">
@@ -78,6 +83,7 @@
         </details>
         <button type="submit" class="btn btn-small" formaction="/admin/users/bulk-unban" formmethod="post">Unban selected</button>
     </div>
+    {% endif %}
 
     <table class="data-table" data-staff-feedback>
         <thead>
@@ -94,9 +100,9 @@
         </thead>
         <tbody>
             {% for u in users %}
-                <tr{% if u.banned_at %} class="row-muted"{% endif %} data-user-id="{{ u.id }}">
+                <tr{% if u.banned_at or u.deleted_at %} class="row-muted"{% endif %} data-user-id="{{ u.id }}">
                     <td>
-                        {% if u.id != user.id and u.id != 1 %}
+                        {% if filter != 'deleted' and not u.deleted_at and u.id != user.id and u.id != 1 %}
                             <input type="checkbox" class="user-bulk-check" name="user_ids[]" value="{{ u.id }}" form="bulk-users-form">
                         {% endif %}
                     </td>
@@ -109,7 +115,10 @@
                     <td>{% if u.warning_count %}<span class="badge">{{ u.warning_count }}</span>{% else %}—{% endif %}</td>
                     <td>{{ u.created_at|slice(0, 10) }}</td>
                     <td data-user-status>
-                        {% if u.banned_at %}
+                        {% if u.deleted_at %}
+                            <span class="badge badge-muted">Deleted</span>
+                            <span class="muted">{{ u.deleted_at|format_datetime }}</span>
+                        {% elseif u.banned_at %}
                             <span class="badge badge-muted">Banned</span>
                             {% if u.banned_until %}<span class="muted">until {{ u.banned_until|format_datetime }}</span>{% endif %}
                         {% else %}
@@ -121,7 +130,7 @@
                             <a class="btn btn-small btn-icon" href="/admin/users/{{ u.id }}" title="View {{ u.username }}" aria-label="View {{ u.username }}">
                                 {% include 'partials/icon.twig' with { name: 'eye' } %}
                             </a>
-                            {% if not u.banned_at and u.id != user.id and u.id != 1 %}
+                            {% if not u.deleted_at and not u.banned_at and u.id != user.id and u.id != 1 %}
                                 <details class="staff-action-panel"
                                          data-staff-post="/admin/users/{{ u.id }}/ban"
                                          data-staff-success="users-row-ban">

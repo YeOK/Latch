@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 2026 Latch contributors
+# SPDX-License-Identifier: MIT
 # Apply migrations when the live SQLite file is owned by the web server user.
 # Copies DB to a writable temp path, runs migrate, rsyncs back (passwordless sudo).
 #

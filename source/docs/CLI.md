@@ -15,7 +15,7 @@ php bin/latch help
 | `migrate` | Apply SQLite schema migrations |
 | `audit` | Security self-check (permissions, headers, secrets) |
 | `backup` | WAL-safe tarball `latch.sqlite` + `config/local.php` |
-| `db-check` | SQLite `integrity_check` / `quick_check` + `foreign_key_check` |
+| `db-check` | SQLite `integrity_check` / `quick_check` + `foreign_key_check` (author orphans on `posts`/`topics`/`post_revisions` after account purge are expected) |
 | `restore` | List or restore from `storage/backups/` (lock required) |
 | `update` | Lock → backup → migrate → db-check → cron → audit → cache → unlock |
 | `doctor` | Four-layer preflight — PHP, extensions, vendor, DB, permissions |
@@ -233,7 +233,7 @@ sudo -u apache php bin/latch migrate
 bash scripts/migrate-latch-db.sh
 ```
 
-Retention defaults (override via `settings` table or admin UI): read notifications **90d**, login attempts **14d**, notification cap **500**/user, audit log **365d**.
+Retention defaults (override via `settings` table or admin UI): read notifications **90d**, login attempts **14d**, notification cap **500**/user, self-deleted accounts **30d**, audit log **365d**.
 
 **Daily** also runs a **user orphan sweep** — deletes rows in token/session/DM/OAuth tables whose `user_id` (or DM participant) no longer exists. This heals leftovers from restores or manual SQL without relying on FK CASCADE alone. `bin/latch purge-users` uses the same dependency list when removing spam accounts.
 

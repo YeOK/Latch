@@ -1,5 +1,7 @@
 #!/bin/bash
-# Fix storage/ permissions after rsync (no sudo required if yeok owns storage/).
+# Copyright (c) 2026 Latch contributors
+# SPDX-License-Identifier: MIT
+# Fix storage/ permissions after rsync (no sudo required if the deploy user owns storage/).
 # Apache must traverse storage/ and database/ to read latch.sqlite.
 set -euo pipefail
 

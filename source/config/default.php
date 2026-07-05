@@ -3,6 +3,13 @@
 declare(strict_types=1);
 
 /**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
+/**
  * Default configuration — copied/adjusted by the installer.
  * Secrets and environment overrides go in config/local.php (not committed).
  */

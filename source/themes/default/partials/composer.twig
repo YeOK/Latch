@@ -78,6 +78,12 @@
                 {% if required|default(false) %}required{% endif %}
                 placeholder="{{ placeholder|default('') }}"
                 class="composer-textarea"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="true"
+                data-lpignore="true"
+                data-form-type="other"
             >{{ value|default('') }}</textarea>
         </div>
         <div class="composer-live-preview" aria-live="polite">

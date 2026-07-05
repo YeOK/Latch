@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 2026 Latch contributors
+# SPDX-License-Identifier: MIT
 # Check whether Latch scheduled maintenance is installed and has run.
 #
 # Usage (on server):

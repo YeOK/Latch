@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Core;
 
 use Latch\Models\ApiAuditLogRepository;
@@ -14,6 +21,7 @@ use Latch\Models\PasswordResetRepository;
 use Latch\Models\SettingRepository;
 use Latch\Models\UserRepository;
 use Latch\Models\UserSessionRepository;
+use Latch\Support\ForeignKeyCheck;
 use Latch\Support\UserDependencyCleanup;
 
 /**
@@ -76,6 +84,7 @@ final class CronService
             'notification_cap' => $this->capNotifications(),
             'expired_bans' => $this->users->sweepExpiredBans(),
             'user_orphans' => $this->pruneUserOrphans(),
+            'deleted_users' => $this->pruneExpiredDeletedUsers(),
             'reputation_members' => 0,
         ];
 
@@ -247,12 +256,20 @@ final class CronService
         return array_sum($removed);
     }
 
+    private function pruneExpiredDeletedUsers(): int
+    {
+        $days = max(1, (int) ($this->settings->get('cron_deleted_user_retain_days', '30') ?? '30'));
+
+        return $this->users->purgeExpiredDeleted($days);
+    }
+
     private function countForeignKeyViolations(): int
     {
         $pdo = $this->db->pdo();
         $pdo->exec('PRAGMA foreign_keys = ON');
+        $violations = $pdo->query('PRAGMA foreign_key_check')->fetchAll();
 
-        return count($pdo->query('PRAGMA foreign_key_check')->fetchAll());
+        return count(ForeignKeyCheck::partitionViolations($violations)['unexpected']);
     }
 
     private function pruneOrphanTopicReads(): int

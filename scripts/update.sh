@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 2026 Latch contributors
+# SPDX-License-Identifier: MIT
 # Post-deploy upgrade orchestration for Latch (run on the server after code sync).
 #
 # Usage:

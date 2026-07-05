@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 2026 Latch contributors
+# SPDX-License-Identifier: MIT
 # Build a sanitized public release tarball (no secrets, DB, or operator deploy scripts).
 #
 # Usage:
@@ -146,5 +148,5 @@ BYTES="$(wc -c < "${ARCHIVE}")"
 echo ""
 echo "Release: ${ARCHIVE} (${BYTES} bytes)"
 echo "Checksum: ${DIST}/SHA256SUMS"
-echo "Install:  tar -xzf $(basename "${ARCHIVE}") && cd latch-${VERSION}-stage && bash scripts/update.sh"
-echo "          (fresh install: cd source && php bin/latch install)"
+echo "Install:  tar -xzf $(basename "${ARCHIVE}") && cd latch-${VERSION}-stage && bash scripts/install.sh --url=https://forum.example.com"
+echo "          (upgrade existing: bash scripts/update.sh)"

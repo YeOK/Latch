@@ -3,6 +3,13 @@
 declare(strict_types=1);
 
 /**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
+/**
  * Live HTTP smoke tests for /api/v1 and /oauth/token.
  */
 final class ApiHarness

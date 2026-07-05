@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 use Latch\Core\DateTimeFormatter;
 use PHPUnit\Framework\TestCase;
 

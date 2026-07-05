@@ -10,7 +10,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.13
+Version:        0.3.0.14
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -184,6 +184,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sun Jul 05 2026 YeOK <yeokky@gmail.com> - 0.3.0.14-1
+- Account deletion retention, install.sh, security bootstrap, MIT headers, expanded test gates
+
 * Sun Jul 05 2026 YeOK <yeokky@gmail.com> - 0.3.0.13-1
 - Post editor live preview and code highlighting; DM delete; UI/header/footer polish; router-dev hygiene
 

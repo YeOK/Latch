@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Core;
 
 use Twig\Environment;
@@ -75,7 +82,7 @@ final class View
 
         @chmod($cachePath, 02770);
 
-        // CLI (e.g. yeok) must not use filesystem cache — it creates subdirs apache cannot write.
+        // CLI (non-apache user) must not use filesystem cache — it creates subdirs apache cannot write.
         if (function_exists('posix_geteuid') && function_exists('posix_getpwuid')) {
             $user = posix_getpwuid(posix_geteuid())['name'] ?? '';
             if ($user !== '' && $user !== 'apache') {

@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Models;
 
 use Latch\Core\BoardAcl;
@@ -71,12 +78,16 @@ final class UserRepository
             $where[] = "role IN ('admin', 'mod')";
         } elseif ($filter === 'members') {
             $where[] = "role = 'member'";
+            $where[] = 'deleted_at IS NULL';
             $where[] = 'banned_at IS NULL';
             $where[] = '(banned_until IS NULL OR banned_until <= :now_active)';
             $params['now_active'] = gmdate('c');
         } elseif ($filter === 'banned') {
+            $where[] = 'deleted_at IS NULL';
             $where[] = '(banned_at IS NOT NULL OR (banned_until IS NOT NULL AND banned_until > :now_banned))';
             $params['now_banned'] = gmdate('c');
+        } elseif ($filter === 'deleted') {
+            $where[] = 'deleted_at IS NOT NULL';
         }
 
         $search = trim($search);
@@ -131,9 +142,19 @@ final class UserRepository
     {
         $stmt = $this->db->pdo()->prepare(
             'SELECT COUNT(*) FROM users
-             WHERE banned_at IS NOT NULL OR (banned_until IS NOT NULL AND banned_until > :now)'
+             WHERE deleted_at IS NULL
+               AND (banned_at IS NOT NULL OR (banned_until IS NOT NULL AND banned_until > :now))'
         );
         $stmt->execute(['now' => gmdate('c')]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function countDeleted(): int
+    {
+        $stmt = $this->db->pdo()->query(
+            'SELECT COUNT(*) FROM users WHERE deleted_at IS NOT NULL'
+        );
 
         return (int) $stmt->fetchColumn();
     }
@@ -269,8 +290,22 @@ final class UserRepository
         return $stmt->rowCount();
     }
 
+    public function isDeleted(array $user): bool
+    {
+        if (($user['deleted_at'] ?? null) !== null) {
+            return true;
+        }
+
+        return str_starts_with((string) $user['username'], 'deleted_')
+            && str_ends_with((string) ($user['email'] ?? ''), '@deleted.local');
+    }
+
     public function isBanned(array $user): bool
     {
+        if ($this->isDeleted($user)) {
+            return false;
+        }
+
         if (($user['banned_at'] ?? null) !== null) {
             $until = $user['banned_until'] ?? null;
             if ($until !== null && strtotime((string) $until) <= time()) {
@@ -295,6 +330,11 @@ final class UserRepository
         }
 
         return 'Your account has been permanently banned. Contact an administrator if you believe this is an error.';
+    }
+
+    public function deletedLoginMessage(): string
+    {
+        return 'This account has been deleted.';
     }
 
     public function touchLogin(int $id): void
@@ -476,8 +516,7 @@ final class UserRepository
 
     public function isAnonymised(array $user): bool
     {
-        return str_starts_with((string) $user['username'], 'deleted_')
-            || str_ends_with((string) ($user['email'] ?? ''), '@deleted.local');
+        return $this->isDeleted($user);
     }
 
     /**
@@ -512,14 +551,14 @@ final class UserRepository
     public function anonymise(int $id): void
     {
         $stmt = $this->db->pdo()->prepare(
-            'UPDATE users SET username = :username, email = :email, password_hash = :hash, banned_at = :banned_at
+            'UPDATE users SET username = :username, email = :email, password_hash = :hash, deleted_at = :deleted_at
              WHERE id = :id'
         );
         $stmt->execute([
             'username' => 'deleted_' . $id,
             'email' => 'deleted_' . $id . '@deleted.local',
             'hash' => password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
-            'banned_at' => gmdate('c'),
+            'deleted_at' => gmdate('c'),
             'id' => $id,
         ]);
     }
@@ -562,10 +601,68 @@ final class UserRepository
             throw new \RuntimeException('User has posts or topics and cannot be purged.');
         }
 
+        $this->hardDeleteUserRow($id);
+    }
+
+    /**
+     * Hard-delete a self-deleted account after retention. Posts and topics keep user_id.
+     */
+    public function purgeDeletedAccount(int $id): void
+    {
+        if ($id === 1) {
+            throw new \RuntimeException('The founder account cannot be deleted.');
+        }
+
+        $user = $this->findById($id);
+        if ($user === null) {
+            throw new \RuntimeException('User not found.');
+        }
+
+        if (!$this->isDeleted($user)) {
+            throw new \RuntimeException('Only self-deleted accounts can be purged this way.');
+        }
+
+        $this->hardDeleteUserRow($id);
+    }
+
+    public function purgeExpiredDeleted(int $retainDays): int
+    {
+        if (!$this->hasDeletedAtColumn()) {
+            return 0;
+        }
+
+        $retainDays = max(1, $retainDays);
+        $cutoff = gmdate('c', time() - ($retainDays * 86400));
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT id FROM users
+             WHERE deleted_at IS NOT NULL
+               AND deleted_at <= :cutoff
+               AND id != 1'
+        );
+        $stmt->execute(['cutoff' => $cutoff]);
+
+        $purged = 0;
+        foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $id) {
+            try {
+                $this->purgeDeletedAccount((int) $id);
+                $purged++;
+            } catch (\RuntimeException $e) {
+                if ($e instanceof \PDOException) {
+                    throw $e;
+                }
+            }
+        }
+
+        return $purged;
+    }
+
+    private function hardDeleteUserRow(int $id): void
+    {
         $pdo = $this->db->pdo();
-        $pdo->beginTransaction();
+        $pdo->exec('PRAGMA foreign_keys = OFF');
 
         try {
+            $pdo->beginTransaction();
             (new UserDependencyCleanup())->deleteForUser($pdo, $id);
             $pdo->prepare('DELETE FROM users WHERE id = :id')->execute(['id' => $id]);
             $pdo->commit();
@@ -575,6 +672,23 @@ final class UserRepository
             }
 
             throw $e;
+        } finally {
+            $pdo->exec('PRAGMA foreign_keys = ON');
         }
+    }
+
+    private function hasDeletedAtColumn(): bool
+    {
+        static $cache = [];
+
+        $cacheKey = spl_object_id($this->db->pdo());
+        if (array_key_exists($cacheKey, $cache)) {
+            return $cache[$cacheKey];
+        }
+
+        $cols = $this->db->pdo()->query('PRAGMA table_info(users)')->fetchAll(\PDO::FETCH_COLUMN, 1);
+        $cache[$cacheKey] = in_array('deleted_at', $cols, true);
+
+        return $cache[$cacheKey];
     }
 }

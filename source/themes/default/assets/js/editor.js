@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2026 Latch contributors
+ * SPDX-License-Identifier: MIT
+ */
+
 (function () {
     'use strict';
 
@@ -27,6 +32,72 @@
         });
     }
 
+    function isQuoteDraft(text) {
+        return /^\[quote(?:="[^"]*"| author="[^"]*")?\]/i.test(String(text).trim());
+    }
+
+    function isNewTopicDraftKey(draftKey) {
+        return draftKey.indexOf('new-topic-') === 0;
+    }
+
+    function clearComposerDraft(composer) {
+        if (!composer) {
+            return;
+        }
+
+        var textarea = composer.querySelector('.composer-textarea');
+        var draftKey = composer.getAttribute('data-draft-key') || '';
+
+        if (textarea) {
+            textarea.value = '';
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        if (draftKey) {
+            try {
+                localStorage.removeItem('latch_draft_' + draftKey);
+            } catch (e) {
+                /* ignore */
+            }
+        }
+    }
+
+    function restoreSavedDraft(textarea, draftKey) {
+        if (!draftKey || !textarea) {
+            return;
+        }
+
+        var isReplyComposer = Boolean(textarea.closest('#reply-panel'));
+        var isEditPost = draftKey.indexOf('edit-post-') === 0;
+
+        if (isReplyComposer || isEditPost) {
+            return;
+        }
+
+        try {
+            var saved = localStorage.getItem('latch_draft_' + draftKey) || '';
+            if (!saved) {
+                return;
+            }
+
+            if (isQuoteDraft(saved)) {
+                localStorage.removeItem('latch_draft_' + draftKey);
+                return;
+            }
+
+            if (isNewTopicDraftKey(draftKey)) {
+                textarea.value = '';
+            }
+
+            if (textarea.value === '') {
+                textarea.value = saved;
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
     function initComposer(root) {
         var textarea = root.querySelector('.composer-textarea');
         if (!textarea) {
@@ -46,16 +117,13 @@
 
         var isReplyComposer = Boolean(root.closest('#reply-panel'));
 
+        if (isNewTopicDraftKey(draftKey)) {
+            textarea.value = '';
+        }
+
         if (draftKey) {
             if (!isReplyComposer) {
-                try {
-                    var saved = localStorage.getItem('latch_draft_' + draftKey);
-                    if (saved && textarea.value === '') {
-                        textarea.value = saved;
-                    }
-                } catch (e) {
-                    /* ignore */
-                }
+                restoreSavedDraft(textarea, draftKey);
             }
 
             textarea.addEventListener('input', function () {
@@ -500,32 +568,12 @@
         }
     }
 
-    function isQuoteDraft(text) {
-        return /^\[quote(?:="[^"]*"| author="[^"]*")?\]/i.test(String(text).trim());
-    }
-
     function clearReplyComposer() {
         if (!replyPanel) {
             return;
         }
 
-        var composer = replyPanel.querySelector('[data-editor]');
-        var textarea = composer && composer.querySelector('.composer-textarea');
-        if (!textarea) {
-            return;
-        }
-
-        textarea.value = '';
-        textarea.dispatchEvent(new Event('input', { bubbles: true }));
-
-        var draftKey = composer.getAttribute('data-draft-key') || '';
-        if (draftKey) {
-            try {
-                localStorage.removeItem('latch_draft_' + draftKey);
-            } catch (e) {
-                /* ignore */
-            }
-        }
+        clearComposerDraft(replyPanel.querySelector('[data-editor]'));
     }
 
     function prepareReplyComposer(options) {
@@ -650,22 +698,23 @@
         scrollReply.addEventListener('click', openReplyPanel);
     }
 
-    if (replyPanel) {
-        var replyForm = replyPanel.querySelector('form');
-        if (replyForm) {
-            replyForm.addEventListener('submit', function () {
-                var composer = replyPanel.querySelector('[data-editor]');
-                var draftKey = composer && composer.getAttribute('data-draft-key');
-                if (draftKey) {
-                    try {
-                        localStorage.removeItem('latch_draft_' + draftKey);
-                    } catch (e) {
-                        /* ignore */
-                    }
-                }
-            });
-        }
+    document.querySelectorAll('.form-compose form').forEach(function (form) {
+        form.addEventListener('submit', function () {
+            var composer = form.querySelector('[data-editor]');
+            var draftKey = composer && composer.getAttribute('data-draft-key');
+            if (!draftKey) {
+                return;
+            }
 
+            try {
+                localStorage.removeItem('latch_draft_' + draftKey);
+            } catch (e) {
+                /* ignore */
+            }
+        });
+    });
+
+    if (replyPanel) {
         window.addEventListener('scroll', updateScrollReply, { passive: true });
         window.addEventListener('resize', updateScrollReply);
         updateScrollReply();

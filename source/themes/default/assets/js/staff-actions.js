@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2026 Latch contributors
+ * SPDX-License-Identifier: MIT
+ */
+
 (function () {
     var csrfMeta = document.querySelector('meta[name="csrf-token"]');
     var csrf = csrfMeta ? csrfMeta.content : '';

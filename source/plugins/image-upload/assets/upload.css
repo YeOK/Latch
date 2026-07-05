@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2026 Latch contributors
+ * SPDX-License-Identifier: MIT
+ */
+
 .composer-btn[data-action="image-upload"] .composer-btn-label {
     font-size: 0.85em;
     font-weight: 600;

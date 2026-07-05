@@ -2,12 +2,20 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Models;
 
 use Latch\Core\BoardAcl;
 use Latch\Core\Database;
 use Latch\Core\PostFormatter;
 use Latch\Core\RssFeed;
+use Latch\Support\DeletedAuthorSql;
 use PDO;
 
 final class RssRepository
@@ -32,11 +40,11 @@ final class RssRepository
         $stmt = $this->db->pdo()->prepare(
             "SELECT t.id, t.title, t.slug, t.last_post_at,
                     b.slug AS board_slug, b.name AS board_name,
-                    u.username AS author_name,
+                    " . DeletedAuthorSql::authorName() . ",
                     fp.body AS first_post_body
              FROM topics t
              JOIN boards b ON b.id = t.board_id
-             JOIN users u ON u.id = t.user_id
+             LEFT JOIN users u ON u.id = t.user_id
              JOIN posts fp ON fp.id = (
                  SELECT p.id FROM posts p
                  WHERE p.topic_id = t.id AND p.deleted_at IS NULL AND p.quarantined_at IS NULL
@@ -61,11 +69,11 @@ final class RssRepository
         $stmt = $this->db->pdo()->prepare(
             "SELECT t.id, t.title, t.slug, t.last_post_at,
                     b.slug AS board_slug, b.name AS board_name,
-                    u.username AS author_name,
+                    " . DeletedAuthorSql::authorName() . ",
                     fp.body AS first_post_body
              FROM topics t
              JOIN boards b ON b.id = t.board_id
-             JOIN users u ON u.id = t.user_id
+             LEFT JOIN users u ON u.id = t.user_id
              JOIN posts fp ON fp.id = (
                  SELECT p.id FROM posts p
                  WHERE p.topic_id = t.id AND p.deleted_at IS NULL AND p.quarantined_at IS NULL
@@ -94,11 +102,11 @@ final class RssRepository
             "SELECT p.id, p.body, p.created_at, p.quarantined_at,
                     t.title AS topic_title, t.id AS topic_id,
                     b.slug AS board_slug,
-                    u.username AS author_name
+                    " . DeletedAuthorSql::authorName() . "
              FROM posts p
              JOIN topics t ON t.id = p.topic_id
              JOIN boards b ON b.id = t.board_id
-             JOIN users u ON u.id = p.user_id
+             LEFT JOIN users u ON u.id = p.user_id
              WHERE p.topic_id = :topic_id AND p.deleted_at IS NULL AND t.deleted_at IS NULL{$visibilitySql}
              ORDER BY p.created_at ASC"
         );

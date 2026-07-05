@@ -32,27 +32,28 @@ Or clone the public repo:
 
 ```bash
 git clone https://github.com/YeOK/Latch.git
-cd Latch/source
-composer install --no-dev
-php bin/latch install
+cd Latch
+bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 ```
+
+(`install.sh` runs Composer, `bin/latch install`, `doctor`, and cron when invoked as root.)
 
 Point the web server **only** at `public/`. Keep `storage/` and `config/local.php` private.
 
 ## Quick install (from source tree)
 
 ```bash
-cd source
-php composer.phar install --no-dev
-php bin/latch install
+bash scripts/install.sh
+# or manually: cd source && composer install --no-dev && php bin/latch install
 ```
 
 The installer will:
 
-1. Write `config/local.php` (site URL and name)
+1. Write `config/local.php` (site URL, name, and `security.encryption_key` for admin 2FA)
 2. Create `storage/database/latch.sqlite` and apply migrations
 3. Create an admin user
 4. Seed a default **General** board
+5. Run **security bootstrap** if `encryption_key` is still missing (e.g. resumed install with an old `local.php`)
 
 Non-interactive example:
 
@@ -135,8 +136,10 @@ sudo -u apache php bin/latch maintenance
 ## After install
 
 1. Sign in as admin at `/login`
-2. Open `/admin` to manage users, boards, and settings
-3. Post in your first board
+2. Enable **two-factor authentication** on your admin account (Profile → Security) — requires `security.encryption_key` in `config/local.php` (set automatically by `install`; existing sites: `php bin/latch security-bootstrap`)
+3. Open `/admin` to manage users, boards, and settings
+4. Post in your first board
+5. Run `php bin/latch doctor` and `php bin/latch audit` before going live
 
 ## Migrations
 
@@ -212,6 +215,7 @@ See **[UPGRADE.md](UPGRADE.md)** for rollback, `db-check`, and `restore --latest
 ## Operations (Phase 1.5+)
 
 ```bash
+php bin/latch security-bootstrap   # set encryption_key if missing (also runs at end of install)
 php bin/latch audit          # security self-check (headers, permissions, debug leakage)
 php bin/latch backup         # WAL-safe tarball to storage/backups/
 php bin/latch db-check       # SQLite integrity after migrate/restore

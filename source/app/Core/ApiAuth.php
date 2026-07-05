@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Core;
 
 use Latch\Models\OAuthClientRepository;
@@ -48,7 +55,7 @@ final class ApiAuth
         $userId = $row['user_id'] ?? null;
         if ($userId !== null) {
             $user = $this->users->findById((int) $userId);
-            if ($user === null || $this->users->isBanned($user) || $this->users->isLocked($user)) {
+            if ($user === null || $this->users->isDeleted($user) || $this->users->isBanned($user) || $this->users->isLocked($user)) {
                 ApiResponse::error('invalid_token', 'Token user is no longer active.', 401);
             }
         }

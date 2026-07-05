@@ -51,6 +51,8 @@ sudo systemctl reload httpd
 
 Symlinks wire `source/config/local.php` → `/etc/latch/local.php` and `source/storage` → `/var/lib/latch/storage`.
 
+`latch-setup` creates `/etc/latch/local.php` with a random `security.encryption_key` before `bin/latch install`. Fresh tarball installs do the same via `install`; if you copied an old `local.php` without a key, run `sudo -u apache latch security-bootstrap`.
+
 ## Upgrades
 
 When a new release is tagged, COPR builds a new RPM. On the server:

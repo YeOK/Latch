@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Support;
 
 use Latch\Core\Database;
@@ -190,21 +197,23 @@ final class SqliteIntegrity
             ];
         }
 
+        $partition = ForeignKeyCheck::partitionViolations($violations);
         $messages = [];
-        foreach ($violations as $row) {
-            $messages[] = sprintf(
-                'table=%s rowid=%s parent=%s fk=%s',
-                (string) ($row['table'] ?? ''),
-                (string) ($row['rowid'] ?? ''),
-                (string) ($row['parent'] ?? ''),
-                (string) ($row['fkid'] ?? ''),
-            );
+        foreach ($partition['unexpected'] as $row) {
+            $messages[] = ForeignKeyCheck::formatViolation($row);
+        }
+
+        $detail = 'ok';
+        if ($messages !== []) {
+            $detail = $messages;
+        } elseif ($partition['allowed_orphans'] > 0) {
+            $detail = 'ok (' . $partition['allowed_orphans'] . ' author orphan(s) ignored)';
         }
 
         return [
             'name' => 'foreign_key_check',
             'ok' => $messages === [],
-            'detail' => $messages === [] ? 'ok' : $messages,
+            'detail' => $detail,
         ];
     }
 

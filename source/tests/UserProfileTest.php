@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Tests;
 
 use Latch\Core\Database;
@@ -42,7 +49,7 @@ final class UserProfileTest extends TestCase
                 (1, 'news', 'News', 0, 'guest'),
                 (2, 'staff', 'Staff', 1, 'member');
              INSERT INTO users (id, username, email, bio, created_at, role) VALUES
-                (1, 'yeok', 'yeok@test', 'Founder bio', '2026-01-01T00:00:00+00:00', 'admin'),
+                (1, 'founder', 'founder@test', 'Founder bio', '2026-01-01T00:00:00+00:00', 'admin'),
                 (2, 'deleted_2', 'deleted_2@deleted.local', '', '2026-01-02T00:00:00+00:00', 'member');
              INSERT INTO topics (id, board_id, user_id, title, slug, last_post_at) VALUES
                 (1, 1, 1, 'Public topic', 'public-topic', '2026-06-29T10:00:00+00:00'),

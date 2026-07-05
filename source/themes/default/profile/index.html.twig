@@ -199,9 +199,9 @@
     <section class="form-section danger-zone">
         <h2>Delete account</h2>
         {% if anonymise_posts_on_delete %}
-            <p class="muted">Your posts and topics will be replaced with <code>[deleted]</code> before the account is removed.</p>
+            <p class="muted">Your posts and topics will be replaced with <code>[deleted]</code>. The account row is removed automatically after 30 days.</p>
         {% else %}
-            <p class="muted">Your posts and topics will remain with your username on record.</p>
+            <p class="muted">Your posts and topics will remain on the forum. The account row is removed automatically after 30 days; authors then show as <code>[deleted]</code>.</p>
         {% endif %}
         <form method="post" action="/profile/delete" class="form">
             {{ csrf_field() }}

@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 require_once dirname(__DIR__) . '/http/HttpClient.php';
 require_once dirname(__DIR__) . '/security/WebSecurityHarness.php';
 

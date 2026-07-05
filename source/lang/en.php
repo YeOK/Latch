@@ -3,6 +3,13 @@
 declare(strict_types=1);
 
 /**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
+/**
  * English UI strings (default locale).
  * Keys use dot notation in Twig: {{ trans('nav.sign_in') }}
  */

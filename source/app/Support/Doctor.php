@@ -2,11 +2,20 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Support;
 
 use Latch\Core\Config;
 use Latch\Core\Database;
 use Latch\Core\Migrator;
+use Latch\Core\SecretCipher;
+use Latch\Models\SettingRepository;
 
 /**
  * Four-layer install preflight (host, vendor, instance, permissions).
@@ -136,9 +145,70 @@ final class Doctor
                     'detail' => 'cannot read database: ' . $e->getMessage(),
                 ];
             }
+
+            $cipher = new SecretCipher($config);
+            $keyOk = $cipher->hasConfiguredKey();
+            $checks[] = [
+                'layer' => '3-instance',
+                'name' => 'encryption_key',
+                'ok' => $keyOk,
+                'detail' => $keyOk
+                    ? 'security.encryption_key set (required for admin 2FA)'
+                    : 'missing or invalid — run php bin/latch security-bootstrap',
+            ];
+
+            try {
+                $settings = new SettingRepository(Database::openReadOnly($dbPath));
+                $checks[] = self::checkCronFreshness($settings);
+            } catch (\Throwable $e) {
+                $checks[] = [
+                    'layer' => '3-instance',
+                    'name' => 'cron_daily',
+                    'ok' => false,
+                    'detail' => 'cannot read cron settings: ' . $e->getMessage(),
+                ];
+            }
         }
 
         return $checks;
+    }
+
+    /**
+     * @return array{layer: string, name: string, ok: bool, detail: string}
+     */
+    private static function checkCronFreshness(SettingRepository $settings): array
+    {
+        $lastDaily = trim((string) $settings->get('last_cron_daily_at', ''));
+        if ($lastDaily === '') {
+            return [
+                'layer' => '3-instance',
+                'name' => 'cron_daily',
+                'ok' => false,
+                'detail' => 'daily cron never recorded — install cron (scripts/install-cron.sh) and run php bin/latch cron daily',
+            ];
+        }
+
+        $ranAt = strtotime($lastDaily);
+        if ($ranAt === false) {
+            return [
+                'layer' => '3-instance',
+                'name' => 'cron_daily',
+                'ok' => false,
+                'detail' => 'last_cron_daily_at invalid — run php bin/latch cron daily',
+            ];
+        }
+
+        $ageHours = (int) floor((time() - $ranAt) / 3600);
+        $ok = $ageHours <= 48;
+
+        return [
+            'layer' => '3-instance',
+            'name' => 'cron_daily',
+            'ok' => $ok,
+            'detail' => $ok
+                ? "last daily cron {$ageHours}h ago"
+                : "daily cron stale ({$ageHours}h ago) — check crontab or systemd timers",
+        ];
     }
 
     /**

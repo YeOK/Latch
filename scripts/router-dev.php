@@ -3,6 +3,13 @@
 declare(strict_types=1);
 
 /**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
+/**
  * Router for PHP's built-in server (local dev only — not installed under public/).
  *
  *   ./scripts/dev-server.sh

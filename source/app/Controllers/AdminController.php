@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Controllers;
 
 use Latch\Core\Application;
@@ -355,7 +362,7 @@ final class AdminController
         $this->app->auth()->requireAdmin();
 
         $filter = (string) $this->app->request()->input('filter', 'members');
-        if (!in_array($filter, ['members', 'staff', 'banned', 'all'], true)) {
+        if (!in_array($filter, ['members', 'staff', 'banned', 'deleted', 'all'], true)) {
             $filter = 'members';
         }
 
@@ -382,6 +389,8 @@ final class AdminController
             'total' => $result['total'],
             'total_pages' => (int) max(1, ceil($result['total'] / $result['per_page'])),
             'banned_count' => $this->app->users()->countBanned(),
+            'deleted_count' => $this->app->users()->countDeleted(),
+            'deleted_retain_days' => max(1, (int) $this->app->settings()->get('cron_deleted_user_retain_days', '30')),
             'report_categories' => $this->app->reportReasons()->categories(),
         ]);
     }
@@ -401,6 +410,7 @@ final class AdminController
             'warnings' => $this->app->userWarnings()->listForUser($id),
             'warning_count' => $this->app->userWarnings()->countForUser($id),
             'is_banned' => $this->app->users()->isBanned($target),
+            'is_deleted' => $this->app->users()->isDeleted($target),
             'report_categories' => $this->app->reportReasons()->categories(),
             'reputation' => $this->app->reputation()->profileViewForUser($target),
             'reputation_rank_labels' => ReputationService::RANK_LABELS,
@@ -524,6 +534,10 @@ final class AdminController
             Response::notFound('User not found');
         }
 
+        if ($this->app->users()->isDeleted($user)) {
+            $this->finishStaffAction(false, 'Deleted accounts cannot be banned.', $redirect);
+        }
+
         [$until, $reason] = $this->parseBanInput();
         $this->app->users()->ban($id, $until, $reason);
         $this->app->userSessions()->revokeAllForUser($id);
@@ -605,7 +619,7 @@ final class AdminController
             }
 
             $user = $this->app->users()->findById($id);
-            if ($user === null || $this->app->users()->isBanned($user)) {
+            if ($user === null || $this->app->users()->isDeleted($user) || $this->app->users()->isBanned($user)) {
                 $skipped++;
                 continue;
             }
@@ -1490,9 +1504,11 @@ final class AdminController
     {
         return [
             'is_banned' => $this->app->users()->isBanned($user),
+            'is_deleted' => $this->app->users()->isDeleted($user),
             'banned_at' => $user['banned_at'] ?? null,
             'banned_until' => $user['banned_until'] ?? null,
             'ban_reason' => $user['ban_reason'] ?? null,
+            'deleted_at' => $user['deleted_at'] ?? null,
         ];
     }
 

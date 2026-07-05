@@ -1,2 +1,6 @@
 {# Expects: username #}
-<a href="/user/{{ username }}">{{ username }}</a>
+{% if username == '[deleted]' %}
+    <span class="deleted-author">{{ username }}</span>
+{% else %}
+    <a href="/user/{{ username }}">{{ username }}</a>
+{% endif %}

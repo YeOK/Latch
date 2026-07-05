@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Tests;
 
 use DOMDocument;
@@ -40,7 +47,7 @@ final class RssRepositoryTest extends TestCase
         );
         $pdo->exec(
             "INSERT INTO boards (id, slug, name) VALUES (1, 'news', 'News'), (2, 'staff', 'Staff');
-             INSERT INTO users (id, username, email) VALUES (1, 'yeok', 'yeok@test');
+             INSERT INTO users (id, username, email) VALUES (1, 'founder', 'founder@test');
              INSERT INTO topics (id, board_id, user_id, title, slug, last_post_at) VALUES
                 (1, 1, 1, 'Site launch', 'site-launch', '2026-06-29T10:00:00+00:00'),
                 (2, 2, 1, 'Staff only', 'staff-only', '2026-06-29T11:00:00+00:00');

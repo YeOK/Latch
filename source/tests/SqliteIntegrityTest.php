@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Tests;
 
 use Latch\Support\SqliteIntegrity;
@@ -61,5 +68,54 @@ final class SqliteIntegrityTest extends TestCase
         $text = SqliteIntegrity::formatHuman($report);
 
         $this->assertStringContainsString('db-check: OK', $text);
+    }
+
+    public function testForeignKeyCheckIgnoresAuthorOrphansAfterUserPurge(): void
+    {
+        $pdo = new \PDO('sqlite:' . $this->dbPath);
+        $pdo->exec(
+            'CREATE TABLE users (id INTEGER PRIMARY KEY);
+             CREATE TABLE topics (
+                id INTEGER PRIMARY KEY,
+                board_id INTEGER NOT NULL REFERENCES boards(id),
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                title TEXT NOT NULL
+             );
+             CREATE TABLE posts (
+                id INTEGER PRIMARY KEY,
+                topic_id INTEGER NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                body TEXT NOT NULL
+             );
+             INSERT INTO users (id) VALUES (2);
+             INSERT INTO topics (id, board_id, user_id, title) VALUES (10, 1, 2, "Thread");
+             INSERT INTO posts (id, topic_id, user_id, body) VALUES (100, 10, 2, "Hello");
+             DELETE FROM users WHERE id = 2;'
+        );
+
+        $report = SqliteIntegrity::run($this->dbPath);
+
+        $this->assertTrue($report['ok']);
+        $this->assertSame('foreign_key_check', $report['checks'][1]['name']);
+        $this->assertStringContainsString('author orphan(s) ignored', (string) $report['checks'][1]['detail']);
+    }
+
+    public function testForeignKeyCheckStillFailsForUnexpectedViolations(): void
+    {
+        $pdo = new \PDO('sqlite:' . $this->dbPath);
+        $pdo->exec(
+            'CREATE TABLE topics (
+                id INTEGER PRIMARY KEY,
+                board_id INTEGER NOT NULL REFERENCES boards(id),
+                user_id INTEGER NOT NULL,
+                title TEXT NOT NULL
+             );
+             INSERT INTO topics (id, board_id, user_id, title) VALUES (10, 999, 1, "Orphan board");'
+        );
+
+        $report = SqliteIntegrity::run($this->dbPath);
+
+        $this->assertFalse($report['ok']);
+        $this->assertIsArray($report['checks'][1]['detail']);
     }
 }

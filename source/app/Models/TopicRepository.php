@@ -2,10 +2,18 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Models;
 
 use Latch\Core\Database;
 use Latch\Core\InputValidator;
+use Latch\Support\DeletedAuthorSql;
 use Latch\Support\Str;
 use RuntimeException;
 
@@ -34,9 +42,9 @@ final class TopicRepository
             : "(SELECT COUNT(*) FROM posts p WHERE p.topic_id = t.id AND p.deleted_at IS NULL AND p.approval_status = 'approved')";
 
         $stmt = $this->db->pdo()->prepare(
-            "SELECT t.*, u.username AS author_name, {$postCountSql} AS post_count
+            'SELECT t.*, ' . DeletedAuthorSql::authorName() . ", {$postCountSql} AS post_count
              FROM topics t
-             JOIN users u ON u.id = t.user_id
+             LEFT JOIN users u ON u.id = t.user_id
              WHERE t.id = :id
              LIMIT 1"
         );
@@ -90,10 +98,10 @@ final class TopicRepository
         $orderBy = \Latch\Support\TopicListSort::orderBySql($sort);
 
         $stmt = $this->db->pdo()->prepare(
-            "SELECT t.*, u.username AS author_name, u.email AS author_email,
+            'SELECT t.*, ' . DeletedAuthorSql::authorName() . ", u.email AS author_email,
                     {$postCountSql} AS post_count
              FROM topics t
-             JOIN users u ON u.id = t.user_id
+             LEFT JOIN users u ON u.id = t.user_id
              {$tagJoin}
              WHERE t.board_id = :board_id AND t.deleted_at IS NULL{$tagWhere}{$approvalWhere}
              ORDER BY {$orderBy}
@@ -224,14 +232,14 @@ final class TopicRepository
         $placeholders = implode(',', array_fill(0, count($boardIds), '?'));
         $stmt = $this->db->pdo()->prepare(
             "SELECT ranked.* FROM (
-                SELECT t.*, u.username AS author_name, u.email AS author_email,
+                SELECT t.*, " . DeletedAuthorSql::authorName() . ", u.email AS author_email,
                     {$postCountSql} AS post_count,
                     ROW_NUMBER() OVER (
                         PARTITION BY t.board_id
                         ORDER BY t.is_pinned DESC, t.last_post_at DESC
                     ) AS rn
                 FROM topics t
-                JOIN users u ON u.id = t.user_id
+                LEFT JOIN users u ON u.id = t.user_id
                 WHERE t.board_id IN ({$placeholders}) AND t.deleted_at IS NULL{$approvalWhere}
             ) ranked
             WHERE ranked.rn <= ?

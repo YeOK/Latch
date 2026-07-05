@@ -4,6 +4,13 @@
 declare(strict_types=1);
 
 /**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
+/**
  * Latch CLI entry point.
  */
 
@@ -675,6 +682,13 @@ function resolve_live_test_url(array $opts, string $profile): ?string
         return rtrim(trim($opts['url']), '/');
     }
 
+    foreach (['LATCH_TEST_URL', 'LATCH_URL'] as $envKey) {
+        $fromEnv = getenv($envKey);
+        if (is_string($fromEnv) && trim($fromEnv) !== '') {
+            return rtrim(trim($fromEnv), '/');
+        }
+    }
+
     $configPath = LATCH_ROOT . '/tests/' . $profile . '/config.local.php';
     if (!is_file($configPath)) {
         return null;
@@ -1158,6 +1172,9 @@ function run_install(array $argv): void
                 'name' => $siteName,
                 'url' => rtrim($siteUrl, '/'),
             ],
+            'security' => [
+                'encryption_key' => generate_encryption_key_b64(),
+            ],
         ];
 
         write_local_config($localPath, $local);
@@ -1203,6 +1220,12 @@ function run_install(array $argv): void
     if (!isset($opts['no-seed-board']) && $boards->all() === []) {
         $board = $boards->create('General', 'Welcome to your new forum.');
         fwrite(STDOUT, "Default board created: {$board['name']} (/board/{$board['slug']})\n");
+    }
+
+    $config = new Config($configDir);
+    if (encryption_key_missing($config)) {
+        fwrite(STDOUT, "\nSecurity bootstrap (encryption key for admin 2FA)...\n");
+        run_security_bootstrap();
     }
 
     fwrite(STDOUT, "\nInstall complete. Point your web server at:\n  " . LATCH_ROOT . "/public\n");
@@ -1720,7 +1743,7 @@ function profile_run_builtin_tests(): void
          INSERT INTO boards (id, slug, name, requires_login_to_read, acl_read) VALUES
             (1, "news", "News", 0, "guest"), (2, "staff", "Staff", 1, "member");
          INSERT INTO users (id, username, email, created_at, role) VALUES
-            (1, "yeok", "yeok@test", "2026-01-01T00:00:00+00:00", "admin"),
+            (1, "founder", "founder@test", "2026-01-01T00:00:00+00:00", "admin"),
             (2, "deleted_2", "deleted_2@deleted.local", "2026-01-02T00:00:00+00:00", "member");
          INSERT INTO topics (id, board_id, user_id, title, slug, last_post_at) VALUES
             (1, 1, 1, "Public topic", "public-topic", "2026-06-29T10:00:00+00:00"),
@@ -2181,12 +2204,11 @@ function run_security_bootstrap(): void
         exit(1);
     }
 
-    if (trim((string) ($local['security']['encryption_key'] ?? '')) !== '') {
+    $config = new Config($configDir);
+    if (!encryption_key_missing($config)) {
         fwrite(STDOUT, "security.encryption_key already set — nothing to do.\n");
         exit(0);
     }
-
-    $config = new Config($configDir);
     $db = new Database((string) $config->get('database.path'));
     $users = new UserRepository($db);
     $derivedCipher = new SecretCipher($config);
@@ -2547,6 +2569,16 @@ function api_client_revoke(OAuthClientRepository $clients, array $opts): void
     }
 
     fwrite(STDOUT, "Revoked {$clientId}\n");
+}
+
+function generate_encryption_key_b64(): string
+{
+    return base64_encode(random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
+}
+
+function encryption_key_missing(Config $config): bool
+{
+    return !(new SecretCipher($config))->hasConfiguredKey();
 }
 
 function write_local_config(string $path, array $config): void

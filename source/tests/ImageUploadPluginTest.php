@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Tests;
 
 use Latch\Core\Plugins\PluginAuditor;
@@ -63,7 +70,7 @@ final class ImageUploadPluginTest extends TestCase
         $guard = new BodyGuard($config);
         $ctx = new PostSaveContext(
             body: 'Hello ![x](https://evil.example/p.png)',
-            user: ['id' => 1, 'username' => 'yeok'],
+            user: ['id' => 1, 'username' => 'founder'],
             board: ['id' => 1],
             topic: null,
             kind: 'reply',
@@ -78,7 +85,7 @@ final class ImageUploadPluginTest extends TestCase
         $guard = new BodyGuard($config);
         $ctx = new PostSaveContext(
             body: '![shot](https://images.latch.network/forum/1/abc.png)',
-            user: ['id' => 1, 'username' => 'yeok'],
+            user: ['id' => 1, 'username' => 'founder'],
             board: ['id' => 1],
             topic: null,
             kind: 'reply',
@@ -93,7 +100,7 @@ final class ImageUploadPluginTest extends TestCase
         $guard = new BodyGuard($config);
         $ctx = new PostSaveContext(
             body: 'Docs mention `![alt](https://host/example.png)` as syntax only.',
-            user: ['id' => 1, 'username' => 'yeok'],
+            user: ['id' => 1, 'username' => 'founder'],
             board: ['id' => 1],
             topic: null,
             kind: 'topic',
@@ -114,7 +121,7 @@ final class ImageUploadPluginTest extends TestCase
         $posts = $parser->splitIntoPosts($parsed['body'], 65535);
         $ctx = new PostSaveContext(
             body: $posts[0],
-            user: ['id' => 1, 'username' => 'yeok'],
+            user: ['id' => 1, 'username' => 'founder'],
             board: ['id' => 1],
             topic: null,
             kind: 'topic',

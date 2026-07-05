@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Core;
 
 use Closure;
@@ -393,6 +400,7 @@ final class Application
         $this->router->post('/reset-password', $this->bind($auth, 'resetPassword'));
         $this->router->get('/verify-email', $this->bind($auth, 'verifyEmail'));
         $this->router->get('/confirm-email-change', $this->bind($auth, 'confirmEmailChange'));
+        $this->router->get('/login/2fa/cancel', $this->bind($twoFactor, 'cancelPendingLogin'));
         $this->router->get('/login/2fa', $this->bind($twoFactor, 'showChallenge'));
         $this->router->post('/login/2fa', $this->bind($twoFactor, 'verifyChallenge'));
         $this->router->get('/login/2fa/setup', $this->bind($twoFactor, 'showLoginSetup'));

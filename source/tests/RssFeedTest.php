@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Copyright (c) 2026 Latch contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+
 namespace Latch\Tests;
 
 use DOMDocument;
@@ -46,7 +53,7 @@ final class RssFeedTest extends TestCase
             'https://example.test/topic/1',
             '2026-06-29T12:00:00+00:00',
             'First post with <markup> & more',
-            'yeok',
+            'founder',
             ['news', 'general'],
         );
 
@@ -67,7 +74,7 @@ final class RssFeedTest extends TestCase
         $item = $items->item(0);
         $this->assertNotNull($item);
         $this->assertSame('Hello & welcome', $item->getElementsByTagName('title')->item(0)?->textContent);
-        $this->assertSame('yeok', $item->getElementsByTagName('author')->item(0)?->textContent);
+        $this->assertSame('founder', $item->getElementsByTagName('author')->item(0)?->textContent);
 
         $categories = [];
         foreach ($item->getElementsByTagName('category') as $category) {
