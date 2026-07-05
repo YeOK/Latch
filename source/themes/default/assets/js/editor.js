@@ -86,7 +86,7 @@
             }
 
             if (isNewTopicDraftKey(draftKey)) {
-                textarea.value = '';
+                return;
             }
 
             if (textarea.value === '') {
@@ -116,23 +116,30 @@
         var syncingPreviewScroll = false;
 
         var isReplyComposer = Boolean(root.closest('#reply-panel'));
+        var isNewTopicComposer = isNewTopicDraftKey(draftKey);
 
-        if (isNewTopicDraftKey(draftKey)) {
-            textarea.value = '';
+        if (isNewTopicComposer) {
+            clearComposerDraft(root);
+            textarea.setAttribute('readonly', 'readonly');
+            textarea.addEventListener('focus', function onFirstFocus() {
+                textarea.removeAttribute('readonly');
+            }, { once: true });
         }
 
         if (draftKey) {
-            if (!isReplyComposer) {
+            if (!isReplyComposer && !isNewTopicComposer) {
                 restoreSavedDraft(textarea, draftKey);
             }
 
-            textarea.addEventListener('input', function () {
-                try {
-                    localStorage.setItem('latch_draft_' + draftKey, textarea.value);
-                } catch (e) {
-                    /* ignore */
-                }
-            });
+            if (!isNewTopicComposer) {
+                textarea.addEventListener('input', function () {
+                    try {
+                        localStorage.setItem('latch_draft_' + draftKey, textarea.value);
+                    } catch (e) {
+                        /* ignore */
+                    }
+                });
+            }
         }
 
         function syncPreviewToEditor() {
@@ -549,6 +556,30 @@
     }
 
     document.querySelectorAll('[data-editor]').forEach(initComposer);
+
+    window.addEventListener('pageshow', function (event) {
+        if (!event.persisted) {
+            return;
+        }
+
+        document.querySelectorAll('[data-editor]').forEach(function (root) {
+            var draftKey = root.getAttribute('data-draft-key') || '';
+            if (!isNewTopicDraftKey(draftKey)) {
+                return;
+            }
+
+            clearComposerDraft(root);
+            var textarea = root.querySelector('.composer-textarea');
+            if (!textarea) {
+                return;
+            }
+
+            textarea.setAttribute('readonly', 'readonly');
+            textarea.addEventListener('focus', function onFocus() {
+                textarea.removeAttribute('readonly');
+            }, { once: true });
+        });
+    });
 
     var replyPanel = document.getElementById('reply-panel');
     var replyToggle = document.getElementById('reply-toggle');

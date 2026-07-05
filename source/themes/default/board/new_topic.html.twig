@@ -23,7 +23,7 @@
         <datalist id="tag-suggestions"></datalist>
         <label>
             Message
-            {% include 'partials/composer.twig' with { draft_key: 'new-topic-' ~ board.slug, required: true, rows: 10 } %}
+            {% include 'partials/composer.twig' with { draft_key: 'new-topic-' ~ board.slug, required: true, rows: 10, autocomplete: 'one-time-code' } %}
         </label>
         <button type="submit" class="btn btn-primary">Post topic</button>
     </form>

@@ -7,6 +7,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **New topic composer** — fixed regression where `restoreSavedDraft()` cleared then immediately re-applied the saved draft; new-topic forms no longer restore localStorage drafts, use readonly-until-focus to block browser autofill on `body`, and set `autocomplete="one-time-code"`.
+
 ## [0.3.0.14] — 2026-07-05
 
 ### Changed

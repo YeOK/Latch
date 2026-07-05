@@ -78,7 +78,7 @@
                 {% if required|default(false) %}required{% endif %}
                 placeholder="{{ placeholder|default('') }}"
                 class="composer-textarea"
-                autocomplete="off"
+                autocomplete="{{ autocomplete|default('off') }}"
                 autocorrect="off"
                 autocapitalize="off"
                 spellcheck="true"
