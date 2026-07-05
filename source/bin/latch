@@ -147,10 +147,12 @@ Latch CLI
   php bin/latch api-client     Create, list, or revoke OAuth API clients (admin)
   php bin/latch test-api       Live smoke tests for REST API + OAuth (see tests/api/)
   php bin/latch test-api-messages  Messages API + user OAuth (PKCE); see tests/api/
-  php bin/latch plugin list    List installed plugins and enabled state
+  php bin/latch plugin list [--all]  List plugins ( --all includes ignored)
   php bin/latch plugin audit <path|slug>  Security scan (alias for plugin-audit)
   php bin/latch plugin enable <slug> [--force]  Enable after audit pass
   php bin/latch plugin disable <slug>  Disable a plugin
+  php bin/latch plugin ignore <slug>  Mark plugin ignored in plugin.json (CLI only)
+  php bin/latch plugin unignore <slug>  Restore an ignored plugin
   php bin/latch plugin-audit <path|slug>  Static security scan; JSON with --json
   php bin/latch import phpbb   Import phpBB 3.3.x bundle (or export from MySQL)
   php bin/latch help           Show this message
@@ -242,7 +244,7 @@ function run_migrate(): void
     $config = new Config(LATCH_ROOT . '/config');
     $dbPath = (string) $config->get('database.path');
 
-    $db = new Database($dbPath);
+    $db = latch_cli_database($config);
     $migrator = new Migrator($db, LATCH_ROOT . '/database/migrations');
     $applied = $migrator->migrate();
 
@@ -307,7 +309,7 @@ function collect_audit_issues(Config $config): array
     }
 
     if ($config->isInstalled()) {
-        $db = new Database($dbPath);
+        $db = latch_cli_database($config);
         $settings = new SettingRepository($db);
         $mail = new Mail($config, $settings);
         if ($settings->getBool('require_email_verification') && !$mail->isConfigured()) {
@@ -834,7 +836,7 @@ function run_import_phpbb_bundle(array $opts): void
     require_pdo();
 
     $config = new Config(LATCH_ROOT . '/config');
-    $db = new Database((string) $config->get('database.path'));
+    $db = latch_cli_database($config);
     $reader = new PhpbbReader();
     $converter = new BbcodeConverter(phpbb_custom_bbcode_strategies());
     $importer = new PhpbbImporter($db, $converter);
@@ -908,7 +910,13 @@ function run_cache_clear(): void
 
 function build_cron_service(Database $db): CronService
 {
+    $config = new Config(LATCH_ROOT . '/config');
     $settings = new SettingRepository($db);
+    $registry = new \Latch\Core\Plugins\PluginRegistry(
+        (string) $config->get('paths.plugins'),
+        $settings,
+    );
+
     return new CronService(
         $db,
         $settings,
@@ -922,6 +930,8 @@ function build_cron_service(Database $db): CronService
         new OAuthTokenRepository($db),
         new ApiAuditLogRepository($db),
         new ReputationService($db, new UserRepository($db), $settings),
+        plugin_audit_service_from_config($config),
+        $registry,
     );
 }
 
@@ -949,7 +959,7 @@ function run_cron(array $argv): void
     $job = $argv[2] ?? '';
     $opts = parse_cli_options($argv);
     $config = new Config(LATCH_ROOT . '/config');
-    $db = new Database((string) $config->get('database.path'));
+    $db = latch_cli_database($config);
     $cron = build_cron_service($db);
 
     try {
@@ -1068,7 +1078,7 @@ function run_maintenance(array $argv): void
 
     $opts = parse_cli_options($argv);
     $config = new Config(LATCH_ROOT . '/config');
-    $db = new Database((string) $config->get('database.path'));
+    $db = latch_cli_database($config);
     $storagePath = (string) $config->get('paths.storage');
 
     fwrite(STDOUT, "Running scheduled DB maintenance (cron daily)…\n");
@@ -1094,7 +1104,7 @@ function run_benchmark(array $argv): void
     $iterations = max(1, (int) ($opts['iterations'] ?? 10));
 
     $paths = ['/', '/health'];
-    $boards = new BoardRepository(new Database((string) $config->get('database.path')));
+    $boards = new BoardRepository(latch_cli_database($config));
     foreach ($boards->all() as $board) {
         $paths[] = '/board/' . $board['slug'];
         break;
@@ -1147,7 +1157,7 @@ function run_install(array $argv): void
     $hasDb = $config->isInstalled();
 
     if ($hasDb) {
-        $db = new Database((string) $config->get('database.path'));
+        $db = latch_cli_database($config);
         $existingUsers = (new UserRepository($db))->all();
         if ($existingUsers !== []) {
             fwrite(STDERR, "Already installed (users exist). Use migrate for schema updates.\n");
@@ -1193,7 +1203,7 @@ function run_install(array $argv): void
     run_migrate();
 
     $config = new Config($configDir);
-    $db = new Database((string) $config->get('database.path'));
+    $db = latch_cli_database($config);
     $users = new UserRepository($db);
     $boards = new BoardRepository($db);
     $settings = new SettingRepository($db);
@@ -1457,7 +1467,7 @@ function run_post_announcements(array $argv): void
     }
 
     $config = new Config(LATCH_ROOT . '/config');
-    $db = new Database((string) $config->get('database.path'));
+    $db = latch_cli_database($config);
     $users = new UserRepository($db);
     $posts = new PostRepository($db);
     $topics = new TopicRepository($db, $posts);
@@ -1561,7 +1571,7 @@ function run_purge_users(array $argv): void
     }
 
     $config = new Config(LATCH_ROOT . '/config');
-    $db = new Database((string) $config->get('database.path'));
+    $db = latch_cli_database($config);
     $input = new Latch\Core\InputValidator($config);
     $users = new Latch\Models\UserRepository($db, $input);
 
@@ -1886,6 +1896,38 @@ function plugin_auditor_from_config(Config $config): \Latch\Core\Plugins\PluginA
     );
 }
 
+function plugin_audit_service_from_config(Config $config): \Latch\Core\Plugins\PluginAuditService
+{
+    $storagePath = (string) $config->get('paths.storage');
+
+    return new \Latch\Core\Plugins\PluginAuditService(
+        plugin_auditor_from_config($config),
+        new \Latch\Core\Plugins\PluginAuditCache($storagePath . '/cache/plugin-audits'),
+    );
+}
+
+function plugin_resolve_directory(Config $config, string $slug): ?string
+{
+    return \Latch\Core\Plugins\PluginManifest::resolveDirectory(
+        (string) $config->get('paths.plugins'),
+        $slug,
+    );
+}
+
+function plugin_is_ignored_by_slug(Config $config, string $slug): bool
+{
+    $dir = plugin_resolve_directory($config, $slug);
+    if ($dir === null) {
+        return false;
+    }
+
+    try {
+        return \Latch\Core\Plugins\PluginManifestStore::isIgnored($dir);
+    } catch (\Throwable) {
+        return false;
+    }
+}
+
 function plugin_find_manifest(Config $config, string $slug): ?\Latch\Core\Plugins\PluginManifest
 {
     foreach (\Latch\Core\Plugins\PluginRegistry::discoverInDirectory((string) $config->get('paths.plugins')) as $manifest) {
@@ -1900,7 +1942,7 @@ function plugin_find_manifest(Config $config, string $slug): ?\Latch\Core\Plugin
 function latch_cli_database(Config $config): Database
 {
     try {
-        return new Database((string) $config->get('database.path'));
+        return Database::fromConfig($config);
     } catch (RuntimeException $e) {
         $msg = strtolower($e->getMessage());
         if (str_contains($msg, 'read-only') || str_contains($msg, 'readonly')) {
@@ -1942,9 +1984,21 @@ function run_plugin_audit(array $argv): void
 
     $config = new Config(LATCH_ROOT . '/config');
     $auditor = plugin_auditor_from_config($config);
+    $auditService = plugin_audit_service_from_config($config);
+
+    if (plugin_is_ignored_by_slug($config, $target)) {
+        fwrite(STDERR, "Plugin is ignored. Run: php bin/latch plugin unignore {$target}\n");
+        exit(1);
+    }
 
     try {
-        $report = $auditor->auditTarget($target);
+        $manifest = plugin_find_manifest($config, $target);
+        if ($manifest !== null) {
+            $result = $auditService->getOrScan($manifest, true);
+            $report = $result['report'];
+        } else {
+            $report = $auditor->auditTarget($target);
+        }
     } catch (\Throwable $e) {
         fwrite(STDERR, $e->getMessage() . "\n");
         exit(1);
@@ -1966,7 +2020,7 @@ function run_plugin(array $argv): void
 
     $config = new Config(LATCH_ROOT . '/config');
     $latchVersion = (string) $config->get('app.version', '0.3.0');
-    $auditor = plugin_auditor_from_config($config);
+    $auditService = plugin_audit_service_from_config($config);
 
     if ($action === 'audit') {
         if ($slug === '') {
@@ -1974,8 +2028,19 @@ function run_plugin(array $argv): void
             exit(1);
         }
 
+        if (plugin_is_ignored_by_slug($config, $slug)) {
+            fwrite(STDERR, "Plugin is ignored. Run: php bin/latch plugin unignore {$slug}\n");
+            exit(1);
+        }
+
         try {
-            $report = $auditor->auditTarget($slug);
+            $manifest = plugin_find_manifest($config, $slug);
+            if ($manifest !== null) {
+                $result = $auditService->getOrScan($manifest, true);
+                $report = $result['report'];
+            } else {
+                $report = plugin_auditor_from_config($config)->auditTarget($slug);
+            }
         } catch (\Throwable $e) {
             fwrite(STDERR, $e->getMessage() . "\n");
             exit(1);
@@ -1995,6 +2060,11 @@ function run_plugin(array $argv): void
             exit(1);
         }
 
+        if (plugin_is_ignored_by_slug($config, $slug)) {
+            fwrite(STDERR, "Plugin is ignored. Run: php bin/latch plugin unignore {$slug}\n");
+            exit(1);
+        }
+
         $manifest = plugin_find_manifest($config, $slug);
         if ($manifest === null) {
             fwrite(STDERR, "Plugin not found: {$slug}\n");
@@ -2007,7 +2077,8 @@ function run_plugin(array $argv): void
         }
 
         try {
-            $report = $auditor->auditPath($manifest->pluginDir);
+            $result = $auditService->getOrScan($manifest, true);
+            $report = $result['report'];
         } catch (\Throwable $e) {
             fwrite(STDERR, $e->getMessage() . "\n");
             exit(1);
@@ -2074,7 +2145,20 @@ function run_plugin(array $argv): void
     );
 
     if ($action === 'list') {
-        $rows = $registry->listWithStatus();
+        $includeIgnored = isset($opts['all']);
+        if ($includeIgnored) {
+            $enabled = array_fill_keys($registry->enabledSlugs(), true);
+            $rows = [];
+            foreach (\Latch\Core\Plugins\PluginRegistry::discoverAllInDirectory((string) $config->get('paths.plugins')) as $manifest) {
+                $rows[] = [
+                    'manifest' => $manifest,
+                    'enabled' => isset($enabled[$manifest->slug]),
+                ];
+            }
+        } else {
+            $rows = $registry->listWithStatus();
+        }
+
         if ($rows === []) {
             fwrite(STDOUT, "No plugins found in " . $config->get('paths.plugins') . "\n");
             return;
@@ -2083,6 +2167,9 @@ function run_plugin(array $argv): void
         foreach ($rows as $row) {
             $manifest = $row['manifest'];
             $state = $row['enabled'] ? 'enabled' : 'disabled';
+            if ($manifest->ignored) {
+                $state = 'ignored';
+            }
             $compat = $manifest->isCompatibleWith($latchVersion) ? 'ok' : 'incompatible';
             fwrite(STDOUT, sprintf(
                 "%-14s v%-7s %-10s %-12s %s\n",
@@ -2092,6 +2179,38 @@ function run_plugin(array $argv): void
                 $compat,
                 $manifest->name,
             ));
+        }
+
+        return;
+    }
+
+    if ($action === 'ignore' || $action === 'unignore') {
+        if ($slug === '') {
+            fwrite(STDERR, "Usage: php bin/latch plugin {$action} <slug>\n");
+            exit(1);
+        }
+
+        $dir = plugin_resolve_directory($config, $slug);
+        if ($dir === null) {
+            fwrite(STDERR, "Plugin not found: {$slug}\n");
+            exit(1);
+        }
+
+        $ignored = $action === 'ignore';
+        try {
+            \Latch\Core\Plugins\PluginManifestStore::setIgnored($dir, $ignored);
+        } catch (\Throwable $e) {
+            fwrite(STDERR, $e->getMessage() . "\n");
+            exit(1);
+        }
+
+        $registry->disable($slug);
+        $auditService->forget($slug);
+
+        if ($ignored) {
+            fwrite(STDOUT, "Ignored plugin: {$slug} (removed from discovery, audits, and enable list)\n");
+        } else {
+            fwrite(STDOUT, "Unignored plugin: {$slug} (visible again — run plugin-audit before enable)\n");
         }
 
         return;
@@ -2119,7 +2238,7 @@ function run_plugin(array $argv): void
         return;
     }
 
-    fwrite(STDERR, "Usage: php bin/latch plugin list|audit <path|slug>|enable <slug>|disable <slug>\n");
+    fwrite(STDERR, "Usage: php bin/latch plugin list [--all]|audit <path|slug>|enable <slug>|disable <slug>|ignore <slug>|unignore <slug>\n");
     exit(1);
 }
 
@@ -2129,7 +2248,7 @@ function run_reputation_recompute(array $argv): void
 
     $opts = parse_cli_options($argv);
     $config = new Config(LATCH_ROOT . '/config');
-    $db = new Database((string) $config->get('database.path'));
+    $db = latch_cli_database($config);
     $users = new \Latch\Models\UserRepository($db);
     $settings = new \Latch\Models\SettingRepository($db);
     $service = new \Latch\Core\ReputationService($db, $users, $settings);
@@ -2152,7 +2271,7 @@ function run_search_reindex(): void
     require_pdo();
 
     $config = new Config(LATCH_ROOT . '/config');
-    $db = new Database((string) $config->get('database.path'));
+    $db = latch_cli_database($config);
     $result = SiteMaintenance::reindexSearch(build_search_repository($db));
 
     if (!$result['ok']) {
@@ -2209,7 +2328,7 @@ function run_security_bootstrap(): void
         fwrite(STDOUT, "security.encryption_key already set — nothing to do.\n");
         exit(0);
     }
-    $db = new Database((string) $config->get('database.path'));
+    $db = latch_cli_database($config);
     $users = new UserRepository($db);
     $derivedCipher = new SecretCipher($config);
 
@@ -2259,7 +2378,7 @@ function run_test_mail(array $argv): void
     }
 
     $config = new Config(LATCH_ROOT . '/config');
-    $db = new Database((string) $config->get('database.path'));
+    $db = latch_cli_database($config);
     $settings = new SettingRepository($db);
     $mail = new Mail($config, $settings);
 
@@ -2299,7 +2418,7 @@ function run_api_client(array $argv): void
     $sub = $argv[2] ?? 'help';
     $opts = parse_cli_options($argv);
     $config = new Config(LATCH_ROOT . '/config');
-    $db = new Database((string) $config->get('database.path'));
+    $db = latch_cli_database($config);
     $clients = new OAuthClientRepository($db);
     $users = new UserRepository($db);
 

@@ -19,11 +19,11 @@ This runs:
 4. **Update** — `php bin/latch update --skip-lock --skip-backup --assume-files-ready`
    - migrate (privilege-aware)
    - **db-check** (mandatory)
-   - cron daily
+   - cron daily (includes plugin security audits — cache under `storage/cache/plugin-audits/`)
    - audit
    - unlock
 
-Add `--clear-cache` to the shell script invocation to purge guest page cache at the end.
+Add `--clear-cache` to the shell script invocation to purge guest page cache at the end. Plugin audit cache and SQLite data in `storage/` are preserved across upgrades.
 
 ## Manual sequence
 

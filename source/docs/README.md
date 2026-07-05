@@ -10,8 +10,8 @@ Operator and developer reference under `source/docs/`. Published to the forum Do
 | [INSTALL-FEDORA.md](INSTALL-FEDORA.md) | Fedora COPR RPM |
 | [UPGRADE.md](UPGRADE.md) | Version upgrades and migrations |
 | [CLI.md](CLI.md) | `bin/latch` commands (migrate, backup, test, import, …) |
-| [TESTING.md](TESTING.md) | PHPUnit suites, smoke/security gates, OIDC E2E |
-| [SECURITY.md](SECURITY.md) | Hardening, audit, and operator checklist |
+| [TESTING.md](TESTING.md) | PHPUnit suites, smoke/security gates, theme JS + plugin audit tests, OIDC E2E |
+| [SECURITY.md](SECURITY.md) | Hardening, static analysis gates, backups, operator checklist |
 | [MARKUP.md](MARKUP.md) | Post markup reference (not yet on Documentation board) |
 
 ## Features
@@ -23,8 +23,8 @@ Operator and developer reference under `source/docs/`. Published to the forum Do
 | [EMAIL.md](EMAIL.md) | Outbound mail |
 | [WEBHOOKS.md](WEBHOOKS.md) | Outbound webhooks |
 | [THEMING.md](THEMING.md) | Themes and `theme.json` |
-| [PLUGINS.md](PLUGINS.md) | Plugin API, audit, and examples |
-| [PERFORMANCE.md](PERFORMANCE.md) | Caching, search, and tuning |
+| [PLUGINS.md](PLUGINS.md) | Plugin API, cached audits, `ignore` flag, examples |
+| [PERFORMANCE.md](PERFORMANCE.md) | Guest cache, SQLite PRAGMAs, query hot paths |
 
 ## Plugin examples
 

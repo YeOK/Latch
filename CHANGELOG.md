@@ -7,8 +7,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **SQLite connection tuning** — configurable `database.sqlite` PRAGMAs in `config/default.php` (`busy_timeout_ms`, `cache_size_kib`, `mmap_size`); override in `config/local.php`; documented in [INSTALL.md](source/docs/INSTALL.md).
+- **Theme JS security scan** — `ThemeJsAuditor` in `test --security` for first-party `themes/default/assets/js/` (complements GitHub CodeQL); see [TESTING.md](source/docs/TESTING.md).
+- **Plugin audit cache** — results stored under `storage/cache/plugin-audits/`; admin **Plugins** reuses cache when files unchanged; `cron daily` refreshes all non-ignored plugins.
+- **Plugin ignore (CLI)** — `php bin/latch plugin ignore <slug>` sets `"ignored": true` in `plugin.json`, disables the plugin, and excludes it from discovery, audits, and admin UI; `plugin unignore` / `plugin list --all` restore visibility.
+
+### Changed
+- **Plugin audits** — admin page no longer re-scans every plugin on every load; enable and `plugin-audit` still force a fresh scan.
+- **Documentation** — `PLUGINS.md`, `CLI.md`, `TESTING.md`, `PERFORMANCE.md`, `SECURITY.md`, `CONTRIBUTING.md`, and `local.php.example` updated for SQLite tuning, XSS gates, and plugin audit workflow.
+
 ### Fixed
+- **`db-check` corrupt files** — truncated or malformed SQLite files return a failed report instead of throwing during read-only open (regression after configurable PRAGMAs).
 - **New topic composer** — fixed regression where `restoreSavedDraft()` cleared then immediately re-applied the saved draft; new-topic forms no longer restore localStorage drafts, use readonly-until-focus to block browser autofill on `body`, and set `autocomplete="one-time-code"`.
+- **DOM XSS (CodeQL)** — `account-panel.js`, `staff-actions.js`, `messages-panel.js` use safe DOM APIs instead of unsanitized `innerHTML` / `href` concatenation.
 
 ## [0.3.0.14] — 2026-07-05
 

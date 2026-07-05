@@ -21,6 +21,8 @@ use Latch\Models\PasswordResetRepository;
 use Latch\Models\SettingRepository;
 use Latch\Models\UserRepository;
 use Latch\Models\UserSessionRepository;
+use Latch\Core\Plugins\PluginAuditService;
+use Latch\Core\Plugins\PluginRegistry;
 use Latch\Support\ForeignKeyCheck;
 use Latch\Support\UserDependencyCleanup;
 
@@ -42,6 +44,8 @@ final class CronService
         private readonly OAuthTokenRepository $oauthTokens,
         private readonly ApiAuditLogRepository $apiAuditLog,
         private readonly ?ReputationService $reputation = null,
+        private readonly ?PluginAuditService $pluginAudits = null,
+        private readonly ?PluginRegistry $pluginRegistry = null,
     ) {
     }
 
@@ -86,10 +90,22 @@ final class CronService
             'user_orphans' => $this->pruneUserOrphans(),
             'deleted_users' => $this->pruneExpiredDeletedUsers(),
             'reputation_members' => 0,
+            'plugin_audits_scanned' => 0,
+            'plugin_audits_cached' => 0,
+            'plugin_audits_failed' => 0,
+            'plugin_audits_pruned' => 0,
         ];
 
         if ($this->reputation !== null && $this->reputationColumnsExist()) {
             $stats['reputation_members'] = $this->reputation->recomputeAll();
+        }
+
+        if ($this->pluginAudits !== null && $this->pluginRegistry !== null) {
+            $auditStats = $this->pluginAudits->auditDiscoveredPlugins($this->pluginRegistry, true);
+            $stats['plugin_audits_scanned'] = $auditStats['scanned'];
+            $stats['plugin_audits_cached'] = $auditStats['cached'];
+            $stats['plugin_audits_failed'] = $auditStats['failed'];
+            $stats['plugin_audits_pruned'] = $auditStats['pruned'];
         }
 
         $this->settings->set('last_cron_daily_at', gmdate('c'));

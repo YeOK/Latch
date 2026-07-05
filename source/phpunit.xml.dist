@@ -44,6 +44,7 @@
             <file>tests/RequestHttpsTest.php</file>
             <file>tests/BoardAclTest.php</file>
             <file>tests/PluginAuditorTest.php</file>
+            <file>tests/ThemeJsAuditorTest.php</file>
             <file>tests/OutboundUrlGuardTest.php</file>
             <file>tests/SecretCipherTest.php</file>
             <file>tests/SpamGuardTest.php</file>

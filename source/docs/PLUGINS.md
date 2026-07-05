@@ -170,9 +170,13 @@ php bin/latch plugin disable example
 
 After enabling, purge guest page cache / Twig compile if needed (`php bin/latch maintenance --clear-cache`).
 
-**Admin UI:** `/admin/plugins` lists discovered plugins, audit status, and enable/disable (CSRF-protected). Enable is blocked until `plugin-audit` passes.
+**Admin UI:** `/admin/plugins` lists discovered plugins, audit status, and enable/disable (CSRF-protected). Enable is blocked until `plugin-audit` passes. Audit results are **cached** on disk (`storage/cache/plugin-audits/`); the admin page reuses the cache when plugin files are unchanged, otherwise scans once and refreshes the cache.
 
-**Audit gate:** `plugin enable` (CLI and admin) runs `plugin-audit` first. Critical findings block enable unless CLI `--force` (logged to `audit_log` as `plugin.enable_forced`).
+**Audit schedule:** `cron daily` re-scans all non-ignored plugins and updates the cache. Manual `plugin-audit` always forces a fresh scan.
+
+**Ignored plugins (CLI only):** `php bin/latch plugin ignore <slug>` writes `"ignored": true` to `plugin.json`, disables the plugin, and removes it from discovery, admin UI, and audits. Use for seasonal plugins you want to keep on disk without maintenance overhead. Restore with `plugin unignore <slug>`. List ignored plugins: `plugin list --all`.
+
+**Audit gate:** `plugin enable` (CLI and admin) runs a fresh audit first. Critical findings block enable unless CLI `--force` (logged to `audit_log` as `plugin.enable_forced`).
 
 ## Bundled plugins
 
@@ -226,6 +230,17 @@ Reference at `docs/plugins/warnexample/` — intentional markup warnings in `src
 
 Static scanner — no plugin code is executed during the audit.
 
+### When scans run
+
+| Trigger | Behaviour |
+|---------|-----------|
+| **Admin → Plugins** | Uses cached report if plugin files unchanged; otherwise scans once and updates cache |
+| **`cron daily`** | Re-scans all non-ignored plugins; prunes stale cache files |
+| **`plugin-audit` / `plugin enable`** | Always forces a fresh scan and updates cache |
+| **Ignored plugins** | Never scanned (see below) |
+
+Cache path: `storage/cache/plugin-audits/{slug}.json`. Invalidation is automatic when the plugin tree fingerprint changes (file mtimes/sizes under the plugin dir, excluding `vendor/`).
+
 ```bash
 php bin/latch plugin-audit plugins/forum-stats
 php bin/latch plugin-audit forum-stats      # slug under plugins/
@@ -236,6 +251,18 @@ php bin/latch plugin audit forum-stats          # alias
 ```
 
 Exit code **0** = pass (no critical findings). Exit code **1** = critical issues or invalid path.
+
+### Ignoring seasonal plugins (CLI only)
+
+For plugins you keep on disk but do not want discovered, audited, or enabled:
+
+```bash
+php bin/latch plugin ignore md-import    # writes "ignored": true to plugin.json, disables, clears cache
+php bin/latch plugin list --all          # shows ignored plugins
+php bin/latch plugin unignore md-import  # restore to normal discovery
+```
+
+Ignored plugins are hidden from **Admin → Plugins** and skipped by `cron daily` audits. Not available in the admin UI by design.
 
 ### What it checks
 
@@ -283,6 +310,15 @@ Dangerous PHP tokens inside HTML strings can still trigger **critical** findings
 | `js_external_script_injection` | `<script` injection via `createElement` / `innerHTML` (coarse) |
 | `js_fetch_external` | `fetch('https://…')` absolute external URL literal |
 | `js_xhr_external` | `XMLHttpRequest.open(…, 'https://…')` absolute external URL literal |
+
+### `plugin.json` fields
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `name`, `slug`, `version`, `min_latch_version`, `hooks` | Yes | `slug` must match directory name |
+| `description` | No | Shown in admin plugin list |
+| `permissions` | No | See below |
+| `ignored` | No | **`true`** — CLI-only via `plugin ignore`; plugin acts as not installed |
 
 ### Manifest permissions
 

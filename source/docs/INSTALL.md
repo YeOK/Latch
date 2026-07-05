@@ -114,6 +114,30 @@ location ~ \.php$ {
 }
 ```
 
+## SQLite tuning (optional)
+
+Latch applies WAL mode, foreign keys, and performance PRAGMAs on every connection. Defaults live in `config/default.php` under `database.sqlite`:
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `busy_timeout_ms` | `5000` | Wait on locked DB before `SQLITE_BUSY` |
+| `cache_size_kib` | `8192` | Page cache (8 MiB); `0` leaves SQLite default |
+| `mmap_size` | `0` | Memory-mapped reads (bytes); `0` = disabled |
+
+Override in `config/local.php` only when you need to tune a busy site — installs and upgrades pick up defaults automatically. Example:
+
+```php
+'database' => [
+    'sqlite' => [
+        'busy_timeout_ms' => 10000,
+        'cache_size_kib' => 32768,
+        'mmap_size' => 268435456,
+    ],
+],
+```
+
+See also [PERFORMANCE.md](PERFORMANCE.md) (query hot paths) and [SECURITY.md](SECURITY.md) (WAL backups, permissions).
+
 ## File permissions
 
 `storage/` must be writable by the web server user (`apache` on Fedora). Production layouts use **2770** directories and **660** database files (group `apache`, no world access).

@@ -16,7 +16,9 @@ use Latch\Core\Auth;
 use Latch\Core\Cache;
 use Latch\Core\Plugins\PluginAuditFinding;
 use Latch\Core\Plugins\PluginAuditReport;
+use Latch\Core\Plugins\PluginAuditService;
 use Latch\Core\Plugins\PluginAuditor;
+use Latch\Core\Plugins\PluginAuditCache;
 use Latch\Core\Plugins\PluginManifest;
 use Latch\Core\ReportReasons;
 use Latch\Core\ReputationService;
@@ -1646,19 +1648,19 @@ final class AdminController
         $this->app->auth()->requireAdmin();
 
         $registry = $this->app->plugins();
-        $auditor = $this->pluginAuditor();
+        $auditService = $this->pluginAuditService();
         $latchVersion = $this->app->latchVersion();
         $rows = [];
 
         foreach ($registry->listWithStatus() as $row) {
             $manifest = $row['manifest'];
-            $report = $auditor->auditPath($manifest->pluginDir);
+            $auditResult = $auditService->getOrScan($manifest, false);
 
             $rows[] = [
                 'manifest' => $manifest,
                 'enabled' => $row['enabled'],
                 'compatible' => $manifest->isCompatibleWith($latchVersion),
-                'audit' => $this->auditRowForTemplate($report),
+                'audit' => $this->auditRowForTemplate($auditResult['report'], $auditResult['scanned_at'], $auditResult['from_cache']),
             ];
         }
 
@@ -1687,7 +1689,8 @@ final class AdminController
             );
         }
 
-        $report = $this->pluginAuditor()->auditPath($manifest->pluginDir);
+        $auditResult = $this->pluginAuditService()->getOrScan($manifest, true);
+        $report = $auditResult['report'];
         if (!$report->enableAllowed()) {
             $this->finishStaffAction(
                 false,
@@ -1758,9 +1761,20 @@ final class AdminController
         $config = $this->app->config();
 
         return new PluginAuditor(
-            dirname((string) $config->get('paths.storage')),
+            LATCH_ROOT,
             (string) $config->get('paths.plugins'),
             (string) $config->get('paths.storage'),
+        );
+    }
+
+    private function pluginAuditService(): PluginAuditService
+    {
+        $config = $this->app->config();
+        $storagePath = (string) $config->get('paths.storage');
+
+        return new PluginAuditService(
+            $this->pluginAuditor(),
+            new PluginAuditCache($storagePath . '/cache/plugin-audits'),
         );
     }
 
@@ -1782,7 +1796,7 @@ final class AdminController
     /**
      * @return array<string, mixed>
      */
-    private function auditRowForTemplate(PluginAuditReport $report): array
+    private function auditRowForTemplate(PluginAuditReport $report, ?string $scannedAt = null, bool $fromCache = false): array
     {
         $criticalFindings = [];
         $warnFindings = [];
@@ -1806,6 +1820,8 @@ final class AdminController
             'warn_count' => $report->warnCount(),
             'critical_findings' => $criticalFindings,
             'warn_findings' => $warnFindings,
+            'scanned_at' => $scannedAt,
+            'from_cache' => $fromCache,
             'findings' => array_map(
                 static fn (PluginAuditFinding $f): array => $f->toArray(),
                 $report->findings,

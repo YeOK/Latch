@@ -74,6 +74,33 @@ final class PluginAuditReport
     }
 
     /**
+     * @param array<string, mixed> $data
+     */
+    public static function fromArray(array $data): self
+    {
+        $findings = [];
+        foreach ($data['findings'] ?? [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $findings[] = new PluginAuditFinding(
+                (string) ($row['severity'] ?? PluginAuditFinding::SEVERITY_WARN),
+                (string) ($row['code'] ?? 'unknown'),
+                (string) ($row['message'] ?? ''),
+                isset($row['file']) ? (string) $row['file'] : null,
+                isset($row['line']) ? (int) $row['line'] : null,
+            );
+        }
+
+        return new self(
+            (string) ($data['path'] ?? ''),
+            isset($data['slug']) ? (string) $data['slug'] : null,
+            $findings,
+        );
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array

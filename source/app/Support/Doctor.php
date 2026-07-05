@@ -129,7 +129,7 @@ final class Doctor
 
         if ($dbOk && class_exists(Database::class)) {
             try {
-                $db = Database::openReadOnly($dbPath);
+                $db = Database::openReadOnly($dbPath, Database::sqliteOptionsFromConfig($config));
                 $pending = (new Migrator($db, (defined('LATCH_ROOT') ? LATCH_ROOT : dirname(__DIR__, 2)) . '/database/migrations'))->pendingCount();
                 $checks[] = [
                     'layer' => '3-instance',
@@ -158,7 +158,9 @@ final class Doctor
             ];
 
             try {
-                $settings = new SettingRepository(Database::openReadOnly($dbPath));
+                $settings = new SettingRepository(
+                    Database::openReadOnly($dbPath, Database::sqliteOptionsFromConfig($config)),
+                );
                 $checks[] = self::checkCronFreshness($settings);
             } catch (\Throwable $e) {
                 $checks[] = [

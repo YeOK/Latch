@@ -24,7 +24,7 @@ define('LATCH_ROOT', dirname(__DIR__));
 require LATCH_ROOT . '/vendor/autoload.php';
 
 $config = new Config(LATCH_ROOT . '/config');
-$db = new Database((string) $config->get('database.path'));
+$db = Database::fromConfig($config);
 $users = new UserRepository($db);
 
 $dbPath = (string) $config->get('database.path', 'latch');

@@ -76,9 +76,10 @@ final class SystemInfo
         }
 
         $dbSizes = self::databaseSizes($dbPath);
-        $journalMode = self::journalMode($dbPath);
+        $sqlite = Database::sqliteOptionsFromConfig($config);
+        $journalMode = self::journalMode($dbPath, $sqlite);
         $guestCache = self::guestCacheStats($storagePath, $cacheEnabled);
-        $cron = self::cronRuns($dbPath, $lastCronDailyAt);
+        $cron = self::cronRuns($dbPath, $lastCronDailyAt, $sqlite);
         $mail = self::mailSummary($mailStatus);
 
         $mainLabel = SiteRestore::formatBytes($dbSizes['main']);
@@ -308,14 +309,17 @@ final class SystemInfo
         ], JSON_THROW_ON_ERROR);
     }
 
-    private static function journalMode(string $dbPath): string
+    /**
+     * @param array<string, mixed> $sqlite
+     */
+    private static function journalMode(string $dbPath, array $sqlite = []): string
     {
         if (!is_file($dbPath)) {
             return 'unknown';
         }
 
         try {
-            $db = Database::openReadOnly($dbPath);
+            $db = Database::openReadOnly($dbPath, $sqlite);
             $mode = $db->pdo()->query('PRAGMA journal_mode')->fetchColumn();
 
             return is_string($mode) ? strtolower($mode) : 'unknown';
@@ -331,7 +335,10 @@ final class SystemInfo
      *     weekly: array{at: string|null, ago: string|null}
      * }
      */
-    private static function cronRuns(string $dbPath, ?string $lastCronDailyAt): array
+    /**
+     * @param array<string, mixed> $sqlite
+     */
+    private static function cronRuns(string $dbPath, ?string $lastCronDailyAt, array $sqlite = []): array
     {
         $runs = [
             'hourly' => null,
@@ -344,7 +351,7 @@ final class SystemInfo
         }
 
         try {
-            $db = Database::openReadOnly($dbPath);
+            $db = Database::openReadOnly($dbPath, $sqlite);
             if (!self::tableExists($db->pdo(), 'maintenance_runs')) {
                 return self::formatCronRuns($runs);
             }

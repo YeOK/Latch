@@ -68,6 +68,8 @@ The RPM **`%posttrans`** hook runs the same sequence as `scripts/update.sh`:
 3. `bin/latch update` (migrate, db-check, cron, audit)  
 4. Unlock  
 
+Daily cron includes **plugin security audits** (cached under `storage/cache/plugin-audits/`). Optional SQLite PRAGMA tuning: [INSTALL.md](INSTALL.md#sqlite-tuning-optional).
+
 If upgrade fails, the site stays locked. Roll back with [UPGRADE.md](UPGRADE.md) (`restore --latest --with-config`).
 
 ## Disaster recovery (clean host)

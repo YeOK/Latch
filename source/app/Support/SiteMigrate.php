@@ -34,7 +34,7 @@ final class SiteMigrate
         }
 
         if (self::isLiveDbWritable($dbPath)) {
-            $db = new Database($dbPath);
+            $db = Database::fromConfig($config);
             $applied = (new Migrator($db, self::latchRoot() . '/database/migrations'))->migrate();
 
             return ['applied' => $applied, 'mode' => 'direct'];
@@ -44,7 +44,7 @@ final class SiteMigrate
         try {
             Scripts::runSqliteBackup($dbPath, $workDb);
             putenv('LATCH_DB_PATH=' . $workDb);
-            $db = new Database($workDb);
+            $db = new Database($workDb, false, Database::sqliteOptionsFromConfig($config));
             $applied = (new Migrator($db, self::latchRoot() . '/database/migrations'))->migrate();
             self::publishDatabase($workDb, $dbPath, $webUser);
 

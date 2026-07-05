@@ -41,6 +41,20 @@ final class SqliteIntegrity
         try {
             $pdo = self::openConnection($dbPath);
         } catch (\Throwable $e) {
+            if (self::isCorruptDatabaseError($e)) {
+                return [
+                    'ok' => false,
+                    'checks' => [
+                        [
+                            'name' => 'database_open',
+                            'ok' => false,
+                            'detail' => $e->getMessage(),
+                        ],
+                    ],
+                    'duration_ms' => (int) ((hrtime(true) - $started) / 1_000_000),
+                ];
+            }
+
             if (!self::isReadonlyOpenError($e)) {
                 throw new RuntimeException('Cannot open database: ' . $e->getMessage(), 0, $e);
             }
@@ -100,6 +114,15 @@ final class SqliteIntegrity
         return str_contains($message, 'readonly')
             || str_contains($message, 'read-only')
             || str_contains($message, 'attempt to write a readonly database');
+    }
+
+    private static function isCorruptDatabaseError(\Throwable $e): bool
+    {
+        $message = strtolower($e->getMessage());
+
+        return str_contains($message, 'malformed')
+            || str_contains($message, 'corrupt')
+            || str_contains($message, 'not a database');
     }
 
     /**

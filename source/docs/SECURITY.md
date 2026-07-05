@@ -106,3 +106,28 @@ Manual `.recover` and break-glass steps: [UPGRADE.md](UPGRADE.md) § Manual reco
 ## Guest page cache
 
 Cached HTML is only served to unauthenticated visitors on public boards when `members_only` is off. Never caches admin, auth, or personalised pages.
+
+## Static security analysis
+
+| Layer | Scope | When it runs |
+|-------|-------|----------------|
+| **`bin/latch audit`** | File permissions, `local.php` readability, encryption key | Smoke/security gates, `update` |
+| **`PluginAuditor`** | Third-party plugins under `plugins/` | Enable gate, `plugin-audit`, cached admin/cron scans |
+| **`ThemeJsAuditor`** | First-party `themes/default/assets/js/` | `test --security` PHPUnit gate |
+| **GitHub CodeQL** | All tracked JS on `main` | CI on push + weekly schedule |
+
+Server-side post markup is escaped in `PostFormatter` (`SecurityRegressionTest`). DOM XSS in theme JS is caught by CodeQL and `ThemeJsAuditor` — prefer `textContent` / DOM APIs over `innerHTML` with user data.
+
+### Plugin audits
+
+- **Cached** at `storage/cache/plugin-audits/` — admin **Plugins** reuses results when files are unchanged.
+- **`cron daily`** re-scans all non-ignored installed plugins.
+- **`plugin ignore <slug>`** (CLI only) marks `"ignored": true` in `plugin.json` and removes the plugin from discovery and audits — useful for seasonal extensions kept on disk.
+
+Details: [PLUGINS.md](PLUGINS.md), [TESTING.md](TESTING.md).
+
+## SQLite hardening
+
+- Database file outside `public/`; `doctor` fails on world-readable `latch.sqlite` (expect `660`, group `apache`).
+- WAL mode for concurrent reads; `storage/database/` must be writable by the web user (WAL sidecar files).
+- Optional performance PRAGMAs (`busy_timeout`, cache, mmap) — [INSTALL.md](INSTALL.md#sqlite-tuning-optional), [PERFORMANCE.md](PERFORMANCE.md).

@@ -38,6 +38,14 @@ return [
             'key_prefix' => 'forum/',
         ],
     ],
+    // Optional SQLite performance tuning (defaults in config/default.php).
+    // 'database' => [
+    //     'sqlite' => [
+    //         'busy_timeout_ms' => 5000,   // ms to wait on lock (0 = fail immediately)
+    //         'cache_size_kib' => 8192,    // page cache in KiB (0 = SQLite default)
+    //         'mmap_size' => 0,            // bytes; e.g. 268435456 for 256 MiB mmap
+    //     ],
+    // ],
     'mail' => [
         // Transport: msmtp (recommended) or mail (PHP mail())
         'transport' => 'msmtp',

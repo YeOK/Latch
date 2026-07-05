@@ -31,6 +31,7 @@ final class PluginManifest
         public readonly string $pluginDir,
         public readonly array $permissions = [],
         public readonly ?string $description = null,
+        public readonly bool $ignored = false,
     ) {
     }
 
@@ -92,7 +93,23 @@ final class PluginManifest
             pluginDir: $pluginDir,
             permissions: $permissions,
             description: isset($data['description']) ? trim((string) $data['description']) : null,
+            ignored: (bool) ($data['ignored'] ?? false),
         );
+    }
+
+    public static function resolveDirectory(string $pluginsPath, string $slug): ?string
+    {
+        $slug = trim($slug);
+        if ($slug === '' || !preg_match('/^[a-z0-9][a-z0-9_-]*$/', $slug)) {
+            return null;
+        }
+
+        $dir = rtrim($pluginsPath, '/') . '/' . $slug;
+        if (!is_dir($dir) || !is_file($dir . '/plugin.json')) {
+            return null;
+        }
+
+        return realpath($dir) ?: $dir;
     }
 
     public function bootstrapClass(): string

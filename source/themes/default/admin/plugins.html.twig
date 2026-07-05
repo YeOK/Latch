@@ -66,6 +66,9 @@
                             {% if audit.warn_count > 0 %}
                                 <div class="muted">{{ audit.warn_count }} warning{{ audit.warn_count == 1 ? '' : 's' }}</div>
                             {% endif %}
+                            {% if audit.scanned_at %}
+                                <div class="muted">Scanned {{ audit.scanned_at }}{% if audit.from_cache %} (cached){% endif %}</div>
+                            {% endif %}
                             {% if audit.critical_findings is not empty or audit.warn_findings is not empty %}
                                 <details class="plugin-audit-details">
                                     <summary class="muted">Findings</summary>
@@ -119,6 +122,6 @@
                 {% endfor %}
             </tbody>
         </table>
-        <p class="muted">CLI: <code>php bin/latch plugin-audit example</code> · force enable: <code>php bin/latch plugin enable example --force</code></p>
+        <p class="muted">CLI: <code>php bin/latch plugin-audit example</code> · ignore unused: <code>php bin/latch plugin ignore &lt;slug&gt;</code> · force enable: <code>php bin/latch plugin enable example --force</code></p>
     {% endif %}
 {% endblock %}

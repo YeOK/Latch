@@ -104,5 +104,14 @@ return [
     'database' => [
         'driver' => 'sqlite',
         'path' => dirname(__DIR__) . '/storage/database/latch.sqlite',
+        // SQLite tuning — override in config/local.php as needed.
+        'sqlite' => [
+            // Milliseconds to wait on a locked DB before SQLITE_BUSY (0 = fail immediately).
+            'busy_timeout_ms' => 5000,
+            // Page cache in KiB (8192 = 8 MiB). 0 leaves the SQLite default (~2 MiB).
+            'cache_size_kib' => 8192,
+            // Memory-mapped I/O in bytes (0 = disabled). Large read-heavy sites may try 268435456 (256 MiB).
+            'mmap_size' => 0,
+        ],
     ],
 ];

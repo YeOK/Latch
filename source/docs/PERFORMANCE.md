@@ -44,6 +44,24 @@ php bin/latch benchmark --url=https://latch.network --iterations=10
 
 For SQL profiling, enable SQLite trace in a dev copy or wrap `Database::pdo()` in a test harness. Production goal: **no per-row loops that hit SQL** on home and board list paths.
 
+## SQLite tuning
+
+Latch uses a single SQLite file with **WAL mode** and **foreign keys** on every connection. Additional PRAGMAs are configurable in `config/default.php` → `database.sqlite` (override in `config/local.php`):
+
+| Key | Default | Effect |
+|-----|---------|--------|
+| `busy_timeout_ms` | `5000` | Wait on write lock before `SQLITE_BUSY` |
+| `cache_size_kib` | `8192` | Page cache (8 MiB); `0` = SQLite default (~2 MiB) |
+| `mmap_size` | `0` | Memory-mapped reads (bytes); `0` = disabled |
+
+See [INSTALL.md](INSTALL.md#sqlite-tuning-optional) for override examples. Tuning is per-connection — no migration required.
+
+**Planner stats:** `cron weekly` runs `ANALYZE` and `PRAGMA optimize`. **Integrity:** `db-check` and WAL-safe `backup` — see [SECURITY.md](SECURITY.md).
+
+## Plugin audit cache
+
+Plugin security scans are cached under `storage/cache/plugin-audits/{slug}.json` (invalidated when plugin files change). Admin **Plugins** reuses the cache; `cron daily` refreshes all non-ignored plugins. Ignored plugins (`plugin ignore`) are skipped entirely — see [PLUGINS.md](PLUGINS.md).
+
 ## Related
 
 - Guest page cache: Phase 1.5 (`Cache` tags on home/board/topic)

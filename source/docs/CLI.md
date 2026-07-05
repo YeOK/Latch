@@ -23,13 +23,15 @@ php bin/latch help
 | `test --smoke` | Operator gate — smoke PHPUnit + `db-check` + `audit` [+ HTTP/API] |
 | `test --security` | Security gate — security PHPUnit + `audit` [+ HTTP probes] |
 | `cron hourly` | Rate-limit prunes, reputation queue flush |
-| `cron daily` | DB prunes, notifications, full reputation recompute (no cache purge) |
+| `cron daily` | DB prunes, notifications, plugin security audits (cached), full reputation recompute (no cache purge) |
 | `cron weekly` | ANALYZE, DM/topic_reads cleanup; `--audit` prunes audit_log |
 | `reputation-recompute` | Manual full or per-user rank recompute |
-| `plugin list` | List plugins and enabled state |
+| `plugin list [--all]` | List plugins and enabled state (`--all` includes ignored) |
 | `plugin audit <path\|slug>` | Security scan (alias for `plugin-audit`) |
 | `plugin enable <slug>` | Enable after audit pass (`--force` to override) |
 | `plugin disable <slug>` | Disable a plugin |
+| `plugin ignore <slug>` | Ignore plugin (CLI only — not in admin UI) |
+| `plugin unignore <slug>` | Restore ignored plugin |
 | `plugin-audit <path\|slug>` | Static security scan; `--json` for report |
 | `maintenance` | Runs `cron daily` + optional `--clear-cache` / `--vacuum` |
 | `lock on\|off\|status` | Site maintenance lock — blocks web + API (no DB traffic) |
@@ -82,6 +84,8 @@ php bin/latch migrate
 ```
 
 Run after every deploy that ships new migration files.
+
+**SQLite tuning** — connection PRAGMAs (`busy_timeout`, `cache_size`, `mmap_size`) are configured in `config/default.php` → `database.sqlite` and can be overridden in `config/local.php`. See [INSTALL.md](INSTALL.md#sqlite-tuning-optional).
 
 **`attempt to write a readonly database`** — SQLite needs **write permission on `storage/database/`** (for WAL/journal files), not just on `latch.sqlite`. On production the directory is often `750` and owned by `apache`:
 
@@ -212,10 +216,10 @@ php bin/latch cron weekly --audit   # also prune audit_log (e.g. monthly)
 | Job | Schedule (prod template) | Reputation |
 |-----|--------------------------|------------|
 | `hourly` | Every hour at `:00` | Flushes `reputation_queue` (debounced post/vote/warn events) |
-| `daily` | `03:15` | Full `recomputeAll()` for all members |
+| `daily` | `03:15` | Plugin security audits (cached under `storage/cache/plugin-audits/`), full `recomputeAll()` for all members |
 | `weekly` | Sunday `04:30` | `ANALYZE`, DM/topic_reads prunes, **`foreign_key_violations`** count in log (0 = healthy) |
 
-Stdout/stderr from crontab append to **`storage/logs/cron.log`**. After first deploy, confirm the log updates on the next hourly and daily run.
+Stdout/stderr from crontab append to **`storage/logs/cron.log`**. After first deploy, confirm the log updates on the next hourly and daily run. Daily job stats (including `plugin_audits_*`) are also recorded in the `maintenance_runs` table.
 
 Install the system crontab after first deploy:
 
@@ -299,11 +303,14 @@ Customize Latch **without editing core** — see `docs/PLUGINS.md`. Installed pl
 | Command | Purpose |
 |---------|---------|
 | `plugin list` | Discovered plugins, version, enabled/disabled, Latch compatibility |
-| `plugin audit <path\|slug>` | Run security scan (same as `plugin-audit`) |
-| `plugin enable <slug>` | Enable after audit pass |
+| `plugin list --all` | Include ignored plugins |
+| `plugin audit <path\|slug>` | Run security scan (same as `plugin-audit`; updates cache) |
+| `plugin enable <slug>` | Enable after fresh audit pass |
 | `plugin enable <slug> --force` | Override failed audit (logged to `audit_log`) |
 | `plugin disable <slug>` | Disable; files remain on disk |
-| `plugin-audit <path\|slug>` | Static security scan |
+| `plugin ignore <slug>` | Set `"ignored": true` in `plugin.json`, disable, skip audits (CLI only) |
+| `plugin unignore <slug>` | Remove ignore flag |
+| `plugin-audit <path\|slug>` | Static security scan (updates cache for installed slugs) |
 | `plugin-audit <slug> --json` | Machine-readable audit report |
 
 ### Examples
@@ -339,6 +346,8 @@ Active bundled plugins: `forum-stats` (home page stats bar), `image-upload` (R2 
 
 Static scanner — **does not execute** plugin PHP. Walks the plugin tree; validates `plugin.json`; flags dangerous patterns.
 
+**Caching:** For installed slugs under `plugins/`, results are written to `storage/cache/plugin-audits/{slug}.json`. Admin **Plugins** reuses the cache when files are unchanged. This command and `plugin enable` always **force a fresh scan**. `cron daily` refreshes all non-ignored plugins.
+
 ```bash
 php bin/latch plugin-audit plugins/forum-stats
 php bin/latch plugin-audit forum-stats --json
@@ -348,7 +357,7 @@ php bin/latch plugin audit forum-stats    # alias
 | Exit code | Meaning |
 |-----------|---------|
 | `0` | No critical findings |
-| `1` | Critical issues or invalid path |
+| `1` | Critical issues, invalid path, or **ignored** slug |
 
 **Critical (blocks enable):** `eval`, shell functions, dynamic includes from request data, outbound HTTP without `permissions.network`, writes to `config/local.php` / `storage/database/`, path traversal, invalid manifest.
 
@@ -358,6 +367,16 @@ php bin/latch plugin audit forum-stats    # alias
 php bin/latch plugin-audit docs/plugins/warnexample   # exit 0 — warnings only
 php bin/latch plugin-audit docs/plugins/badexample    # exit 1 — critical findings
 ```
+
+### Ignore workflow (CLI only)
+
+```bash
+php bin/latch plugin ignore md-import     # set "ignored": true, disable, skip future audits
+php bin/latch plugin list --all           # list includes ignored
+php bin/latch plugin unignore md-import   # restore discovery
+```
+
+Ignored plugins are omitted from admin **Plugins**, daily cron audits, and `plugin enable`. `plugin-audit <ignored-slug>` exits 1 with a hint to `unignore`.
 
 `--force` on enable still writes `plugin.enable_forced` to `audit_log` with finding details. Admin UI does not offer force-enable.
 

@@ -212,7 +212,7 @@ final class UpdateOrchestrator
             return true;
         }
 
-        $db = new Database($dbPath = (string) $this->config->get('database.path'));
+        $db = Database::fromConfig($this->config);
         $cron = ($this->cronFactory)($db);
         $stats = $cron->runDaily();
         foreach ($stats as $key => $value) {

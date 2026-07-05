@@ -57,7 +57,12 @@ final class PluginRegistry
             }
 
             try {
-                $manifests[] = PluginManifest::fromDirectory($dir);
+                $manifest = PluginManifest::fromDirectory($dir);
+                if ($manifest->ignored) {
+                    continue;
+                }
+
+                $manifests[] = $manifest;
             } catch (\Throwable) {
                 continue;
             }
@@ -104,6 +109,49 @@ final class PluginRegistry
             static fn (mixed $slug): bool => is_string($slug) && $slug !== '',
         )));
         $this->settings->set(self::SETTING_KEY, json_encode($normalized, JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * Filesystem scan including ignored plugins (CLI only).
+     *
+     * @return list<PluginManifest>
+     */
+    public static function discoverAllInDirectory(string $pluginsPath): array
+    {
+        if (!is_dir($pluginsPath)) {
+            return [];
+        }
+
+        $manifests = [];
+        foreach (scandir($pluginsPath) ?: [] as $entry) {
+            if ($entry === '.' || $entry === '..' || $entry === '.gitkeep') {
+                continue;
+            }
+
+            $dir = $pluginsPath . '/' . $entry;
+            if (!is_dir($dir) || !is_file($dir . '/plugin.json')) {
+                continue;
+            }
+
+            try {
+                $manifests[] = PluginManifest::fromDirectory($dir);
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        usort($manifests, static fn (PluginManifest $a, PluginManifest $b): int => strcmp($a->slug, $b->slug));
+
+        return $manifests;
+    }
+
+    public function disable(string $slug): void
+    {
+        $enabled = array_values(array_filter(
+            $this->enabledSlugs(),
+            static fn (string $s): bool => $s !== $slug,
+        ));
+        $this->setEnabledSlugs($enabled);
     }
 
     /**

@@ -22,6 +22,8 @@ php bin/latch test --smoke                          # release gate (PHPUnit smok
 php bin/latch test --security                       # security suite + audit
 ```
 
+The **security** suite includes server-side regressions (`SecurityRegressionTest`), **plugin** static audit tests (`PluginAuditorTest`, `PluginAuditServiceTest`), and **theme JS** XSS pattern checks (`ThemeJsAuditorTest`). GitHub **CodeQL** (`js/xss`) runs on `main` for deeper JS data-flow analysis — see [source/docs/TESTING.md](source/docs/TESTING.md).
+
 Optional live HTTP probes:
 
 ```bash
@@ -35,9 +37,10 @@ php bin/latch test --smoke --url=https://your-staging-forum
 
 1. One logical change per PR when possible.
 2. Add or extend PHPUnit coverage for behaviour changes (especially auth, deletion, moderation, cron).
-3. Run `php bin/latch test --smoke` before submitting.
+3. Run `php bin/latch test --smoke` before submitting; run `test --security` for auth, plugin, or JS changes.
 4. Update `CHANGELOG.md` under `[Unreleased]` for user-visible fixes.
-5. Do not commit secrets (`config/local.php`, API tokens, operator deploy paths).
+5. Update operator docs when behaviour changes: `source/docs/CLI.md` (commands), `PLUGINS.md` (plugins), `INSTALL.md` / `PERFORMANCE.md` (SQLite), `TESTING.md` (gates).
+6. Do not commit secrets (`config/local.php`, API tokens, operator deploy paths).
 
 ## Releases
 
@@ -67,7 +70,8 @@ New PHP, shell, and theme/plugin asset files should include this header (run `py
 
 - Match existing PHP style: `declare(strict_types=1);`, typed properties, thin controllers, repository SQL with bound parameters.
 - Twig templates: reuse existing partials and CSS variables; bump theme asset mtimes ship automatically.
-- CLI changes: update `source/docs/CLI.md` when adding commands or flags.
+- CLI changes: update `source/docs/CLI.md` when adding commands or flags; mirror plugin workflow in `source/docs/PLUGINS.md`.
+- Config knobs: document defaults in `source/config/default.php` comments and `source/config/local.php.example`; add an operator section in `INSTALL.md` when user-tunable.
 
 ## Questions
 

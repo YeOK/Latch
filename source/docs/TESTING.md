@@ -75,7 +75,7 @@ Security regression pack. Runs in order:
 
 | Step | What it checks |
 |------|----------------|
-| PHPUnit **security** suite | CSRF, XSS/markup, OIDC registration guards, board ACLs, spam controls, plugin audit, webhook SSRF, TOTP secret encryption, founder protection, input bounds, image-upload BodyGuard |
+| PHPUnit **security** suite | CSRF, XSS/markup, OIDC registration guards, board ACLs, spam controls, plugin audit, **theme JS static scan**, webhook SSRF, TOTP secret encryption, founder protection, input bounds, image-upload BodyGuard |
 | HTTP security probes (optional) | Read-only checks against a live URL |
 | `audit` | Same self-check as smoke |
 
@@ -93,7 +93,31 @@ Defined in `phpunit.xml.dist`:
 
 **Smoke** includes: `MigratorTest`, `SqliteIntegrityTest`, `SiteRestoreTest`, `SiteLockTest`, `PluginSystemTest`, `PostFormatterTest`, `TopicRepositoryHomeTest`, `CronMaintenanceTest`, `RssFeedTest`, `OAuthScopesTest`, `VersionInfoTest`.
 
-**Security** includes: `CsrfTest`, `SecurityRegressionTest`, `OidcServiceTest`, `BoardAclTest`, `SpamGuardTest`, `PluginAuditorTest`, `OutboundUrlGuardTest`, `SecretCipherTest`, `Phase15LeftoversTest`, `PostEditGuardTest`, `UserRepositoryPurgeTest`, `InputValidatorTest`, `ImageUploadPluginTest`, `RequestHttpsTest`, `SiteLockTest`.
+**Security** includes: `CsrfTest`, `SecurityRegressionTest`, `OidcServiceTest`, `BoardAclTest`, `SpamGuardTest`, `PluginAuditorTest`, `PluginAuditServiceTest`, `ThemeJsAuditorTest`, `DatabaseTest`, `OutboundUrlGuardTest`, `SecretCipherTest`, `Phase15LeftoversTest`, `PostEditGuardTest`, `UserRepositoryPurgeTest`, `InputValidatorTest`, `ImageUploadPluginTest`, `RequestHttpsTest`, `SiteLockTest`.
+
+### JavaScript XSS coverage
+
+| Layer | Scope | Gate |
+|-------|-------|------|
+| **GitHub CodeQL** (`js/xss`, `js/xss-through-dom`) | All tracked JS on `main` | CI on push + weekly |
+| **`ThemeJsAuditor`** (`test --security`) | `themes/default/assets/js/*.js` (excludes `*.min.js`) | **Critical** patterns fail PHPUnit; `innerHTML` etc. warn only |
+| **`PluginAuditor`** | Third-party plugins only | Critical blocks enable; markup/JS warns; production cache via `PluginAuditService` |
+
+PHPUnit cannot execute browser DOM — server-side `SecurityRegressionTest` covers PHP/Twig escaping only. The theme JS scanner catches regressions like unsanitized `userId` in `href`/`innerHTML` (the class of bug CodeQL flagged in `staff-actions.js`). Broader `innerHTML` use is warned for review; prefer `textContent`, `replaceChildren()`, or DOM APIs.
+
+### Plugin audit cache (runtime)
+
+PHPUnit covers the scanner (`PluginAuditorTest`) and cache/fingerprint behaviour (`PluginAuditServiceTest`). In production:
+
+- Admin **Plugins** uses the file cache when unchanged.
+- **`cron daily`** re-scans non-ignored plugins (stats: `plugin_audits_scanned`, `plugin_audits_cached`, `plugin_audits_failed` in `maintenance_runs`).
+- **`plugin ignore`** excludes plugins from discovery and audits (CLI only).
+
+See [PLUGINS.md](PLUGINS.md#security-audit).
+
+### SQLite PRAGMA defaults
+
+`DatabaseTest` verifies configurable `database.sqlite` settings from `config/default.php`. Operators tune via `config/local.php` — see [INSTALL.md](INSTALL.md#sqlite-tuning-optional).
 
 Harness helpers under `tests/http/`, `tests/smoke/`, and `tests/security/` are not PHPUnit tests — they are loaded by the CLI when HTTP gates run.
 

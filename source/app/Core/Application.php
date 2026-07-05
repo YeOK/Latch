@@ -166,7 +166,7 @@ final class Application
 
         $this->session->start($this->config, $this->request);
 
-        $this->db = new Database((string) $this->config->get('database.path'));
+        $this->db = Database::fromConfig($this->config);
         $this->csrf = new Csrf($this->session);
         $this->view = new View($this->config, $this->csrf);
         $this->rateLimiter = new RateLimiter($this->db);
