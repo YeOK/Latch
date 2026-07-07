@@ -16,6 +16,7 @@ use Latch\Core\Cache;
 use Latch\Core\Plugins\PostSaveContext;
 use Latch\Core\Response;
 use Latch\Models\PostRepository;
+use Latch\Plugins\ImageUpload\PluginConfig;
 use RuntimeException;
 
 final class ImportHandler
@@ -62,6 +63,7 @@ final class ImportHandler
                 $filename,
                 $titleOverride !== '' ? $titleOverride : null,
                 $stripLeadingH1,
+                $this->imagePlaceholderUrl(),
             );
         } catch (\InvalidArgumentException $e) {
             $this->app->session()->flash('error', $e->getMessage());
@@ -196,6 +198,16 @@ final class ImportHandler
         }
         $this->app->session()->flash('success', $message);
         Response::redirect('/topic/' . $topicId);
+    }
+
+    private function imagePlaceholderUrl(): string
+    {
+        $config = PluginConfig::fromApp($this->app);
+        if ($config !== null) {
+            return 'https://' . $config->publicHost . MarkdownImport::IMAGE_PLACEHOLDER_PATH;
+        }
+
+        return 'https://md-import.invalid' . MarkdownImport::IMAGE_PLACEHOLDER_PATH;
     }
 
     private function readMarkdownInput(): ?string

@@ -21,6 +21,8 @@
     var PANEL_PREFIXES = ['/profile', '/admin'];
     var isOpen = false;
     var pushedState = false;
+    var overlayReturnUrl = '/';
+    var overlayPushDepth = 0;
     var loading = false;
 
     if (!overlay || !body || !dialog) {
@@ -328,6 +330,9 @@
                 if (pushHistory) {
                     history.pushState({ accountPanel: parsed.pathname + parsed.search }, '', parsed.pathname + parsed.search);
                     pushedState = true;
+                    if (isOpen) {
+                        overlayPushDepth++;
+                    }
                 }
             })
             .catch(function () {
@@ -346,6 +351,8 @@
     }
 
     function openOverlay(url) {
+        overlayReturnUrl = window.location.pathname + window.location.search;
+        overlayPushDepth = 0;
         isOpen = true;
         overlay.hidden = false;
         document.body.classList.add('account-overlay-open');
@@ -361,9 +368,17 @@
         overlay.hidden = true;
         document.body.classList.remove('account-overlay-open');
         setStatus('');
-        if (useHistory && pushedState) {
+        if (useHistory && overlayPushDepth > 0) {
+            var depth = overlayPushDepth;
+            overlayPushDepth = 0;
+            pushedState = false;
+            history.go(-depth);
+        } else if (useHistory && pushedState) {
             pushedState = false;
             history.back();
+        } else if (!useHistory) {
+            overlayPushDepth = 0;
+            pushedState = false;
         }
     }
 
@@ -635,16 +650,27 @@
 
     window.addEventListener('popstate', function (event) {
         if (event.state && event.state.accountPanel && isOpen) {
+            if (overlayPushDepth > 0) {
+                overlayPushDepth--;
+            }
             loadUrl(event.state.accountPanel, false);
             return;
         }
 
-        if (event.state && event.state.adminSpa && document.body.classList.contains('page-admin')) {
-            loadInPlaceAdmin(event.state.adminSpa, false);
-            return;
+        if (document.body.classList.contains('page-admin')) {
+            if (event.state && event.state.adminSpa) {
+                loadInPlaceAdmin(event.state.adminSpa, false);
+                return;
+            }
+            if (isPanelPath(window.location.pathname)) {
+                window.location.reload();
+                return;
+            }
         }
 
         if (isOpen) {
+            overlayPushDepth = 0;
+            pushedState = false;
             closeOverlay(false);
         }
     });

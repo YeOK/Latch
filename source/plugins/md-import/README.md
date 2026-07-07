@@ -33,7 +33,11 @@ Body...
 
 ## Images
 
-If **image-upload** is enabled, markdown images must use your configured CDN host (same rule as normal posts). Relative image paths are not uploaded automatically.
+HTML `<img>` / `<picture>` tags and markdown images on other hosts are converted during import to a placeholder:
+
+`![description (replace image)](https://your-cdn/.md-import/REPLACE-ME.png)`
+
+The placeholder uses your **image-upload** CDN host when configured, so the import passes validation and renders as a broken image you can swap via **Insert image** in the editor. Relative paths and external URLs are not uploaded automatically.
 
 ## Long documents
 

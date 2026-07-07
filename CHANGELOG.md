@@ -9,6 +9,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.3.0.20] — 2026-07-07
+
+### Fixed
+- **Messages overlay (i18n)** — `messages-panel.js` defined `LatchI18n` only inside a click handler while `loadPanel()`/`closePanel()` referenced it at module scope; opening Messages threw `ReferenceError: i18n is not defined` and AJAX feeds never ran (v0.3.0.19 regression).
+- **Admin overlay history** — closing the account/admin panel after in-panel navigation now walks back the full `history` stack (`overlayPushDepth`) so refresh no longer lands on the last admin URL.
+- **Header vs main width** — public header, main, and footer share one column rule (`.latch-header .header-bar` included); header no longer renders wider than topic/board content when guest cache omits `page-forum`.
+- **Pinned badge contrast** — dark theme badge tokens (`--badge-fg` / `--badge-bg`) meet WCAG contrast on pinned labels (default + modern themes).
+
+### Changed
+- **`md-import` images** — HTML `<img>` / `<picture>` tags and foreign-host markdown images convert to a CDN placeholder (`/.md-import/REPLACE-ME.png`) so imports pass `image-upload` BodyGuard and can be swapped in the editor.
+- **Apache packaging example** — `packaging/latch-httpd.conf` documents `ServerAlias www.forum.example.com`.
+
 ## [0.3.0.19] — 2026-07-05
 
 ### Fixed

@@ -51,6 +51,8 @@
     --accent: #5b8def;
     --accent-hover: #7aa3f5;
     --accent-soft: #1e2d4a;
+    --badge-fg: #6b9af2;
+    --badge-bg: #1a2640;
     --brand-fg: #c5dcff;
     --danger: #e74c3c;
     --success-bg: #1a3328;
@@ -214,7 +216,6 @@ a:hover {
 }
 
 .latch-header .header-bar {
-    width: min(var(--home-content-max, var(--content-max)), calc(100vw - 2 * var(--content-gutter)));
     margin: 0 auto;
     display: flex;
     align-items: center;
@@ -1272,8 +1273,12 @@ body.cookie-consent-visible {
     text-decoration: underline;
 }
 
-/* Public forum track — width must not depend on page-forum (guest cache can serve stale body classes). */
-body:not(.page-admin):not(.page-profile) :is(main.container:not(.page-messages), .site-footer .container) {
+/* Public site column — header, main, and footer share one track (not body-class or guest-cache dependent). */
+body:not(.page-admin):not(.page-profile) :is(
+    .latch-header .header-bar,
+    main.container:not(.page-messages),
+    .site-footer .container
+) {
     width: min(var(--home-content-max, var(--content-max)), calc(100vw - 2 * var(--content-gutter)));
 }
 
@@ -3099,8 +3104,8 @@ body:not(.page-admin):not(.page-profile) :is(main.container:not(.page-messages),
     font-weight: 600;
     padding: 0.15rem 0.45rem;
     border-radius: 999px;
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: var(--badge-bg, var(--accent-soft));
+    color: var(--badge-fg, var(--accent));
     margin-right: 0.35rem;
 }
 

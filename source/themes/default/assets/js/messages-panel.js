@@ -19,6 +19,12 @@
         return;
     }
 
+    var i18n = window.LatchI18n || {};
+
+    function t(key, fallback) {
+        return i18n[key] || fallback || key;
+    }
+
     function isMessagesPath(pathname) {
         return pathname === '/messages' || pathname.indexOf('/messages/') === 0;
     }
@@ -301,13 +307,7 @@
             return;
         }
 
-        var i18n = window.LatchI18n || {};
-
-    function t(key, fallback) {
-        return i18n[key] || fallback || key;
-    }
-
-    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        var csrfMeta = document.querySelector('meta[name="csrf-token"]');
         var csrf = csrfMeta ? csrfMeta.content : '';
         var bodyParams = new URLSearchParams();
         bodyParams.set('_csrf', csrf);

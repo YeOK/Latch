@@ -61,4 +61,64 @@ MD;
         $this->assertCount(1, $posts);
         $this->assertSame(MarkdownImport::MARKER . "\n# Hello", $posts[0]);
     }
+
+    public function testReplacesHtmlImgWithPlaceholderMarkdown(): void
+    {
+        $placeholder = 'https://images.example.test' . MarkdownImport::IMAGE_PLACEHOLDER_PATH;
+        $raw = '<p>Before</p><img src="https://old.site/photo.png" alt="Diagram"> After';
+
+        $parsed = $this->parser->parse($raw, 'doc.md', 'Doc', false, $placeholder);
+
+        $this->assertStringContainsString(
+            '![Diagram (replace image)](' . $placeholder . ')',
+            $parsed['body'],
+        );
+        $this->assertStringNotContainsString('<img', $parsed['body']);
+    }
+
+    public function testReplacesPictureBlockWithPlaceholderMarkdown(): void
+    {
+        $placeholder = 'https://images.example.test' . MarkdownImport::IMAGE_PLACEHOLDER_PATH;
+        $raw = <<<'MD'
+# Title
+
+<picture>
+  <source srcset="https://old.site/hero-2x.jpg 2x">
+  <img src="https://old.site/hero.jpg" alt="Hero banner">
+</picture>
+
+Text after.
+MD;
+
+        $parsed = $this->parser->parse($raw, 'doc.md', null, true, $placeholder);
+
+        $this->assertStringContainsString(
+            '![Hero banner (replace image)](' . $placeholder . ')',
+            $parsed['body'],
+        );
+        $this->assertStringNotContainsString('<picture', $parsed['body']);
+    }
+
+    public function testRewritesForeignMarkdownImagesToPlaceholder(): void
+    {
+        $placeholder = 'https://images.example.test' . MarkdownImport::IMAGE_PLACEHOLDER_PATH;
+        $raw = 'See ![shot](https://other.example/a.png) here.';
+
+        $parsed = $this->parser->parse($raw, 'doc.md', 'Doc', false, $placeholder);
+
+        $this->assertSame(
+            'See ![shot (replace image)](' . $placeholder . ') here.',
+            $parsed['body'],
+        );
+    }
+
+    public function testLeavesMarkdownImagesInCodeFencesUntouched(): void
+    {
+        $placeholder = 'https://images.example.test' . MarkdownImport::IMAGE_PLACEHOLDER_PATH;
+        $raw = "Docs:\n\n```html\n<img src=\"x.png\">\n```\n";
+
+        $parsed = $this->parser->parse($raw, 'doc.md', 'Doc', false, $placeholder);
+
+        $this->assertStringContainsString('<img src="x.png">', $parsed['body']);
+    }
 }

@@ -11,7 +11,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.19
+Version:        0.3.0.20
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -193,6 +193,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Tue Jul 07 2026 YeOK <yeokky@gmail.com> - 0.3.0.20-1
+- Messages overlay i18n fix; admin panel history; header width; badge contrast; md-import image placeholders
+
 * Sun Jul 05 2026 YeOK <yeokky@gmail.com> - 0.3.0.18-1
 - Forum footer width alignment; COPR %build runs composer install --no-dev
 
