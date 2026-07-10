@@ -49,7 +49,7 @@ See [CHANGELOG.md](CHANGELOG.md) and [GitHub Releases](https://github.com/YeOK/L
 ## Install (release tarball)
 
 ```bash
-tar -xzf latch-0.3.0.21.tar.gz && cd latch-0.3.0.21-stage
+tar -xzf latch-0.3.0.22.tar.gz && cd latch-0.3.0.22-stage
 bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 ```
 

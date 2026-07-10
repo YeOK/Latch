@@ -37,6 +37,39 @@ final class VersionInfoTest extends TestCase
         @rmdir($dir);
     }
 
+    public function testResolveInstalledVersionPrefersVersionFile(): void
+    {
+        $dir = sys_get_temp_dir() . '/latch-resolve-version-' . bin2hex(random_bytes(4));
+        $latchRoot = $dir . '/source';
+        mkdir($latchRoot, 0777, true);
+        file_put_contents($dir . '/VERSION', "0.3.0.22\n");
+
+        $config = new Config(dirname(__DIR__) . '/config');
+
+        $this->assertSame('0.3.0.22', VersionInfo::resolveInstalledVersion($config, $latchRoot));
+
+        @unlink($dir . '/VERSION');
+        @rmdir($latchRoot);
+        @rmdir($dir);
+    }
+
+    public function testResolveInstalledVersionFallsBackToConfig(): void
+    {
+        $dir = sys_get_temp_dir() . '/latch-resolve-config-' . bin2hex(random_bytes(4));
+        $latchRoot = $dir . '/source';
+        mkdir($latchRoot, 0777, true);
+
+        $config = new Config(dirname(__DIR__) . '/config');
+
+        $this->assertSame(
+            (string) $config->get('app.version'),
+            VersionInfo::resolveInstalledVersion($config, $latchRoot),
+        );
+
+        @rmdir($latchRoot);
+        @rmdir($dir);
+    }
+
     public function testSnapshotUsesInstalledAndTreeVersions(): void
     {
         $root = dirname(__DIR__);
@@ -45,7 +78,7 @@ final class VersionInfoTest extends TestCase
 
         $snapshot = VersionInfo::snapshot($config, $root);
 
-        $this->assertSame((string) $config->get('app.version'), $snapshot['installed']);
+        $this->assertSame(VersionInfo::resolveInstalledVersion($config, $root), $snapshot['installed']);
         $this->assertSame(VersionInfo::readVersionFile($repoRoot), $snapshot['tree']);
         $this->assertContains($snapshot['status'], [
             VersionInfo::STATUS_CURRENT,

@@ -44,7 +44,7 @@ final class VersionInfo
             return self::$requestSnapshot;
         }
 
-        $installed = trim((string) $config->get('app.version', '0.0.0'));
+        $installed = self::resolveInstalledVersion($config, $latchRoot);
         $repoRoot = dirname($latchRoot);
         $tree = self::readVersionFile($repoRoot);
         $storagePath = (string) $config->get('paths.storage', $latchRoot . '/storage');
@@ -60,6 +60,16 @@ final class VersionInfo
         ];
 
         return self::$requestSnapshot;
+    }
+
+    public static function resolveInstalledVersion(Config $config, string $latchRoot): string
+    {
+        $fromFile = self::readVersionFile(dirname($latchRoot));
+        if ($fromFile !== null && $fromFile !== '') {
+            return $fromFile;
+        }
+
+        return trim((string) $config->get('app.version', '0.0.0'));
     }
 
     public static function readVersionFile(string $repoRoot): ?string

@@ -9,6 +9,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.3.0.22] — 2026-07-10
+
+### Fixed
+- **Version display** — `/health`, admin dashboard, and plugin compatibility read the tree `VERSION` file first (RPM: `/usr/share/latch/VERSION`), with `app.version` in config as fallback. Fixes production showing `0.3.0.20` after deploying `0.3.0.21` when `default.php` was not bumped.
+
 ## [0.3.0.21] — 2026-07-10
 
 ### Security
@@ -304,6 +309,7 @@ php bin/latch install --url=https://forum.example.com --name="My Forum"
 cd /var/www/latch && sudo bash scripts/update.sh
 ```
 
+[0.3.0.22]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.22
 [0.3.0.21]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.21
 [0.3.0.20]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.20
 [0.3.0.13]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.13

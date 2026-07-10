@@ -73,6 +73,7 @@ use Latch\Models\UserRepository;
 use Latch\Models\UserSessionRepository;
 use Latch\Models\UserWarningRepository;
 use Latch\Models\WebhookRepository;
+use Latch\Support\VersionInfo;
 use Latch\Support\WebhookDispatcher;
 use Latch\Models\RecoveryCodeRepository;
 use Latch\Models\SearchRepository;
@@ -863,7 +864,7 @@ final class Application
 
     public function latchVersion(): string
     {
-        return (string) $this->config->get('app.version', '0.3.0');
+        return VersionInfo::resolveInstalledVersion($this->config, LATCH_ROOT);
     }
 
     public function rss(): RssRepository
