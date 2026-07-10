@@ -15,7 +15,7 @@ declare(strict_types=1);
  */
 return [
     'app' => [
-        'version' => '0.3.0.22',
+        'version' => '0.3.0.23',
     ],
     'site' => [
         'name' => 'Latch',
@@ -27,6 +27,7 @@ return [
         'members_only' => false,
         'allow_registration' => true,
         'posts_per_page' => 20,
+        'topic_pagination_threshold' => 50,
         'topics_per_page' => 30,
         'rss_items_limit' => 50,
         'sitemap_topics_limit' => 5000,

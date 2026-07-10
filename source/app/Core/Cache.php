@@ -15,19 +15,22 @@ use RuntimeException;
 
 /**
  * File-backed cache with tag-based invalidation.
+ * Supports full guest pages (`pages/`) and HTML fragments (`fragments/`).
  */
 final class Cache
 {
     private readonly string $pagesDir;
+    private readonly string $fragmentsDir;
     private readonly string $tagsDir;
 
     public function __construct(string $storagePath)
     {
         $base = rtrim($storagePath, '/') . '/cache';
         $this->pagesDir = $base . '/pages';
+        $this->fragmentsDir = $base . '/fragments';
         $this->tagsDir = $base . '/tags';
 
-        foreach ([$this->pagesDir, $this->tagsDir] as $dir) {
+        foreach ([$this->pagesDir, $this->fragmentsDir, $this->tagsDir] as $dir) {
             if (!is_dir($dir) && !mkdir($dir, 0750, true) && !is_dir($dir)) {
                 throw new RuntimeException('Cannot create cache directory: ' . $dir);
             }
@@ -36,30 +39,12 @@ final class Cache
 
     public function get(string $key): ?string
     {
-        $path = $this->pagePath($key);
-        if (!is_file($path)) {
-            return null;
-        }
+        return $this->readEntry($this->pagePath($key), $key);
+    }
 
-        $raw = file_get_contents($path);
-        if (!is_string($raw)) {
-            return null;
-        }
-
-        $data = json_decode($raw, true);
-        if (!is_array($data) || !isset($data['expires'], $data['body'])) {
-            @unlink($path);
-
-            return null;
-        }
-
-        if ((int) $data['expires'] < time()) {
-            $this->delete($key);
-
-            return null;
-        }
-
-        return (string) $data['body'];
+    public function getFragment(string $key): ?string
+    {
+        return $this->readEntry($this->fragmentPath($key), $key);
     }
 
     /**
@@ -67,28 +52,20 @@ final class Cache
      */
     public function set(string $key, string $body, int $ttlSeconds, array $tags = []): void
     {
-        $path = $this->pagePath($key);
-        $payload = json_encode([
-            'expires' => time() + max(1, $ttlSeconds),
-            'body' => $body,
-            'tags' => $tags,
-        ], JSON_THROW_ON_ERROR);
+        $this->writeEntry($this->pagePath($key), $key, $body, $ttlSeconds, $tags);
+    }
 
-        if (file_put_contents($path, $payload, LOCK_EX) === false) {
-            throw new RuntimeException('Cache write failed: ' . $key);
-        }
-
-        foreach ($tags as $tag) {
-            $this->addKeyToTag($tag, $key);
-        }
+    /**
+     * @param list<string> $tags
+     */
+    public function setFragment(string $key, string $body, int $ttlSeconds, array $tags = []): void
+    {
+        $this->writeEntry($this->fragmentPath($key), $key, $body, $ttlSeconds, $tags);
     }
 
     public function delete(string $key): void
     {
-        $path = $this->pagePath($key);
-        if (is_file($path)) {
-            @unlink($path);
-        }
+        $this->deleteKey($key);
     }
 
     public function invalidateTag(string $tag): void
@@ -107,7 +84,7 @@ final class Cache
 
         foreach ($keys as $key) {
             if (is_string($key)) {
-                $this->delete($key);
+                $this->deleteKey($key);
             }
         }
 
@@ -128,9 +105,11 @@ final class Cache
     {
         $count = 0;
 
-        foreach (glob($this->pagesDir . '/*.json') ?: [] as $file) {
-            if (@unlink($file)) {
-                $count++;
+        foreach ([$this->pagesDir, $this->fragmentsDir] as $dir) {
+            foreach (glob($dir . '/*.json') ?: [] as $file) {
+                if (@unlink($file)) {
+                    $count++;
+                }
             }
         }
 
@@ -145,6 +124,14 @@ final class Cache
     {
         ksort($params);
         $normalized = $route . '|' . http_build_query($params);
+
+        return hash('sha256', $normalized);
+    }
+
+    public static function makeFragmentKey(string $fragmentId, array $params = []): string
+    {
+        ksort($params);
+        $normalized = 'frag:' . $fragmentId . '|' . http_build_query($params);
 
         return hash('sha256', $normalized);
     }
@@ -169,9 +156,70 @@ final class Cache
         return 'user:' . $userId;
     }
 
+    private function readEntry(string $path, string $key): ?string
+    {
+        if (!is_file($path)) {
+            return null;
+        }
+
+        $raw = file_get_contents($path);
+        if (!is_string($raw)) {
+            return null;
+        }
+
+        $data = json_decode($raw, true);
+        if (!is_array($data) || !isset($data['expires'], $data['body'])) {
+            @unlink($path);
+
+            return null;
+        }
+
+        if ((int) $data['expires'] < time()) {
+            $this->deleteKey($key);
+
+            return null;
+        }
+
+        return (string) $data['body'];
+    }
+
+    /**
+     * @param list<string> $tags
+     */
+    private function writeEntry(string $path, string $key, string $body, int $ttlSeconds, array $tags): void
+    {
+        $payload = json_encode([
+            'expires' => time() + max(1, $ttlSeconds),
+            'body' => $body,
+            'tags' => $tags,
+        ], JSON_THROW_ON_ERROR);
+
+        if (file_put_contents($path, $payload, LOCK_EX) === false) {
+            throw new RuntimeException('Cache write failed: ' . $key);
+        }
+
+        foreach ($tags as $tag) {
+            $this->addKeyToTag($tag, $key);
+        }
+    }
+
+    private function deleteKey(string $key): void
+    {
+        foreach ([$this->pagePath($key), $this->fragmentPath($key)] as $path) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+    }
+
     private function pagePath(string $key): string
     {
         return $this->pagesDir . '/' . $this->safeFilename($key) . '.json';
+    }
+
+    private function fragmentPath(string $key): string
+    {
+        return $this->fragmentsDir . '/' . $this->safeFilename($key) . '.json';
     }
 
     private function tagPath(string $tag): string

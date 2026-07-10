@@ -136,7 +136,7 @@ Override in `config/local.php` only when you need to tune a busy site — instal
 ],
 ```
 
-See also [PERFORMANCE.md](PERFORMANCE.md) (query hot paths) and [SECURITY.md](SECURITY.md) (WAL backups, permissions).
+See also [PERFORMANCE.md](PERFORMANCE.md) (query hot paths, SQLite scale), [CDN.md](CDN.md) (Cloudflare cache rules), and [SECURITY.md](SECURITY.md) (WAL backups, permissions).
 
 ## File permissions
 

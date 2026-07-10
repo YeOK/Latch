@@ -71,6 +71,25 @@ final class BoardController
             $topics = $this->sortTopicsUnreadFirst($topics);
         }
 
+        $topicListHtml = null;
+        if (
+            !$this->app->auth()->check()
+            && !$this->app->membersOnly()
+            && BoardAcl::isPublicRead($board)
+            && $tagSlug === ''
+            && $sort === TopicListSort::ACTIVITY
+        ) {
+            $topicListHtml = $this->app->renderFragment(
+                'partials/topic_list.html.twig',
+                [
+                    'topics' => $topics,
+                    'topic_mod_selectable' => false,
+                ],
+                'board-topics-' . (int) $board['id'] . '-p' . $page,
+                [Cache::tagBoard((int) $board['id']), Cache::tagSite()],
+            );
+        }
+
         // Guest-only page cache for public boards (default sort, no tag filter).
         $cacheOptions = null;
         if (
@@ -109,6 +128,7 @@ final class BoardController
         $this->app->render('board/show.html.twig', [
             'board' => $board,
             'topics' => $topics,
+            'topic_list_html' => $topicListHtml,
             'page' => $page,
             'total_pages' => max(1, (int) ceil($total / $perPage)),
             'topic_sort' => $sort,

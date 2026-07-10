@@ -76,6 +76,85 @@ The board UI sends large selections in **chunks of 20 topics** with progress fee
 
 **Guidance:** pin/lock batches are cheap; bulk **remove** is heavier (mod-trash archive per post). For md-import teardown or 100+ topics, use chunked bulk remove or **Delete all mod trash** on Maintenance after archiving.
 
+## Fragment cache (second layer)
+
+Full guest pages are cached under `storage/cache/pages/`. **Fragments** cache reusable HTML slices under `storage/cache/fragments/` with the **same tag invalidation** (`board:{id}`, `site`, etc.).
+
+| Fragment | Template | Tag(s) | Benefit |
+|----------|----------|--------|---------|
+| Home board panel | `partials/home_board_panel.html.twig` | `board:{id}`, `site` | Rebuild home after one board changes without re-rendering every panel |
+| Board topic list | `partials/topic_list.html.twig` | `board:{id}`, `site` | Faster board page miss when list fragment still warm |
+
+Fragments are **guest-only** (same gate as page cache). Logged-in views always render live HTML for unread badges and votes.
+
+API: `Application::renderFragment()` — used from `HomeController` and `BoardController`.
+
+Purge: `php bin/latch maintenance --clear-cache` removes pages **and** fragments.
+
+## Large topics — cursor pagination
+
+Topics with more than **`forum.topic_pagination_threshold`** posts (default **50**) paginate when sort is **Oldest first**:
+
+| Setting | Default | Meaning |
+|---------|---------|---------|
+| `forum.posts_per_page` | `20` | Chunk size per page / AJAX load |
+| `forum.topic_pagination_threshold` | `50` | Paginate only above this count |
+
+Behaviour:
+
+- First visit loads the first chunk chronologically.
+- **Load more posts** fetches `GET /topic/{id}/posts?after={postId}` (JSON with HTML chunk).
+- **Jump to latest posts** → `?latest=1#latest` shows the most recent chunk.
+- Other sort modes (newest, top) still load all posts — acceptable for moderate thread sizes.
+
+Override in `config/local.php` under `forum` if needed.
+
+## SQLite scale guide
+
+Latch targets **small to medium** self-hosted forums on a **single SQLite file** with WAL mode.
+
+### Practical limits
+
+| Dimension | Comfortable | Stretch | Notes |
+|-----------|-------------|---------|-------|
+| Concurrent readers | Hundreds | Thousands | WAL allows many readers; one writer at a time |
+| Concurrent writers | 1–2 PHP-FPM workers | 3–4 short bursts | Long bulk jobs block other writes — see bulk moderation |
+| Database size | &lt; 2 GiB | 5–10 GiB | Works, but backup/restore and `VACUUM` take longer |
+| Posts per topic | Thousands | Tens of thousands | Use cursor pagination (above); avoid loading all posts |
+| Topics per board | Tens of thousands | — | Board list is paginated (`topics_per_page`) |
+
+### When writes queue up
+
+Symptoms: `SQLITE_BUSY`, slow replies during bulk moderation or import.
+
+Mitigations (in order):
+
+1. Raise `database.sqlite.busy_timeout_ms` (default `5000`) in `local.php`.
+2. Increase `cache_size_kib` (default `8192` = 8 MiB page cache).
+3. Ensure `cron weekly` runs (`ANALYZE`, `PRAGMA optimize`).
+4. Reduce PHP-FPM `pm.max_children` if many workers hammer the same DB file.
+5. Move to a single writer process (queue) for heavy imports — operator workflow, not core.
+
+### When to leave SQLite
+
+Consider PostgreSQL or MySQL when **any** of these are true:
+
+- Sustained **multiple concurrent writers** (busy forum, many mods, API bots posting).
+- Database **&gt; 10 GiB** and backup windows hurt SLAs.
+- You need **replication** or managed HA.
+
+Latch has no built-in multi-DB driver today — migration would be a custom operator project.
+
+### Backup and integrity
+
+- Use `bin/latch backup` before upgrades (WAL-safe copy).
+- `bin/latch db-check` after migrate.
+- See [SECURITY.md](SECURITY.md) and [UPGRADE.md](UPGRADE.md).
+
+## CDN / edge caching
+
+Cloudflare (and similar) rules for static assets vs session routes: **[CDN.md](CDN.md)**.
+
 ## Related
 
 - Guest page cache: Phase 1.5 (`Cache` tags on home/board/topic)

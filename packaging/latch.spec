@@ -11,7 +11,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.22
+Version:        0.3.0.23
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -193,6 +193,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Thu Jul 10 2026 YeOK <yeokky@gmail.com> - 0.3.0.23-1
+- Fragment cache; large-topic cursor pagination; SQLite scale + CDN docs
+
 * Thu Jul 10 2026 YeOK <yeokky@gmail.com> - 0.3.0.22-1
 - Version display reads tree VERSION file first; config app.version fallback
 

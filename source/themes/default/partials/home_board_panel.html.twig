@@ -1,0 +1,71 @@
+<section class="board-panel card" aria-labelledby="board-{{ board.slug }}-title">
+    <header class="board-panel-header">
+        <a href="/board/{{ board.slug }}" class="board-panel-main">
+            <span class="board-icon board-panel-icon" aria-hidden="true">{{ board.icon_svg|raw }}</span>
+            <span class="board-panel-intro">
+                <h2 id="board-{{ board.slug }}-title" class="board-panel-title">
+                    {{ board.name }}
+                    {% if board.unread_count is defined and board.unread_count > 0 %}
+                        <span class="board-unread-badge" title="{{ board.unread_count == 1 ? trans('home.unread_topic', { count: board.unread_count }) : trans('home.unread_topics', { count: board.unread_count }) }}">{{ board.unread_count }}</span>
+                    {% endif %}
+                    {% if board.acl_topic|default('member') in ['mod', 'admin'] %}
+                        <span class="badge badge-muted">{{ trans('home.staff_topics') }}</span>
+                    {% endif %}
+                    {% if board.acl_read|default('guest') in ['mod', 'admin'] %}
+                        <span class="badge badge-muted">{{ trans('home.staff_read') }}</span>
+                    {% endif %}
+                </h2>
+                {% if board.description %}
+                    <p class="board-panel-description">{{ board.description }}</p>
+                {% endif %}
+            </span>
+        </a>
+        <dl class="board-panel-stats">
+            <div class="board-panel-stat">
+                <dt>{{ trans('home.topics') }}</dt>
+                <dd>{{ board.topic_count|default(0) }}</dd>
+            </div>
+            <div class="board-panel-stat">
+                <dt>{{ trans('home.posts') }}</dt>
+                <dd>{{ board.post_count|default(0) }}</dd>
+            </div>
+            <div class="board-panel-stat board-panel-stat-activity">
+                <dt>{{ trans('home.last_activity') }}</dt>
+                <dd>
+                    {% if board.last_activity_at %}
+                        <time datetime="{{ board.last_activity_at }}">{{ board.last_activity_at|format_datetime }}</time>
+                    {% else %}
+                        <span class="muted">{{ trans('home.no_posts_yet') }}</span>
+                    {% endif %}
+                </dd>
+            </div>
+        </dl>
+    </header>
+
+    {% if board.recent_topics is defined and board.recent_topics is not empty %}
+        <ul class="board-panel-topics" role="list">
+            {% for topic in board.recent_topics %}
+                <li class="board-panel-topic">
+                    <a href="/topic/{{ topic.id }}" class="board-panel-topic-link{% if topic.is_unread is defined and topic.is_unread %} topic-unread-link{% endif %}">
+                        {% if topic.is_unread is defined and topic.is_unread %}<span class="badge badge-unread" title="{{ trans('common.new_posts') }}">{{ trans('common.new') }}</span>{% endif %}
+                        {% if topic.is_pinned %}<span class="badge">{{ trans('common.pinned') }}</span>{% endif %}
+                        <span class="board-panel-topic-title">{{ topic.title }}</span>
+                    </a>
+                    <span class="board-panel-topic-meta muted">
+                        {{ topic.post_count }} {{ topic.post_count == 1 ? trans('common.post') : trans('common.posts') }}
+                        · <time datetime="{{ topic.last_post_at }}">{{ topic.last_post_at|format_datetime }}</time>
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="board-panel-empty muted">{{ trans('home.no_topics_yet') }}</p>
+    {% endif %}
+
+    <footer class="board-panel-footer">
+        <a class="board-panel-view-all" href="/board/{{ board.slug }}">
+            {{ trans('home.view_all_in', { board: board.name }) }}
+            {% include 'partials/icon.twig' with { name: 'chevron-right' } %}
+        </a>
+    </footer>
+</section>

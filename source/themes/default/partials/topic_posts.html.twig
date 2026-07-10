@@ -1,0 +1,9 @@
+{% for post in posts %}
+    {% include 'partials/topic_post.html.twig' with {
+        post: post,
+        loop: loop,
+        topic: topic,
+        report_categories: report_categories|default({}),
+        is_mod_trash_board: is_mod_trash_board|default(false)
+    } %}
+{% endfor %}

@@ -81,10 +81,14 @@
         })();
         </script>
 
-        {% include 'partials/topic_list.html.twig' with {
-            topics: topics,
-            topic_mod_selectable: is_mod and board.slug != 'mod-trash'
-        } %}
+        {% if topic_list_html is defined and topic_list_html %}
+            {{ topic_list_html|raw }}
+        {% else %}
+            {% include 'partials/topic_list.html.twig' with {
+                topics: topics,
+                topic_mod_selectable: is_mod and board.slug != 'mod-trash'
+            } %}
+        {% endif %}
 
         {% if total_pages > 1 %}
             <nav class="pagination">

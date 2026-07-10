@@ -151,6 +151,196 @@ final class PostRepository
         return $stmt->fetchAll();
     }
 
+    public function countVisibleByTopic(
+        int $topicId,
+        ?int $viewerUserId = null,
+        bool $isMod = false,
+        bool $includeTrashed = false,
+    ): int {
+        $visibility = $this->topicVisibilitySql($topicId, false, $viewerUserId, $isMod, $includeTrashed);
+
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT COUNT(*) FROM posts p WHERE ' . $visibility['sql'],
+        );
+        $stmt->execute($visibility['params']);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Chronological page after a post id (exclusive). When $afterId is null, returns the first page.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listByTopicCursor(
+        int $topicId,
+        ?int $viewerUserId,
+        bool $isMod,
+        bool $includeTrashed,
+        int $limit,
+        ?int $afterId = null,
+    ): array {
+        $limit = max(1, $limit);
+        $visibility = $this->topicVisibilitySql($topicId, false, $viewerUserId, $isMod, $includeTrashed);
+        $sql = 'SELECT p.*, ' . DeletedAuthorSql::authorName() . ', u.email AS author_email'
+            . ($viewerUserId !== null ? ', pr.vote AS viewer_vote' : '')
+            . ' FROM posts p
+                LEFT JOIN users u ON u.id = p.user_id'
+            . ($viewerUserId !== null
+                ? ' LEFT JOIN post_reactions pr ON pr.post_id = p.id AND pr.user_id = :viewer_vote_user_id'
+                : '')
+            . ' WHERE ' . $visibility['sql'];
+
+        if ($afterId !== null && $afterId > 0) {
+            $sql .= ' AND p.id > :after_id';
+        }
+
+        $sql .= ' ORDER BY p.created_at ASC, p.id ASC LIMIT :limit';
+
+        $stmt = $this->db->pdo()->prepare($sql);
+        foreach ($visibility['params'] as $name => $value) {
+            $stmt->bindValue($name, $value);
+        }
+        if ($viewerUserId !== null && !array_key_exists('viewer_vote_user_id', $visibility['params'])) {
+            $stmt->bindValue('viewer_vote_user_id', $viewerUserId, \PDO::PARAM_INT);
+        }
+        if ($afterId !== null && $afterId > 0) {
+            $stmt->bindValue('after_id', $afterId, \PDO::PARAM_INT);
+        }
+        $stmt->bindValue('limit', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Most recent posts in chronological order (tail page).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listByTopicTail(
+        int $topicId,
+        ?int $viewerUserId,
+        bool $isMod,
+        bool $includeTrashed,
+        int $limit,
+    ): array {
+        $limit = max(1, $limit);
+        $visibility = $this->topicVisibilitySql($topicId, false, $viewerUserId, $isMod, $includeTrashed);
+        $sql = 'SELECT p.*, ' . DeletedAuthorSql::authorName() . ', u.email AS author_email'
+            . ($viewerUserId !== null ? ', pr.vote AS viewer_vote' : '')
+            . ' FROM posts p
+                LEFT JOIN users u ON u.id = p.user_id'
+            . ($viewerUserId !== null
+                ? ' LEFT JOIN post_reactions pr ON pr.post_id = p.id AND pr.user_id = :viewer_vote_user_id'
+                : '')
+            . ' WHERE ' . $visibility['sql']
+            . ' ORDER BY p.created_at DESC, p.id DESC LIMIT :limit';
+
+        $stmt = $this->db->pdo()->prepare($sql);
+        foreach ($visibility['params'] as $name => $value) {
+            $stmt->bindValue($name, $value);
+        }
+        if ($viewerUserId !== null && !array_key_exists('viewer_vote_user_id', $visibility['params'])) {
+            $stmt->bindValue('viewer_vote_user_id', $viewerUserId, \PDO::PARAM_INT);
+        }
+        $stmt->bindValue('limit', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        $rows = $stmt->fetchAll();
+
+        return array_reverse($rows);
+    }
+
+    public function hasPostsAfter(
+        int $topicId,
+        int $afterId,
+        ?int $viewerUserId,
+        bool $isMod,
+        bool $includeTrashed,
+    ): bool {
+        $visibility = $this->topicVisibilitySql($topicId, false, $viewerUserId, $isMod, $includeTrashed);
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT 1 FROM posts p WHERE ' . $visibility['sql'] . ' AND p.id > :after_id LIMIT 1',
+        );
+        $params = $visibility['params'];
+        $params['after_id'] = $afterId;
+        $stmt->execute($params);
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    public function countVisibleUpToId(
+        int $topicId,
+        int $postId,
+        ?int $viewerUserId,
+        bool $isMod,
+        bool $includeTrashed,
+    ): int {
+        $visibility = $this->topicVisibilitySql($topicId, false, $viewerUserId, $isMod, $includeTrashed);
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT COUNT(*) FROM posts p WHERE ' . $visibility['sql'] . ' AND p.id <= :post_id',
+        );
+        $params = $visibility['params'];
+        $params['post_id'] = $postId;
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function hasPostsBefore(
+        int $topicId,
+        int $beforeId,
+        ?int $viewerUserId,
+        bool $isMod,
+        bool $includeTrashed,
+    ): bool {
+        $visibility = $this->topicVisibilitySql($topicId, false, $viewerUserId, $isMod, $includeTrashed);
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT 1 FROM posts p WHERE ' . $visibility['sql'] . ' AND p.id < :before_id LIMIT 1',
+        );
+        $params = $visibility['params'];
+        $params['before_id'] = $beforeId;
+        $stmt->execute($params);
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /**
+     * @return array{sql: string, params: array<string, int|string>}
+     */
+    private function topicVisibilitySql(
+        int $topicId,
+        bool $includeDeleted,
+        ?int $viewerUserId,
+        bool $isMod,
+        bool $includeTrashed,
+    ): array {
+        $sql = 'p.topic_id = :topic_id';
+        $params = ['topic_id' => $topicId];
+
+        if (!$includeDeleted) {
+            $sql .= ' AND p.deleted_at IS NULL';
+            if (!$includeTrashed) {
+                $sql .= $this->excludeTrashedSql('p.');
+            }
+        }
+
+        if (!$isMod) {
+            $sql .= ' AND (p.approval_status = :approved';
+            $params['approved'] = self::APPROVAL_APPROVED;
+            if ($viewerUserId !== null) {
+                $sql .= ' OR (p.approval_status = :pending AND p.user_id = :viewer_user_id)';
+                $params['pending'] = self::APPROVAL_PENDING;
+                $params['viewer_user_id'] = $viewerUserId;
+                $params['viewer_vote_user_id'] = $viewerUserId;
+            }
+            $sql .= ')';
+        }
+
+        return ['sql' => $sql, 'params' => $params];
+    }
+
     public function create(
         int $topicId,
         int $userId,

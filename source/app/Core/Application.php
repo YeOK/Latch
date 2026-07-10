@@ -460,6 +460,7 @@ final class Application
 
         $this->router->get('/topic/:id/feed.xml', $this->bind($rss, 'topicFeed'));
         $this->router->get('/watched', $this->bind($topicWatch, 'index'));
+        $this->router->get('/topic/:id/posts', $this->bind($topic, 'postsPartial'));
         $this->router->get('/topic/:id', $this->bind($topic, 'show'));
         $this->router->post('/topic/:id/reply', $this->bind($topic, 'reply'));
         $this->router->post('/topic/:id/watch', $this->bind($topicWatch, 'toggle'));
@@ -678,12 +679,72 @@ final class Application
     }
 
     /**
-     * @param array{route: string, params?: array<string, scalar>, tags?: list<string>} $cacheOptions
+     * @param array<string, mixed> $data
      */
+    public function renderPartial(string $template, array $data = []): string
+    {
+        $this->view->bindTranslator($this->translator());
+
+        return $this->view->render($template, array_merge($this->sharedViewData(), $data));
+    }
+
+    /**
+     * Render a Twig partial with guest-only fragment cache (second layer under page cache).
+     *
+     * @param array<string, mixed> $data
+     * @param list<string>         $tags
+     */
+    public function renderFragment(string $template, array $data, string $fragmentId, array $tags = []): string
+    {
+        $this->view->bindTranslator($this->translator());
+
+        if (!$this->canUseFragmentCache()) {
+            return $this->view->render($template, array_merge($this->sharedViewData(), $data));
+        }
+
+        $key = Cache::makeFragmentKey($fragmentId, ['_locale' => $this->resolvedLocale()]);
+        $cached = $this->cache->getFragment($key);
+        if ($cached !== null) {
+            return SecurityHeaders::rewriteHtmlNonces($cached, $this->cspNonce);
+        }
+
+        $html = $this->view->render($template, array_merge($this->sharedViewData(), $data));
+        $this->cache->setFragment($key, $html, $this->cacheTtlSeconds(), $tags);
+
+        return $html;
+    }
+
+    public function postsPerPage(): int
+    {
+        return max(5, (int) $this->config->get('forum.posts_per_page', 20));
+    }
+
+    public function topicPaginationThreshold(): int
+    {
+        return max(10, (int) $this->config->get('forum.topic_pagination_threshold', 50));
+    }
+
     /**
      * Guest-only HTML cache — never cache personalized or members-only responses.
      */
     private function canUsePageCache(array $cacheOptions): bool
+    {
+        if (!$this->cacheEnabled()) {
+            return false;
+        }
+
+        if ($this->auth->check()) {
+            return false;
+        }
+
+        if ($this->membersOnly()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function canUseFragmentCache(): bool
     {
         if (!$this->cacheEnabled()) {
             return false;

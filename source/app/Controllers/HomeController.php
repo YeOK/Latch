@@ -46,8 +46,21 @@ final class HomeController
         $visible = $this->app->enrichBoardsWithUnread($visible, $viewerId);
         $visible = $this->app->enrichBoardsForHome($visible, $isMod, $viewerId);
 
+        $boardPanelHtml = [];
+        if (!$loggedIn && !$membersOnly) {
+            foreach ($visible as $board) {
+                $boardPanelHtml[] = $this->app->renderFragment(
+                    'partials/home_board_panel.html.twig',
+                    ['board' => $board],
+                    'home-board-' . (int) $board['id'],
+                    [Cache::tagBoard((int) $board['id']), Cache::tagSite()],
+                );
+            }
+        }
+
         $this->app->render('home/index.html.twig', [
             'boards' => $visible,
+            'board_panel_html' => $boardPanelHtml,
             'members_only' => $membersOnly,
             'seo' => SeoMeta::forHome(
                 $this->app->siteUrl(),

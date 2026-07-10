@@ -9,6 +9,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.3.0.23] — 2026-07-10
+
+### Added
+- **Fragment cache** — guest HTML fragments for home board panels and board topic lists (`storage/cache/fragments/`); same tag invalidation as page cache.
+- **Large-topic pagination** — cursor-based post chunks above `forum.topic_pagination_threshold` (default 50); `GET /topic/{id}/posts?after=` load-more; `?latest=1` jump to tail.
+- **SQLite scale guide** — operator limits and migration notes in `docs/PERFORMANCE.md`.
+- **CDN guide** — Cloudflare cache rules in `docs/CDN.md`.
+
 ## [0.3.0.22] — 2026-07-10
 
 ### Fixed
@@ -309,6 +317,7 @@ php bin/latch install --url=https://forum.example.com --name="My Forum"
 cd /var/www/latch && sudo bash scripts/update.sh
 ```
 
+[0.3.0.23]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.23
 [0.3.0.22]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.22
 [0.3.0.21]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.21
 [0.3.0.20]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.20

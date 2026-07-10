@@ -55,16 +55,16 @@ final class TopicController
 
         $isTrashBoard = $this->app->moderationTrash()->isTrashBoard($board);
         $postSort = PostListSort::normalize($this->app->request()->input('sort'));
-        $posts = $this->app->enrichPostsWithAvatars(
-            $this->app->posts()->listByTopic((int) $topic['id'], false, $viewerId, $isMod, $isTrashBoard),
+        $postBundle = $this->loadTopicPosts(
+            $topic,
+            $board,
+            $viewerId,
+            $isMod,
+            $isTrashBoard,
+            $postSort,
+            $user,
         );
-        foreach ($posts as $i => $post) {
-            $posts[$i]['chronological_index'] = $i + 1;
-        }
-        $posts = $this->enrichPostsForEdit($posts, $topic, $user, $isMod);
-        if ($isTrashBoard) {
-            $posts = $this->enrichTrashArchivePosts($posts);
-        }
+        $posts = $postBundle['posts'];
 
         // Guest-only page cache when the board is publicly readable.
         $cacheOptions = null;
@@ -73,6 +73,8 @@ final class TopicController
             && !$this->app->membersOnly()
             && BoardAcl::isPublicRead($board)
             && $postSort === PostListSort::OLDEST
+            && !$postBundle['show_latest']
+            && $postBundle['cursor_after'] === 0
         ) {
             $cacheOptions = [
                 'route' => '/topic/' . $topic['id'],
@@ -87,8 +89,6 @@ final class TopicController
         if ($viewerId !== null) {
             $this->app->markTopicReadForUser($viewerId, (int) $topic['id'], $posts);
         }
-
-        $posts = PostListSort::sortPosts($posts, $postSort);
 
         $tags = $this->app->tags()->forTopic((int) $topic['id']);
         $can_edit_tags = $isMod
@@ -120,6 +120,12 @@ final class TopicController
             'topic' => $topic,
             'board' => $board,
             'posts' => $posts,
+            'post_total' => $postBundle['total'],
+            'posts_paginated' => $postBundle['paginated'],
+            'posts_has_more' => $postBundle['has_more'],
+            'posts_cursor_after' => $postBundle['cursor_after'],
+            'posts_show_latest' => $postBundle['show_latest'],
+            'posts_has_earlier' => $postBundle['has_earlier'],
             'post_sort' => $postSort,
             'post_sort_options' => PostListSort::translatedLabels($this->app->trans(...)),
             'tags' => $tags,
@@ -154,6 +160,208 @@ final class TopicController
                 $membersOnly,
             )->toArray(),
         ], $cacheOptions);
+    }
+
+    public function postsPartial(array $params): void
+    {
+        $topic = $this->findTopic($params['id'] ?? '0');
+        $board = $this->app->boards()->findById((int) $topic['board_id']);
+
+        if ($board === null) {
+            Response::notFound('Board not found');
+        }
+
+        $this->guardRead($board);
+
+        if (!empty($topic['deleted_at']) && !$this->app->auth()->isMod()) {
+            Response::notFound('Topic not found');
+        }
+
+        $user = $this->app->auth()->user();
+        $isMod = $this->app->auth()->isMod();
+        $viewerId = $user !== null ? (int) $user['id'] : null;
+
+        if (
+            !$isMod
+            && !$this->app->posts()->topicHasApprovedPost((int) $topic['id'])
+            && ($viewerId === null || $viewerId !== (int) $topic['user_id'])
+        ) {
+            Response::notFound('Topic not found');
+        }
+
+        $isTrashBoard = $this->app->moderationTrash()->isTrashBoard($board);
+        $afterId = max(0, (int) $this->app->request()->input('after', 0));
+        if ($afterId <= 0) {
+            Response::json(['error' => 'after_required'], 400);
+        }
+
+        $perPage = $this->app->postsPerPage();
+        $posts = $this->app->posts()->listByTopicCursor(
+            (int) $topic['id'],
+            $viewerId,
+            $isMod,
+            $isTrashBoard,
+            $perPage,
+            $afterId,
+        );
+        $baseIndex = $this->app->posts()->countVisibleUpToId(
+            (int) $topic['id'],
+            $afterId,
+            $viewerId,
+            $isMod,
+            $isTrashBoard,
+        );
+        $posts = $this->finalizeTopicPosts($posts, $topic, $board, $user, $isMod, $isTrashBoard, $baseIndex);
+
+        $lastId = $posts !== [] ? (int) $posts[array_key_last($posts)]['id'] : $afterId;
+        $hasMore = $this->app->posts()->hasPostsAfter(
+            (int) $topic['id'],
+            $lastId,
+            $viewerId,
+            $isMod,
+            $isTrashBoard,
+        );
+
+        $html = $this->app->renderPartial('partials/topic_posts.html.twig', [
+            'topic' => $topic,
+            'board' => $board,
+            'posts' => $posts,
+            'report_categories' => $this->app->reportReasons()->translatedCategories($this->app->trans(...)),
+            'is_mod_trash_board' => $isTrashBoard,
+        ]);
+
+        Response::json([
+            'html' => $html,
+            'has_more' => $hasMore,
+            'cursor_after' => $lastId,
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed>      $topic
+     * @param array<string, mixed>      $board
+     * @param array<string, mixed>|null $user
+     * @return array{
+     *     posts: list<array<string, mixed>>,
+     *     total: int,
+     *     paginated: bool,
+     *     has_more: bool,
+     *     cursor_after: int,
+     *     show_latest: bool,
+     *     has_earlier: bool
+     * }
+     */
+    private function loadTopicPosts(
+        array $topic,
+        array $board,
+        ?int $viewerId,
+        bool $isMod,
+        bool $isTrashBoard,
+        string $postSort,
+        ?array $user,
+    ): array {
+        $topicId = (int) $topic['id'];
+        $perPage = $this->app->postsPerPage();
+        $threshold = $this->app->topicPaginationThreshold();
+        $total = $this->app->posts()->countVisibleByTopic($topicId, $viewerId, $isMod, $isTrashBoard);
+        $paginate = $postSort === PostListSort::OLDEST && $total > $threshold;
+        $showLatest = $paginate && $this->app->request()->input('latest') === '1';
+
+        if (!$paginate) {
+            $posts = $this->app->posts()->listByTopic($topicId, false, $viewerId, $isMod, $isTrashBoard);
+            $posts = $this->finalizeTopicPosts($posts, $topic, $board, $user, $isMod, $isTrashBoard, 0);
+            $posts = PostListSort::sortPosts($posts, $postSort);
+
+            return [
+                'posts' => $posts,
+                'total' => $total,
+                'paginated' => false,
+                'has_more' => false,
+                'cursor_after' => 0,
+                'show_latest' => false,
+                'has_earlier' => false,
+            ];
+        }
+
+        if ($showLatest) {
+            $posts = $this->app->posts()->listByTopicTail($topicId, $viewerId, $isMod, $isTrashBoard, $perPage);
+            $baseIndex = max(0, $total - count($posts));
+            $posts = $this->finalizeTopicPosts($posts, $topic, $board, $user, $isMod, $isTrashBoard, $baseIndex);
+            $firstId = $posts !== [] ? (int) $posts[0]['id'] : 0;
+            $hasEarlier = $firstId > 0 && $this->app->posts()->hasPostsBefore(
+                $topicId,
+                $firstId,
+                $viewerId,
+                $isMod,
+                $isTrashBoard,
+            );
+
+            return [
+                'posts' => $posts,
+                'total' => $total,
+                'paginated' => true,
+                'has_more' => false,
+                'cursor_after' => $posts !== [] ? (int) $posts[array_key_last($posts)]['id'] : 0,
+                'show_latest' => true,
+                'has_earlier' => $hasEarlier,
+            ];
+        }
+
+        $posts = $this->app->posts()->listByTopicCursor(
+            $topicId,
+            $viewerId,
+            $isMod,
+            $isTrashBoard,
+            $perPage,
+            null,
+        );
+        $posts = $this->finalizeTopicPosts($posts, $topic, $board, $user, $isMod, $isTrashBoard, 0);
+        $lastId = $posts !== [] ? (int) $posts[array_key_last($posts)]['id'] : 0;
+        $hasMore = $lastId > 0 && $this->app->posts()->hasPostsAfter(
+            $topicId,
+            $lastId,
+            $viewerId,
+            $isMod,
+            $isTrashBoard,
+        );
+
+        return [
+            'posts' => $posts,
+            'total' => $total,
+            'paginated' => true,
+            'has_more' => $hasMore,
+            'cursor_after' => $lastId,
+            'show_latest' => false,
+            'has_earlier' => false,
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $posts
+     * @param array<string, mixed>      $topic
+     * @param array<string, mixed>      $board
+     * @param array<string, mixed>|null $user
+     * @return list<array<string, mixed>>
+     */
+    private function finalizeTopicPosts(
+        array $posts,
+        array $topic,
+        array $board,
+        ?array $user,
+        bool $isMod,
+        bool $isTrashBoard,
+        int $baseIndex,
+    ): array {
+        $posts = $this->app->enrichPostsWithAvatars($posts);
+        foreach ($posts as $i => $post) {
+            $posts[$i]['chronological_index'] = $baseIndex + $i + 1;
+        }
+        $posts = $this->enrichPostsForEdit($posts, $topic, $user, $isMod);
+        if ($isTrashBoard) {
+            $posts = $this->enrichTrashArchivePosts($posts);
+        }
+
+        return $posts;
     }
 
     /**
