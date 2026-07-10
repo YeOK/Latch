@@ -153,7 +153,7 @@
                     </label>
                 {% endif %}
                 <header class="post-meta">
-                    {% include 'partials/avatar.twig' with { username: post.author_name, avatar_src: post.avatar_src|default(''), avatar_hue: post.avatar_hue|default(210), size: 40 } %}
+                    {% include 'partials/avatar.twig' with { username: post.author_name, avatar_src: post.avatar_src|default(''), avatar_pending_src: post.avatar_pending_src|default(''), avatar_hue: post.avatar_hue|default(210), size: 40 } %}
                     <div class="post-meta-text">
                         <strong>{% include 'partials/username_link.twig' with { username: post.author_name } %}</strong>
                         <time>{{ post.created_at|format_datetime }}</time>

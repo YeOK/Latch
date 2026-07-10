@@ -423,7 +423,7 @@ return [
     ],
     'cookie_consent' => [
         'title' => 'Cookies en este sitio',
-        'body' => ':operator usa cookies esenciales para mantener tu sesión, recordar tu tema y proteger los formularios. Latch no establece cookies de publicidad ni de seguimiento de terceros.',
+        'body' => ':operator usa cookies esenciales para mantener tu sesión, recordar tu tema y proteger los formularios. Al aceptar también se cargan avatares de miembros desde Gravatar cuando esa función está activada. Latch no establece cookies de publicidad ni de seguimiento de terceros.',
         'read_cookie_policy' => 'Leer nuestra política de cookies',
         'read_privacy_policy' => 'política de privacidad',
         'accept' => 'Aceptar cookies esenciales',
@@ -473,7 +473,7 @@ return [
         'cookies_local_storage' => 'Almacenamiento local',
         'cookies_local_storage_body' => 'Tu navegador puede almacenar localmente borradores de publicaciones y la preferencia de tema por comodidad. Permanece en tu dispositivo y no se envía al servidor hasta que publiques.',
         'cookies_third_party' => 'Terceros',
-        'cookies_third_party_body' => 'Si Gravatar está activado, el hash de tu correo puede enviarse a Gravatar al cargar avatares predeterminados. Las URL de avatar externas que proporciones se cargan directamente en tu navegador desde ese host.',
+        'cookies_third_party_body' => 'Si Gravatar está activado, el hash de tu correo solo se envía a Gravatar después de que aceptes las cookies en el modo de alojamiento en la UE. Hasta entonces se muestran identicons de sustitución. Las URL de avatar externas de plugins también se difieren hasta el consentimiento.',
         'cookies_manage' => 'Gestionar cookies',
         'cookies_manage_body' => 'Puedes borrar las cookies en los ajustes de tu navegador. Rechazar cookies no esenciales (cuando el modo de alojamiento en la UE está activo) limita el almacenamiento de preferencias a la sesión actual.',
         'cookies_change_settings' => 'Cambiar ajustes de cookies',

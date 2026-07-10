@@ -12,46 +12,5 @@
             <exclude>tests/smoke</exclude>
             <exclude>tests/security</exclude>
         </testsuite>
-        <testsuite name="smoke">
-            <file>tests/OAuthScopesTest.php</file>
-            <file>tests/SqliteIntegrityTest.php</file>
-            <file>tests/SiteLockTest.php</file>
-            <file>tests/TopicRepositoryHomeTest.php</file>
-            <file>tests/PluginSystemTest.php</file>
-            <file>tests/SiteRestoreTest.php</file>
-            <file>tests/MigratorTest.php</file>
-            <file>tests/PostFormatterTest.php</file>
-            <file>tests/VersionInfoTest.php</file>
-            <file>tests/RssFeedTest.php</file>
-            <file>tests/CronMaintenanceTest.php</file>
-            <file>tests/AccountDeletionTest.php</file>
-            <file>tests/ProfileDeleteTest.php</file>
-            <file>tests/ReportQueueTest.php</file>
-            <file>tests/DirectMessageTest.php</file>
-            <file>tests/DoctorTest.php</file>
-            <file>tests/TwoFactorCancelTest.php</file>
-        </testsuite>
-        <testsuite name="security">
-            <file>tests/Phase15LeftoversTest.php</file>
-            <file>tests/CsrfTest.php</file>
-            <file>tests/SecurityRegressionTest.php</file>
-            <file>tests/SiteLockTest.php</file>
-            <file>tests/OidcServiceTest.php</file>
-            <file>tests/OidcAuthorizationTest.php</file>
-            <file>tests/AccountDeletionTest.php</file>
-            <file>tests/ProfileDeleteTest.php</file>
-            <file>tests/TwoFactorCancelTest.php</file>
-            <file>tests/RequestHttpsTest.php</file>
-            <file>tests/BoardAclTest.php</file>
-            <file>tests/PluginAuditorTest.php</file>
-            <file>tests/ThemeJsAuditorTest.php</file>
-            <file>tests/OutboundUrlGuardTest.php</file>
-            <file>tests/SecretCipherTest.php</file>
-            <file>tests/SpamGuardTest.php</file>
-            <file>tests/PostEditGuardTest.php</file>
-            <file>tests/UserRepositoryPurgeTest.php</file>
-            <file>tests/InputValidatorTest.php</file>
-            <file>tests/ImageUploadPluginTest.php</file>
-        </testsuite>
     </testsuites>
 </phpunit>

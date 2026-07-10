@@ -427,7 +427,7 @@ return [
     ],
     'cookie_consent' => [
         'title' => 'Cookies on this site',
-        'body' => ':operator uses essential cookies to keep you signed in, remember your theme choice, and protect forms. No advertising or third-party tracking cookies are set by Latch.',
+        'body' => ':operator uses essential cookies to keep you signed in, remember your theme choice, and protect forms. Accepting also loads member avatars from Gravatar when that feature is enabled. Latch does not set advertising or third-party tracking cookies.',
         'read_cookie_policy' => 'Read our cookie policy',
         'read_privacy_policy' => 'privacy policy',
         'accept' => 'Accept essential cookies',
@@ -477,7 +477,7 @@ return [
         'cookies_local_storage' => 'Local storage',
         'cookies_local_storage_body' => 'Your browser may store draft post text and theme preference locally for convenience. This stays on your device and is not sent to the server until you post.',
         'cookies_third_party' => 'Third parties',
-        'cookies_third_party_body' => 'If Gravatar is enabled, your email hash may be sent to Gravatar when loading default avatars. External avatar URLs you provide are loaded directly by your browser from that host.',
+        'cookies_third_party_body' => 'If Gravatar is enabled, your email hash is sent to Gravatar only after you accept cookies in EU hosting mode. Until then, identicon placeholders are shown. External avatar URLs from plugins are likewise deferred until consent.',
         'cookies_manage' => 'Managing cookies',
         'cookies_manage_body' => 'You can clear cookies in your browser settings. Rejecting non-essential cookies (when EU hosting mode is on) limits preference storage to your current session.',
         'cookies_change_settings' => 'Change cookie settings',

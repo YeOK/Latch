@@ -11,12 +11,12 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.3.0.20
+Version:        0.3.0.21
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
 License:        MIT
-URL:            https://latch.network
+URL:            https://github.com/YeOK/Latch
 Source0:        https://github.com/YeOK/Latch/archive/v%{version}/Latch-%{version}.tar.gz
 
 BuildArch:      noarch
@@ -193,6 +193,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Thu Jul 10 2026 YeOK <yeokky@gmail.com> - 0.3.0.21-1
+- Open redirect hardening; GDPR Gravatar consent; light-theme a11y contrast; PHPUnit config split; public doc hygiene
+
 * Tue Jul 07 2026 YeOK <yeokky@gmail.com> - 0.3.0.20-1
 - Messages overlay i18n fix; admin panel history; header width; badge contrast; md-import image placeholders
 

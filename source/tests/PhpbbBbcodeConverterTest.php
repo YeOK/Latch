@@ -26,10 +26,10 @@ final class PhpbbBbcodeConverterTest extends TestCase
 
     public function testBoldAndUrl(): void
     {
-        $out = $this->converter->convert('[b]Hello[/b] — [url=https://latch.network]Latch[/url]');
+        $out = $this->converter->convert('[b]Hello[/b] — [url=https://forum.example.com]Latch[/url]');
 
         $this->assertStringContainsString('**Hello**', $out);
-        $this->assertStringContainsString('[url=https://latch.network]Latch[/url]', $out);
+        $this->assertStringContainsString('[url=https://forum.example.com]Latch[/url]', $out);
     }
 
     public function testQuoteWithAuthor(): void

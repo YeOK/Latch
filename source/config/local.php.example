@@ -33,7 +33,7 @@ return [
             'access_key_id' => '',
             'secret_access_key' => '',
             'bucket' => 'latch-forum-images',
-            'public_host' => 'images.latch.network',
+            'public_host' => 'images.forum.example.com',
             'max_mb' => 8,
             'key_prefix' => 'forum/',
         ],

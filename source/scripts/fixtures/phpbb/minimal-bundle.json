@@ -52,7 +52,7 @@
       "forum_id": 1,
       "user_id": 2,
       "created_at": "2020-03-01T10:00:00+00:00",
-      "body_bbcode": "[b]Hello[/b] from phpBB! Visit [url=https://latch.network]Latch[/url]."
+      "body_bbcode": "[b]Hello[/b] from phpBB! Visit [url=https://forum.example.com]Latch[/url]."
     },
     {
       "id": 1002,

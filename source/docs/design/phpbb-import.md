@@ -205,7 +205,7 @@ php bin/latch lock off
 ## Key decisions
 
 1. **Target phpBB 3.3.x (MySQL/MariaDB)** — primary supported source; 3.2.x secondary reader only if needed.
-2. **Empty DB only for v1** — no `--merge` into existing latch.network content.
+2. **Empty DB only for v1** — no `--merge` into existing forum.example.com content.
 3. **Bundle-based testing** — no dependency on operator phpBB experience or a permanent phpBB host.
 4. **Password reset required** — do not port phpass hashes in v1.
 5. **Store Latch markup, not HTML** — `PostFormatter` remains single render path.

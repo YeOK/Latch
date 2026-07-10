@@ -53,6 +53,7 @@ final class ProfileController
             'theme_mode' => ThemeMode::normalizePreference((string) ($user['theme_mode'] ?? ThemeMode::SYSTEM)),
             'user_locale' => Locale::normalize((string) ($user['locale'] ?? $this->app->defaultLocale())),
             'avatar_src' => $this->app->resolveAvatar((string) $user['email']),
+            'avatar_pending_src' => $this->app->resolveAvatarPending((string) $user['email'], 64),
             'bio' => (string) ($user['bio'] ?? ''),
             'notify_email' => $this->app->users()->wantsEmailNotifications($user),
             'accept_messages' => $this->app->users()->acceptsMessages($user),

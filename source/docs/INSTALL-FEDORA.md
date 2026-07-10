@@ -2,7 +2,7 @@
 
 Recommended for **Fedora/RHEL-like** hosts: `dnf` installs PHP, Apache, and extensions; the RPM lays out FHS paths; upgrades are `dnf upgrade latch`.
 
-**Production (latch.network)** runs the COPR RPM (`dnf upgrade latch`). Tarball installs use the same safety sequence in [UPGRADE.md](UPGRADE.md). Development and testing stay on your dev machine (optional staging VM for release gates).
+On Fedora/RHEL production hosts, upgrade with `sudo dnf upgrade latch`. Tarball installs use the same safety sequence in [UPGRADE.md](UPGRADE.md). Development and testing stay on your dev machine (optional staging VM for release gates).
 
 ## Enable COPR
 
@@ -109,7 +109,7 @@ One-time cutover for an existing install:
 6. `sudo chmod 640 /etc/latch/local.php && sudo chown root:apache /etc/latch/local.php`
 7. Point Apache at `/usr/share/latch/source/public` (RPM vhost).
 8. `sudo latch` or `sudo -u apache php /usr/share/latch/source/bin/latch doctor`
-9. Retire rsync deploy to prod; use `dnf upgrade` for updates.
+9. Retire manual rsync deploy; use `dnf upgrade` for updates.
 
 ## Operator commands
 

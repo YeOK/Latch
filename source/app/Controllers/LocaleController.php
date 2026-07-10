@@ -37,10 +37,10 @@ final class LocaleController
 
         $this->setLocaleCookie($locale);
 
-        $referer = $this->app->request()->header('Referer');
-        $target = is_string($referer) && $referer !== '' && str_starts_with($referer, $this->app->siteUrl())
-            ? $referer
-            : '/';
+        $target = $this->app->request()->safeRedirectFromReferer(
+            $this->app->request()->header('Referer'),
+            $this->app->siteUrl(),
+        );
 
         Response::redirect($target);
     }

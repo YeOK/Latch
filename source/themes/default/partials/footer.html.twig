@@ -52,7 +52,9 @@
                 {% if privacy_contact_email %}
                     <p><a href="mailto:{{ privacy_contact_email }}">{{ privacy_contact_email }}</a></p>
                 {% endif %}
-                <p class="muted"><a href="https://latch.network" rel="noopener">latch.network</a></p>
+                {% if site.url %}
+                    <p class="muted"><a href="{{ site.url }}" rel="noopener">{{ site.url }}</a></p>
+                {% endif %}
                 {% include 'partials/locale_switcher.html.twig' with { variant: 'footer' } %}
             </section>
         </div>
@@ -60,7 +62,7 @@
             {{ html|raw }}
         {% endfor %}
         <p class="footer-meta">
-            {{ trans('footer.copyright', { year: "now"|date("Y"), operator: privacy_operator_name }) }} · {{ trans('footer.powered_by') }} <a href="https://latch.network" rel="noopener">Latch</a>
+            {{ trans('footer.copyright', { year: "now"|date("Y"), operator: privacy_operator_name }) }} · {{ trans('footer.powered_by') }} <a href="https://github.com/YeOK/Latch" rel="noopener">Latch</a>
             {% if gdpr_enabled %} · <button type="button" class="link-button" id="footer-cookie-settings">{{ trans('footer.cookie_settings') }}</button>{% endif %}
         </p>
     </div>

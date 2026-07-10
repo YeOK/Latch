@@ -1,17 +1,17 @@
 # Image upload (R2)
 
-First-party Latch plugin for **post images** via direct browser upload to **Cloudflare R2**. Public URLs use your R2 custom domain (e.g. `images.latch.network`). Nothing is stored in Latch `storage/`.
+First-party Latch plugin for **post images** via direct browser upload to **Cloudflare R2**. Public URLs use your R2 custom domain (e.g. `images.forum.example.com`). Nothing is stored in Latch `storage/`.
 
 ## Setup
 
 1. Create an R2 bucket and API token with **Object Read & Write** on that bucket.
-2. Attach a **custom domain** (e.g. `images.latch.network`) to the bucket.
+2. Attach a **custom domain** (e.g. `images.forum.example.com`) to the bucket.
 3. Configure **CORS** on the bucket so browsers can `PUT` from your forum origin:
 
 ```json
 [
   {
-    "AllowedOrigins": ["https://latch.network"],
+    "AllowedOrigins": ["https://forum.example.com"],
     "AllowedMethods": ["PUT", "GET", "HEAD"],
     "AllowedHeaders": ["*"],
     "ExposeHeaders": ["ETag"],
@@ -29,7 +29,7 @@ First-party Latch plugin for **post images** via direct browser upload to **Clou
         'access_key_id' => 'YOUR_R2_ACCESS_KEY',
         'secret_access_key' => 'YOUR_R2_SECRET',
         'bucket' => 'latch-forum-images',
-        'public_host' => 'images.latch.network',
+        'public_host' => 'images.forum.example.com',
         'max_mb' => 8,
         'key_prefix' => 'forum/',
     ],

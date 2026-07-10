@@ -19,7 +19,7 @@ final class SeoMetaTest extends TestCase
     public function testForTopicBuildsArticleMetadata(): void
     {
         $seo = SeoMeta::forTopic(
-            'https://latch.network',
+            'https://forum.example.com',
             'Latch',
             'Hello world',
             42,
@@ -28,7 +28,7 @@ final class SeoMetaTest extends TestCase
         )->toArray();
 
         $this->assertSame('Hello world — Latch', $seo['title']);
-        $this->assertSame('https://latch.network/topic/42', $seo['canonical']);
+        $this->assertSame('https://forum.example.com/topic/42', $seo['canonical']);
         $this->assertSame('article', $seo['type']);
         $this->assertSame('2026-06-29T10:00:00+00:00', $seo['published_time']);
         $this->assertStringContainsString('og-image.png', (string) $seo['image']);
@@ -49,7 +49,7 @@ final class SeoMetaTest extends TestCase
 
     public function testMembersOnlyForcesNoindexOnHome(): void
     {
-        $seo = SeoMeta::forHome('https://latch.network', 'Latch', 'Fast forum', true)->toArray();
+        $seo = SeoMeta::forHome('https://forum.example.com', 'Latch', 'Fast forum', true)->toArray();
 
         $this->assertTrue($seo['noindex']);
     }
@@ -58,7 +58,7 @@ final class SeoMetaTest extends TestCase
     {
         $long = str_repeat('word ', 80);
         $seo = SeoMeta::forBoard(
-            'https://latch.network',
+            'https://forum.example.com',
             'Latch',
             ['name' => 'General', 'description' => $long],
             '/board/general',

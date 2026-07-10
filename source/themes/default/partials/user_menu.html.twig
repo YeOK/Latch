@@ -4,6 +4,7 @@
             {% include 'partials/avatar.twig' with {
                 username: user.username,
                 avatar_src: user.avatar_src|default(''),
+                avatar_pending_src: user.avatar_pending_src|default(''),
                 avatar_hue: user.avatar_hue|default(210),
                 size: 28
             } %}

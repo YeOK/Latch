@@ -39,7 +39,7 @@ Guest cache eligible when: public board, default sort, no tag filter, `members_o
 ## Measuring locally
 
 ```bash
-php bin/latch benchmark --url=https://latch.network --iterations=10
+php bin/latch benchmark --url=https://forum.example.com --iterations=10
 ```
 
 For SQL profiling, enable SQLite trace in a dev copy or wrap `Database::pdo()` in a test harness. Production goal: **no per-row loops that hit SQL** on home and board list paths.

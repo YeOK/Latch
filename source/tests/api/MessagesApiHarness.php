@@ -42,7 +42,7 @@ final class MessagesApiHarness
         $this->clientId = (string) ($config['client_id'] ?? '');
         $this->clientSecret = (string) ($config['client_secret'] ?? '');
         $this->redirectUri = (string) (
-            $config['redirect_uri'] ?? 'https://latch.network/oauth/cli-callback'
+            $config['redirect_uri'] ?? 'https://forum.example.com/oauth/cli-callback'
         );
         $this->tokenCachePath = (string) ($config['token_cache'] ?? dirname(__DIR__) . '/api/user-token.local.json');
         $this->pkceCachePath = (string) ($config['pkce_cache'] ?? dirname(__DIR__) . '/api/pkce.local.json');
@@ -56,7 +56,7 @@ final class MessagesApiHarness
             fwrite(STDERR, "Config requires base_url, client_id, and client_secret.\n");
             fwrite(STDERR, "Create a client on the server:\n");
             fwrite(STDERR, "  php bin/latch api-client create --name=\"Local API Harness\" \\\n");
-            fwrite(STDERR, "    --redirect=https://latch.network/oauth/cli-callback \\\n");
+            fwrite(STDERR, "    --redirect=https://forum.example.com/oauth/cli-callback \\\n");
             fwrite(STDERR, "    --scopes=read,messages:read,messages:write\n");
             fwrite(STDERR, "Then copy tests/api/config.example.php → config.local.php\n");
 
@@ -90,15 +90,15 @@ final class MessagesApiHarness
 
         if ($this->isLocalhostRedirect()) {
             fwrite(STDERR, "WARNING: redirect_uri is {$this->redirectUri}\n");
-            fwrite(STDERR, "  Browsers cannot reach localhost after Allow on latch.network.\n");
-            fwrite(STDERR, "  Set redirect_uri to https://latch.network/oauth/cli-callback in config.local.php\n\n");
+            fwrite(STDERR, "  Browsers cannot reach localhost after Allow on forum.example.com.\n");
+            fwrite(STDERR, "  Set redirect_uri to https://forum.example.com/oauth/cli-callback in config.local.php\n\n");
         }
 
         fwrite(STDOUT, "1. Open this URL in your browser:\n\n");
         fwrite(STDOUT, $authorizeUrl . "\n\n");
         fwrite(STDOUT, "2. If you are not logged in, sign in (and complete 2FA if prompted),\n");
         fwrite(STDOUT, "   then open the SAME URL again from step 1.\n");
-        fwrite(STDOUT, "3. Click Allow. You should land on latch.network with \"Authorization complete\"\n");
+        fwrite(STDOUT, "3. Click Allow. You should land on forum.example.com with \"Authorization complete\"\n");
         fwrite(STDOUT, "   and a code starting with latch_ac_. Copy that code — not the state value.\n\n");
         fwrite(STDOUT, "4. Paste the code (or full callback URL) into this terminal:\n> ");
 

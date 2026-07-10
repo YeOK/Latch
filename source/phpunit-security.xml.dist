@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         cacheResult="false">
+    <testsuites>
+        <testsuite name="security">
+            <file>tests/Phase15LeftoversTest.php</file>
+            <file>tests/CsrfTest.php</file>
+            <file>tests/SecurityRegressionTest.php</file>
+            <file>tests/SiteLockTest.php</file>
+            <file>tests/OidcServiceTest.php</file>
+            <file>tests/OidcAuthorizationTest.php</file>
+            <file>tests/AccountDeletionTest.php</file>
+            <file>tests/ProfileDeleteTest.php</file>
+            <file>tests/TwoFactorCancelTest.php</file>
+            <file>tests/RequestHttpsTest.php</file>
+            <file>tests/BoardAclTest.php</file>
+            <file>tests/PluginAuditorTest.php</file>
+            <file>tests/ThemeJsAuditorTest.php</file>
+            <file>tests/OutboundUrlGuardTest.php</file>
+            <file>tests/SecretCipherTest.php</file>
+            <file>tests/SpamGuardTest.php</file>
+            <file>tests/PostEditGuardTest.php</file>
+            <file>tests/UserRepositoryPurgeTest.php</file>
+            <file>tests/InputValidatorTest.php</file>
+            <file>tests/ImageUploadPluginTest.php</file>
+        </testsuite>
+    </testsuites>
+</phpunit>

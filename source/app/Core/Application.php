@@ -1272,7 +1272,34 @@ final class Application
         return $this->avatarUrl;
     }
 
+    public function thirdPartyAvatarsAllowed(): bool
+    {
+        return CookieConsentGate::allowsThirdPartyContent(
+            $this->gdprEnabled(),
+            $this->request()->cookie(CookieConsentGate::CONSENT_COOKIE),
+        );
+    }
+
     public function resolveAvatar(string $email, int $size = 48): string
+    {
+        $url = $this->rawAvatarUrl($email, $size);
+
+        return $url !== '' && $this->thirdPartyAvatarsAllowed() ? $url : '';
+    }
+
+    /**
+     * Deferred avatar URL for GDPR mode before consent (rendered as data attribute, not loaded).
+     */
+    public function resolveAvatarPending(string $email, int $size = 48): string
+    {
+        if ($this->thirdPartyAvatarsAllowed()) {
+            return '';
+        }
+
+        return $this->rawAvatarUrl($email, $size);
+    }
+
+    private function rawAvatarUrl(string $email, int $size): string
     {
         $default = $this->settings->getBool('use_gravatar', true)
             ? $this->avatarUrl->gravatarUrl($email, $size)
@@ -1326,10 +1353,9 @@ final class Application
     {
         foreach ($posts as $i => $post) {
             $username = (string) ($post['author_name'] ?? '');
-            $posts[$i]['avatar_src'] = $this->resolveAvatar(
-                (string) ($post['author_email'] ?? ''),
-                $size,
-            );
+            $email = (string) ($post['author_email'] ?? '');
+            $posts[$i]['avatar_src'] = $this->resolveAvatar($email, $size);
+            $posts[$i]['avatar_pending_src'] = $this->resolveAvatarPending($email, $size);
             $posts[$i]['avatar_hue'] = $this->avatarHue($username);
             unset($posts[$i]['author_email']);
         }
@@ -1345,10 +1371,9 @@ final class Application
     {
         foreach ($topics as $i => $topic) {
             $username = (string) ($topic['author_name'] ?? '');
-            $topics[$i]['avatar_src'] = $this->resolveAvatar(
-                (string) ($topic['author_email'] ?? ''),
-                $size,
-            );
+            $email = (string) ($topic['author_email'] ?? '');
+            $topics[$i]['avatar_src'] = $this->resolveAvatar($email, $size);
+            $topics[$i]['avatar_pending_src'] = $this->resolveAvatarPending($email, $size);
             $topics[$i]['avatar_hue'] = $this->avatarHue($username);
             unset($topics[$i]['author_email']);
         }
@@ -1364,10 +1389,9 @@ final class Application
     {
         foreach ($users as $i => $user) {
             $username = (string) ($user['username'] ?? '');
-            $users[$i]['avatar_src'] = $this->resolveAvatar(
-                (string) ($user['email'] ?? ''),
-                $size,
-            );
+            $email = (string) ($user['email'] ?? '');
+            $users[$i]['avatar_src'] = $this->resolveAvatar($email, $size);
+            $users[$i]['avatar_pending_src'] = $this->resolveAvatarPending($email, $size);
             $users[$i]['avatar_hue'] = $this->avatarHue($username);
         }
 
@@ -1547,10 +1571,9 @@ final class Application
         $site = $this->config->get('site', []);
         $user = $this->auth->user();
         if ($user !== null) {
-            $user['avatar_src'] = $this->resolveAvatar(
-                (string) ($user['email'] ?? ''),
-                28,
-            );
+            $email = (string) ($user['email'] ?? '');
+            $user['avatar_src'] = $this->resolveAvatar($email, 28);
+            $user['avatar_pending_src'] = $this->resolveAvatarPending($email, 28);
             $user['avatar_hue'] = $this->avatarHue((string) $user['username']);
         }
         $themeCookie = $this->request->cookie(ThemeMode::COOKIE);

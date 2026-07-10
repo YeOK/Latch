@@ -17,16 +17,16 @@ declare(strict_types=1);
  *   ~/Documents/latch/scripts/setup-api-test-client.sh
  * or manually:
  *   sudo -u apache php bin/latch api-client create --name="Local API Harness" \
- *     --redirect=https://latch.network/oauth/cli-callback \
+ *     --redirect=https://forum.example.com/oauth/cli-callback \
  *     --scopes=read,messages:read,messages:write
  */
 return [
-    'base_url' => 'https://latch.network',
+    'base_url' => 'https://forum.example.com',
     'client_id' => 'latch_xxxxxxxxxxxxxxxx',
     'client_secret' => 'your-client-secret-here',
 
     // Must match --redirect when creating the OAuth client.
-    'redirect_uri' => 'https://latch.network/oauth/cli-callback',
+    'redirect_uri' => 'https://forum.example.com/oauth/cli-callback',
 
     // Optional: member username to message during write tests (must accept DMs from you).
     'message_recipient' => '',

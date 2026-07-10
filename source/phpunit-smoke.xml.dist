@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         cacheResult="false">
+    <testsuites>
+        <testsuite name="smoke">
+            <file>tests/OAuthScopesTest.php</file>
+            <file>tests/SqliteIntegrityTest.php</file>
+            <file>tests/SiteLockTest.php</file>
+            <file>tests/TopicRepositoryHomeTest.php</file>
+            <file>tests/PluginSystemTest.php</file>
+            <file>tests/SiteRestoreTest.php</file>
+            <file>tests/MigratorTest.php</file>
+            <file>tests/PostFormatterTest.php</file>
+            <file>tests/VersionInfoTest.php</file>
+            <file>tests/RssFeedTest.php</file>
+            <file>tests/CronMaintenanceTest.php</file>
+            <file>tests/AccountDeletionTest.php</file>
+            <file>tests/ProfileDeleteTest.php</file>
+            <file>tests/ReportQueueTest.php</file>
+            <file>tests/DirectMessageTest.php</file>
+            <file>tests/DoctorTest.php</file>
+            <file>tests/TwoFactorCancelTest.php</file>
+        </testsuite>
+    </testsuites>
+</phpunit>

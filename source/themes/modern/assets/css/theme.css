@@ -15,6 +15,8 @@
     --accent: #0d9488;
     --accent-hover: #0f766e;
     --accent-soft: #ccfbf1;
+    --badge-fg: var(--accent-hover);
+    --footer-link-fg: var(--accent-hover);
     --brand-fg: #0d9488;
     --radius: 14px;
     --danger: #c0392b;
@@ -417,6 +419,11 @@ main.container {
     font-size: 0.85rem;
 }
 
+.site-footer a,
+.site-footer .link-button {
+    color: var(--footer-link-fg, var(--accent));
+}
+
 .legal-doc {
     padding: 1.25rem 1.5rem;
     max-width: 48rem;
@@ -812,12 +819,12 @@ body.cookie-consent-visible {
     align-items: center;
     gap: 0.35rem;
     font-weight: 600;
-    color: var(--accent);
+    color: var(--accent-hover);
     text-decoration: none;
 }
 
 .board-panel-view-all:hover {
-    color: var(--accent-hover);
+    color: var(--accent);
     text-decoration: underline;
 }
 

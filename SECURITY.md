@@ -1,6 +1,6 @@
 # Security Policy
 
-Latch is a self-hosted PHP forum ([latch.network](https://latch.network)). We take security reports seriously and appreciate responsible disclosure.
+Latch is a self-hosted PHP forum. We take security reports seriously and appreciate responsible disclosure.
 
 **Operator documentation** (headers, backups, hardening): [source/docs/SECURITY.md](source/docs/SECURITY.md)
 

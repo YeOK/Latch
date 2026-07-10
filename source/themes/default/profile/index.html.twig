@@ -13,7 +13,7 @@
         <form method="post" action="/profile/save" class="form form-wide">
             {{ csrf_field() }}
             <div class="profile-avatar-row">
-                {% include 'partials/avatar.twig' with { username: user.username, avatar_src: avatar_src, avatar_hue: user.avatar_hue|default(210), size: 64 } %}
+                {% include 'partials/avatar.twig' with { username: user.username, avatar_src: avatar_src, avatar_pending_src: avatar_pending_src|default(''), avatar_hue: user.avatar_hue|default(210), size: 64 } %}
                 <div>
                     <p class="muted">
                         {% if site.use_gravatar %}

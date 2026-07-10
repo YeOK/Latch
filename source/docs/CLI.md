@@ -461,7 +461,7 @@ php bin/latch api-client revoke --client-id=latch_…
 Times HTTP requests to home, a board, and a topic page.
 
 ```bash
-php bin/latch benchmark --url=https://latch.network --iterations=10
+php bin/latch benchmark --url=https://forum.example.com --iterations=10
 ```
 
 ---
@@ -500,7 +500,7 @@ php bin/latch test-api-messages run
 ```
 
 ```bash
-php bin/latch test-api --url=https://latch.network
+php bin/latch test-api --url=https://forum.example.com
 ```
 
 ---
@@ -541,8 +541,8 @@ php bin/latch test --smoke         # operator gate
 php bin/latch test --security      # security gate
 
 # Live HTTP probes (staging or production)
-php bin/latch test --smoke --url=https://latch.network
-php bin/latch test --security --url=https://latch.network
+php bin/latch test --smoke --url=https://forum.example.com
+php bin/latch test --security --url=https://forum.example.com
 ```
 
 | Command | PHPUnit | CLI extras | HTTP (with `--url` or `tests/smoke/config.local.php`) |

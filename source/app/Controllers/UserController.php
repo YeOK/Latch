@@ -83,6 +83,10 @@ final class UserController
                     (string) $user['email'],
                     96,
                 ),
+                'avatar_pending_src' => $this->app->resolveAvatarPending(
+                    (string) $user['email'],
+                    96,
+                ),
                 'avatar_hue' => $this->app->avatarHue((string) $user['username']),
                 'post_count' => $stats['post_count'],
                 'topic_count' => $stats['topic_count'],

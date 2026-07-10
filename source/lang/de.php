@@ -423,7 +423,7 @@ return [
     ],
     'cookie_consent' => [
         'title' => 'Cookies auf dieser Website',
-        'body' => ':operator verwendet essenzielle Cookies, um dich angemeldet zu halten, dein Schema zu speichern und Formulare zu schützen. Latch setzt keine Werbe- oder Tracking-Cookies von Drittanbietern.',
+        'body' => ':operator verwendet essenzielle Cookies, um dich angemeldet zu halten, dein Schema zu speichern und Formulare zu schützen. Mit der Zustimmung werden bei aktivierter Funktion auch Mitglieder-Avatare von Gravatar geladen. Latch setzt keine Werbe- oder Tracking-Cookies von Drittanbietern.',
         'read_cookie_policy' => 'Unsere Cookie-Richtlinie lesen',
         'read_privacy_policy' => 'Datenschutzerklärung',
         'accept' => 'Essenzielle Cookies akzeptieren',
@@ -473,7 +473,7 @@ return [
         'cookies_local_storage' => 'Lokaler Speicher',
         'cookies_local_storage_body' => 'Dein Browser kann Beitragsentwürfe und Schemaeinstellungen lokal speichern. Dies bleibt auf deinem Gerät und wird erst beim Veröffentlichen an den Server gesendet.',
         'cookies_third_party' => 'Drittanbieter',
-        'cookies_third_party_body' => 'Wenn Gravatar aktiviert ist, kann dein E-Mail-Hash beim Laden von Standard-Avataren an Gravatar gesendet werden. Externe Avatar-URLs, die du angibst, werden direkt von deinem Browser von diesem Host geladen.',
+        'cookies_third_party_body' => 'Wenn Gravatar aktiviert ist, wird dein E-Mail-Hash im EU-Hosting-Modus erst nach Cookie-Zustimmung an Gravatar gesendet. Bis dahin werden Identicon-Platzhalter angezeigt. Externe Avatar-URLs von Plugins werden ebenfalls bis zur Zustimmung zurückgestellt.',
         'cookies_manage' => 'Cookies verwalten',
         'cookies_manage_body' => 'Du kannst Cookies in deinen Browsereinstellungen löschen. Das Ablehnen nicht essenzieller Cookies (wenn der EU-Hosting-Modus aktiv ist) beschränkt die Speicherung von Präferenzen auf die aktuelle Sitzung.',
         'cookies_change_settings' => 'Cookie-Einstellungen ändern',

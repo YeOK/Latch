@@ -87,7 +87,7 @@ final class PhpbbImportTest extends TestCase
         $post = $pdo->query('SELECT body FROM posts ORDER BY id ASC LIMIT 1')->fetch();
         $html = (new PostFormatter())->format((string) $post['body']);
         $this->assertStringContainsString('<strong>Hello</strong>', $html);
-        $this->assertStringContainsString('latch.network', $html);
+        $this->assertStringContainsString('forum.example.com', $html);
     }
 
     public function testRejectsImportWhenTopicsExist(): void

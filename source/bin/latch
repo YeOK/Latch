@@ -605,9 +605,19 @@ function run_test_phpunit_suite(string $suite, string $label): bool
         return false;
     }
 
+    $config = match ($suite) {
+        'smoke' => LATCH_ROOT . '/phpunit-smoke.xml.dist',
+        'security' => LATCH_ROOT . '/phpunit-security.xml.dist',
+        default => LATCH_ROOT . '/phpunit.xml.dist',
+    };
+    if (!is_file($config)) {
+        fwrite(STDERR, "PHPUnit config not found: {$config}\n");
+        return false;
+    }
+
     fwrite(STDOUT, "==> PHPUnit {$label} suite\n");
     $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(LATCH_ROOT . '/vendor/bin/phpunit')
-        . ' -c ' . escapeshellarg(LATCH_ROOT . '/phpunit.xml.dist')
+        . ' -c ' . escapeshellarg($config)
         . ' --testsuite ' . escapeshellarg($suite);
     passthru($cmd, $code);
     if ($code !== 0) {
@@ -2588,7 +2598,7 @@ function run_test_api_messages(array $argv): void
         fwrite(STDERR, "Copy {$examplePath} to tests/api/config.local.php\n");
         fwrite(STDERR, "Create a production OAuth client (on the server):\n");
         fwrite(STDERR, "  sudo -u apache php bin/latch api-client create --name=\"Local API Harness\" \\\n");
-        fwrite(STDERR, "    --redirect=https://latch.network/oauth/cli-callback \\\n");
+        fwrite(STDERR, "    --redirect=https://forum.example.com/oauth/cli-callback \\\n");
         fwrite(STDERR, "    --scopes=read,messages:read,messages:write\n");
         exit(1);
     }

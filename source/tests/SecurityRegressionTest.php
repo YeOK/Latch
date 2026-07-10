@@ -13,6 +13,7 @@ namespace Latch\Tests;
 
 use Latch\Core\Auth;
 use Latch\Core\PostFormatter;
+use Latch\Core\Request;
 use Latch\Support\OutboundUrlGuard;
 use PHPUnit\Framework\TestCase;
 
@@ -53,5 +54,38 @@ final class SecurityRegressionTest extends TestCase
     public function testFounderUserIdIsProtectedConstant(): void
     {
         $this->assertSame(1, Auth::FOUNDER_USER_ID);
+    }
+
+    public function testSafeRedirectFromRefererAllowsSameHostPath(): void
+    {
+        $request = new Request();
+
+        $this->assertSame(
+            '/board/news?page=2',
+            $request->safeRedirectFromReferer(
+                'https://forum.example.com/board/news?page=2',
+                'https://forum.example.com',
+            ),
+        );
+    }
+
+    public function testSafeRedirectFromRefererRejectsLookalikeHost(): void
+    {
+        $request = new Request();
+
+        $this->assertSame(
+            '/',
+            $request->safeRedirectFromReferer(
+                'https://forum.example.com.evil.com/phish',
+                'https://forum.example.com',
+            ),
+        );
+    }
+
+    public function testSafeRedirectPathRejectsProtocolRelativeUrls(): void
+    {
+        $request = new Request();
+
+        $this->assertSame('/', $request->safeRedirectPath('//evil.com'));
     }
 }

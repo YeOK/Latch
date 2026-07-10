@@ -37,7 +37,7 @@ On production, run the same gates on the server (as `apache` if file permissions
 cd /var/www/latch/source
 sudo -u apache php bin/latch doctor
 sudo -u apache php bin/latch test --smoke
-sudo -u apache php bin/latch test --security --url=https://latch.network
+sudo -u apache php bin/latch test --security --url=https://forum.example.com
 sudo -u apache php bin/latch audit
 ```
 
@@ -132,8 +132,8 @@ PHPUnit gates work offline. HTTP harnesses exercise a **running** Latch instance
 Pass a base URL on the command line:
 
 ```bash
-php bin/latch test --security --url=https://latch.network
-php bin/latch test --smoke --url=https://latch.network
+php bin/latch test --security --url=https://forum.example.com
+php bin/latch test --smoke --url=https://forum.example.com
 ```
 
 Or copy `tests/smoke/config.example.php` → `tests/smoke/config.local.php` and set `base_url`. The CLI reads this file when `--url` is not passed.
@@ -188,7 +188,7 @@ cp tests/api/config.example.php tests/api/config.local.php
 Run API tests alone:
 
 ```bash
-php bin/latch test-api --url=https://latch.network
+php bin/latch test-api --url=https://forum.example.com
 php bin/latch test-api-messages    # user-delegated token + DMs (see tests/api/)
 ```
 
@@ -207,7 +207,7 @@ php bin/latch test-api-messages    # user-delegated token + DMs (see tests/api/)
 
 ```php
 return [
-    'base_url' => 'https://latch.network',
+    'base_url' => 'https://forum.example.com',
 ];
 ```
 
@@ -306,12 +306,12 @@ OIDC is covered by `OidcServiceTest` in the security suite (registration guards,
 
 Code ships disabled until `config/local.php` has credentials and admin enables providers in **Settings**.
 
-### Enable on latch.network
+### Enable on your site
 
 1. **Google Cloud Console** — OAuth Web client; redirect URI:
-   `https://latch.network/auth/oidc/google/callback`
+   `https://forum.example.com/auth/oidc/google/callback`
 2. **GitHub** — OAuth App; callback:
-   `https://latch.network/auth/oidc/github/callback`
+   `https://forum.example.com/auth/oidc/github/callback`
 3. Add to server `config/local.php` (not in git):
 
 ```php
@@ -340,7 +340,7 @@ Code ships disabled until `config/local.php` has credentials and admin enables p
 
 ```bash
 php bin/latch test --security
-php bin/latch test-api --url=https://latch.network
+php bin/latch test-api --url=https://forum.example.com
 ```
 
 See [OIDC.md](OIDC.md) for provider setup detail.

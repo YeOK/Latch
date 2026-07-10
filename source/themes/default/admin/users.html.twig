@@ -50,7 +50,7 @@
                     {% for u in staff|slice(0, 6) %}
                         <tr>
                             <td class="user-cell">
-                                {% include 'partials/avatar.twig' with { username: u.username, avatar_src: u.avatar_src|default(''), avatar_hue: u.avatar_hue|default(210), size: 28 } %}
+                                {% include 'partials/avatar.twig' with { username: u.username, avatar_src: u.avatar_src|default(''), avatar_pending_src: u.avatar_pending_src|default(''), avatar_hue: u.avatar_hue|default(210), size: 28 } %}
                                 <a href="/admin/users/{{ u.id }}">{{ u.username }}</a>
                             </td>
                             <td>{{ u.role }}</td>
@@ -107,7 +107,7 @@
                         {% endif %}
                     </td>
                     <td class="user-cell">
-                        {% include 'partials/avatar.twig' with { username: u.username, avatar_src: u.avatar_src|default(''), avatar_hue: u.avatar_hue|default(210), size: 28 } %}
+                        {% include 'partials/avatar.twig' with { username: u.username, avatar_src: u.avatar_src|default(''), avatar_pending_src: u.avatar_pending_src|default(''), avatar_hue: u.avatar_hue|default(210), size: 28 } %}
                         <a href="/admin/users/{{ u.id }}">{{ u.username }}</a>
                     </td>
                     <td>{{ u.email }}</td>

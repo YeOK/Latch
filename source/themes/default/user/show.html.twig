@@ -8,6 +8,7 @@
             {% include 'partials/avatar.twig' with {
                 username: profile.username,
                 avatar_src: profile.avatar_src,
+                avatar_pending_src: profile.avatar_pending_src|default(''),
                 avatar_hue: profile.avatar_hue,
                 size: 96
             } %}

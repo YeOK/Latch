@@ -2,7 +2,7 @@
 
 Phase 3 read API for boards, topics, posts, and public user profiles. OAuth 2.0 is built in for third-party clients (mobile apps, integrations).
 
-**Base URL:** your site URL (e.g. `https://latch.network`)
+**Base URL:** your site URL (e.g. `https://forum.example.com`)
 
 ## Authentication
 
@@ -172,7 +172,7 @@ info:
   title: Latch API
   version: "1.0"
 servers:
-  - url: https://latch.network
+  - url: https://forum.example.com
 paths:
   /api/v1/boards:
     get:

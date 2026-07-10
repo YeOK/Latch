@@ -423,7 +423,7 @@ return [
     ],
     'cookie_consent' => [
         'title' => 'Cookies sur ce site',
-        'body' => ':operator utilise des cookies essentiels pour vous maintenir connecté, mémoriser votre thème et protéger les formulaires. Latch ne définit aucun cookie publicitaire ou de suivi tiers.',
+        'body' => ':operator utilise des cookies essentiels pour vous maintenir connecté, mémoriser votre thème et protéger les formulaires. L\'acceptation charge aussi les avatars membres depuis Gravatar lorsque cette fonction est activée. Latch ne définit aucun cookie publicitaire ou de suivi tiers.',
         'read_cookie_policy' => 'Lire notre politique des cookies',
         'read_privacy_policy' => 'politique de confidentialité',
         'accept' => 'Accepter les cookies essentiels',
@@ -473,7 +473,7 @@ return [
         'cookies_local_storage' => 'Stockage local',
         'cookies_local_storage_body' => 'Votre navigateur peut stocker localement des brouillons de messages et la préférence de thème pour plus de commodité. Ces données restent sur votre appareil et ne sont pas envoyées au serveur tant que vous ne publiez pas.',
         'cookies_third_party' => 'Tiers',
-        'cookies_third_party_body' => 'Si Gravatar est activé, le hash de votre e-mail peut être envoyé à Gravatar lors du chargement des avatars par défaut. Les URL d\'avatar externes que vous fournissez sont chargées directement par votre navigateur depuis cet hôte.',
+        'cookies_third_party_body' => 'Si Gravatar est activé, le hash de votre e-mail n\'est envoyé à Gravatar qu\'après votre acceptation des cookies en mode hébergement UE. Avant cela, des identicons de remplacement sont affichés. Les URL d\'avatar externes des extensions sont également différées jusqu\'au consentement.',
         'cookies_manage' => 'Gestion des cookies',
         'cookies_manage_body' => 'Vous pouvez effacer les cookies dans les paramètres de votre navigateur. Refuser les cookies non essentiels (lorsque le mode hébergement UE est activé) limite le stockage des préférences à la session en cours.',
         'cookies_change_settings' => 'Modifier les paramètres des cookies',

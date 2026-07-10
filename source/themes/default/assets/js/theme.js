@@ -245,8 +245,29 @@
     });
 
     var CONSENT_COOKIE = 'latch_cookie_consent';
+    var CONSENT_ACCEPTED = 'accepted';
     var consentBanner = document.getElementById('cookie-consent');
     var gdprMode = document.body.dataset.gdpr === '1';
+
+    function activatePendingAvatars() {
+        document.querySelectorAll('.avatar-gravatar-pending[data-gravatar-src]').forEach(function (el) {
+            var src = el.getAttribute('data-gravatar-src');
+            if (!src) {
+                return;
+            }
+
+            var size = parseInt(el.style.width, 10) || 40;
+            var img = document.createElement('img');
+            img.className = 'avatar';
+            img.src = src;
+            img.alt = '';
+            img.width = size;
+            img.height = size;
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            el.replaceWith(img);
+        });
+    }
 
     function getConsent() {
         var match = document.cookie.match(new RegExp('(?:^|; )' + CONSENT_COOKIE + '=([^;]*)'));
@@ -290,8 +311,9 @@
     var consentAccept = document.getElementById('cookie-consent-accept');
     if (consentAccept) {
         consentAccept.addEventListener('click', function () {
-            setConsent('accepted');
+            setConsent(CONSENT_ACCEPTED);
             hideConsentBanner();
+            activatePendingAvatars();
         });
     }
 

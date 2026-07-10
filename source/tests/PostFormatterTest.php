@@ -35,11 +35,11 @@ final class PostFormatterTest extends TestCase
     public function testRendersMarkdownLink(): void
     {
         $html = $this->formatter->format(
-            'Visit [latch.network](https://latch.network) for details.',
+            'Visit [forum.example.com](https://forum.example.com) for details.',
         );
 
         $this->assertStringContainsString(
-            '<a href="https://latch.network" rel="nofollow ugc" target="_blank">latch.network</a>',
+            '<a href="https://forum.example.com" rel="nofollow ugc" target="_blank">forum.example.com</a>',
             $html,
         );
     }

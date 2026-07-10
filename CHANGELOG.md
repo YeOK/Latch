@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to [Latch](https://latch.network) are documented here.
+All notable changes to [Latch](https://github.com/YeOK/Latch) are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -8,6 +8,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
+
+## [0.3.0.21] — 2026-07-10
+
+### Security
+- **Open redirect** — `Request::safeRedirectFromReferer()` requires exact host match with `site.url`; `safeRedirectPath()` tightens path allowlist. `LocaleController` and rate-limit redirect in `ReportController` use the helper. Regression tests in `SecurityRegressionTest`.
+
+### Fixed
+- **Accessibility (light theme)** — badge and footer link contrast via `--badge-fg` / `--footer-link-fg`; `.board-panel-view-all` uses `--accent-hover` for WCAG 4.5:1 on white surfaces (default + modern themes).
+- **GDPR / Gravatar** — third-party avatars load only after `latch_cookie_consent=accepted` in EU hosting mode; identicon placeholders with deferred `data-gravatar-src` until accept. `CookieConsentGate` + updated cookie policy copy (all locales).
+
+### Changed
+- **PHPUnit configs** — split smoke/security into `phpunit-smoke.xml.dist` and `phpunit-security.xml.dist`; `bin/latch test` picks config by suite (eliminates duplicate-suite warnings).
+- **Public docs & templates** — replace operator-specific `latch.network` examples with `forum.example.com`; footer uses `site.url` and GitHub for “Powered by Latch”; release build rejects `latch.network` / `images.latch.network` in staged `source/`.
 
 ## [0.3.0.20] — 2026-07-07
 
@@ -291,6 +304,8 @@ php bin/latch install --url=https://forum.example.com --name="My Forum"
 cd /var/www/latch && sudo bash scripts/update.sh
 ```
 
+[0.3.0.21]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.21
+[0.3.0.20]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.20
 [0.3.0.13]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.13
 [0.3.0.12]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.12
 [0.3.0.1]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.1

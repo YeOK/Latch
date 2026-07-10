@@ -143,7 +143,49 @@ final class Request
             return $fallback;
         }
 
+        if (preg_match('~^/[a-zA-Z0-9/_\-.%?=&+]*$~', $url) !== 1) {
+            return $fallback;
+        }
+
         return $url;
+    }
+
+    /**
+     * Resolve Referer (absolute URL or path) to a same-origin path for redirects.
+     */
+    public function safeRedirectFromReferer(string $referer, string $siteUrl, string $fallback = '/'): string
+    {
+        $referer = trim($referer);
+        if ($referer === '') {
+            return $fallback;
+        }
+
+        if (str_starts_with($referer, '/') && !str_starts_with($referer, '//')) {
+            return $this->safeRedirectPath($referer, $fallback);
+        }
+
+        $ref = parse_url($referer);
+        $site = parse_url(rtrim($siteUrl, '/'));
+        if (!is_array($ref) || !is_array($site)) {
+            return $fallback;
+        }
+
+        $refHost = strtolower((string) ($ref['host'] ?? ''));
+        $siteHost = strtolower((string) ($site['host'] ?? ''));
+        if ($refHost === '' || $siteHost === '' || $refHost !== $siteHost) {
+            return $fallback;
+        }
+
+        $path = (string) ($ref['path'] ?? '/');
+        if ($path === '') {
+            $path = '/';
+        }
+
+        $query = isset($ref['query']) && is_string($ref['query']) && $ref['query'] !== ''
+            ? '?' . $ref['query']
+            : '';
+
+        return $this->safeRedirectPath($path . $query, $fallback);
     }
 
     public function header(string $name, string $default = ''): string

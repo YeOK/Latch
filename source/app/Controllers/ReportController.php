@@ -46,8 +46,9 @@ final class ReportController
 
         if ($this->app->reports()->countRecentByReporter((int) $user['id']) >= 5) {
             $this->app->session()->flash('error', 'You have submitted too many reports. Try again later.');
-            Response::redirect($this->app->request()->safeRedirectPath(
+            Response::redirect($this->app->request()->safeRedirectFromReferer(
                 $this->app->request()->header('Referer', '/'),
+                $this->app->siteUrl(),
             ));
         }
 

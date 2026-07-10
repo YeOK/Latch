@@ -1,8 +1,11 @@
-{# Expects: username, avatar_src (optional), avatar_hue (optional), size (optional, default 40) #}
+{# Expects: username, avatar_src (optional), avatar_pending_src (optional), avatar_hue (optional), size (optional, default 40) #}
 {% set avatar_size = size|default(40) %}
 {% set hue = avatar_hue|default(210) %}
+{% set pending_src = avatar_pending_src|default('') %}
 {% if avatar_src %}
     <img class="avatar" src="{{ avatar_src }}" alt="" width="{{ avatar_size }}" height="{{ avatar_size }}" loading="lazy" decoding="async">
+{% elseif pending_src %}
+    <span class="avatar avatar-identicon avatar-gravatar-pending" data-gravatar-src="{{ pending_src }}" style="--avatar-hue: {{ hue }}; width:{{ avatar_size }}px; height:{{ avatar_size }}px; font-size:{{ (avatar_size * 0.42)|round }}px" aria-hidden="true" title="{{ username }}">{{ username|slice(0, 1)|upper }}</span>
 {% else %}
     <span class="avatar avatar-identicon" style="--avatar-hue: {{ hue }}; width:{{ avatar_size }}px; height:{{ avatar_size }}px; font-size:{{ (avatar_size * 0.42)|round }}px" aria-hidden="true" title="{{ username }}">{{ username|slice(0, 1)|upper }}</span>
 {% endif %}

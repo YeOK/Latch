@@ -128,9 +128,9 @@ if grep -RInE '(BEGIN (RSA |EC )?PRIVATE KEY|client_secret["\x27]\s*=>|encryptio
     echo "Error: possible secret in staged tree (see above)" >&2
     exit 1
 fi
-if grep -RInE '(henpen\.(dev|org)|noreply@henpen\.org|yeok@192\.168|192\.168\.1\.6|/home/yeok/)' \
-    "${STAGE}" --exclude-dir=vendor --exclude='CHANGELOG.md' --exclude='build-release.sh' 2>/dev/null ; then
-    echo "Error: operator-specific hostnames or paths in staged tree (see above)" >&2
+if grep -RInE '(henpen\.(dev|org)|noreply@henpen\.org|yeok@192\.168|192\.168\.1\.6|/home/yeok/|latch\.network|images\.latch\.network)' \
+    "${STAGE}/source" --exclude-dir=vendor 2>/dev/null ; then
+    echo "Error: operator-specific hostnames or paths in staged source tree (see above)" >&2
     exit 1
 fi
 if [[ -f "${STAGE}/PLAN.md" ]] || [[ -d "${STAGE}/deploy/forum-data" ]] || [[ -f "${STAGE}/deploy/msmtp.conf" ]]; then

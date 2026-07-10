@@ -85,7 +85,7 @@ php bin/latch install \
 
 3. **Upgrades** — replace application files, then run `sudo bash scripts/update.sh` from the install root (see [UPGRADE.md](UPGRADE.md)). Existing `storage/database/latch.sqlite` and `config/local.php` are preserved.
 
-A reference install runs at **[latch.network](https://latch.network)**. Example Apache vhost: `packaging/latch-httpd.conf` (also installed as `/etc/httpd/conf.d/latch.conf` on COPR). Fedora/RHEL: [INSTALL-FEDORA.md](INSTALL-FEDORA.md).
+Example Apache vhost: `packaging/latch-httpd.conf` (also installed as `/etc/httpd/conf.d/latch.conf` on COPR). Fedora/RHEL: [INSTALL-FEDORA.md](INSTALL-FEDORA.md).
 
 ## Web server
 

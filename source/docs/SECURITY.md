@@ -73,7 +73,7 @@ Templates ship in `packaging/fail2ban/` (installed by the COPR RPM):
 - `latch-login.conf` → `/etc/fail2ban/filter.d/`
 - `latch-login.local` → `/etc/fail2ban/jail.d/`
 
-Point `logpath` at your Apache access log for latch.network.
+Point `logpath` at your Apache access log for forum.example.com.
 
 ## Backups
 

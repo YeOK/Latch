@@ -4,15 +4,7 @@ Latch stores posts as **plain text** in the database. The server renders them to
 
 This document is the **author and integrator** reference. Theme authors styling `.post-content` should also read [THEMING.md](THEMING.md) § Post content markup.
 
-> **Operator note — not published yet**  
-> This file exists in the git tree under `source/docs/MARKUP.md` but is **not** on the latch.network Documentation board or in a public release announcement. Publish when ready:
->
-> ```bash
-> # After adding an entry to deploy/forum-data/documentation-posts.json (operator tree)
-> php scripts/post-documentation.php deploy/forum-data/documentation-posts.json
-> ```
->
-> Suggested board topic title: **Post markup**.
+> **Publishing tip** — Copy or adapt this reference into a Documentation board topic on your forum when you want members to see it (suggested title: **Post markup**).
 
 ---
 
@@ -30,7 +22,7 @@ This document is the **author and integrator** reference. Theme authors styling 
 ````markdown
 **Bold** and *italic* and `inline code`.
 
-Visit [Latch](https://latch.network) or [url=https://latch.network]Latch[/url].
+Visit [Latch](https://forum.example.com) or [url=https://forum.example.com]Latch[/url].
 
 [quote author="alice"]
 Previous message here.

@@ -27,7 +27,7 @@ final class ImageUploadPluginTest extends TestCase
             accessKeyId: 'testaccesskey',
             secretAccessKey: 'testsecretkey',
             bucket: 'latch-forum-images',
-            publicHost: 'images.latch.network',
+            publicHost: 'images.forum.example.com',
             r2Host: 'a1b2c3d4e5f6.r2.cloudflarestorage.com',
             maxBytes: 8 * 1024 * 1024,
             keyPrefix: 'forum/',
@@ -59,7 +59,7 @@ final class ImageUploadPluginTest extends TestCase
         $url = $config->publicUrlForKey('forum/1/Screenshot From 2026.png');
 
         $this->assertSame(
-            'https://images.latch.network/forum/1/Screenshot%20From%202026.png',
+            'https://images.forum.example.com/forum/1/Screenshot%20From%202026.png',
             $url,
         );
     }
@@ -84,7 +84,7 @@ final class ImageUploadPluginTest extends TestCase
         $config = $this->sampleConfig();
         $guard = new BodyGuard($config);
         $ctx = new PostSaveContext(
-            body: '![shot](https://images.latch.network/forum/1/abc.png)',
+            body: '![shot](https://images.forum.example.com/forum/1/abc.png)',
             user: ['id' => 1, 'username' => 'founder'],
             board: ['id' => 1],
             topic: null,

@@ -57,11 +57,11 @@ Latch supports optional **Sign in with Google** and **Sign in with GitHub**. Thi
 - Failed callbacks are logged to `storage/logs/security.log` as `oidc_fail`.
 - Successful sign-ins log `login_success` with `provider` metadata.
 
-## Production enablement (latch.network)
+## Production enablement (your site)
 
 Providers are **off** until credentials exist in server `config/local.php` and an admin toggles them in **Settings**.
 
-1. Create OAuth apps (redirect URIs in table above — use `https://latch.network/...` on prod).
+1. Create OAuth apps (redirect URIs in table above — use your public site URL, e.g. `https://forum.example.com/...`).
 2. Add `oidc.google` / `oidc.github` blocks to `local.php` on the server (never commit secrets).
 3. Deploy config with appropriate permissions (`640 apache:apache`).
 4. Admin → Settings → enable each provider.
