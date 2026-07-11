@@ -249,9 +249,37 @@
     var consentBanner = document.getElementById('cookie-consent');
     var gdprMode = document.body.dataset.gdpr === '1';
 
+    function isAllowedGravatarSrc(raw) {
+        if (!raw || typeof raw !== 'string') {
+            return null;
+        }
+
+        var parsed;
+        try {
+            parsed = new URL(raw, window.location.href);
+        } catch (err) {
+            return null;
+        }
+
+        if (parsed.protocol !== 'https:') {
+            return null;
+        }
+
+        var host = parsed.hostname.toLowerCase();
+        if (host !== 'www.gravatar.com' && host !== 'secure.gravatar.com') {
+            return null;
+        }
+
+        if (!parsed.pathname.startsWith('/avatar/')) {
+            return null;
+        }
+
+        return parsed.href;
+    }
+
     function activatePendingAvatars() {
         document.querySelectorAll('.avatar-gravatar-pending[data-gravatar-src]').forEach(function (el) {
-            var src = el.getAttribute('data-gravatar-src');
+            var src = isAllowedGravatarSrc(el.getAttribute('data-gravatar-src'));
             if (!src) {
                 return;
             }
