@@ -24,6 +24,15 @@ for dir in database cache logs uploads backups; do
     fi
 done
 
+if [[ -d "${STORAGE}/cache/plugin-audits" ]]; then
+    chmod 2775 "${STORAGE}/cache/plugin-audits" 2>/dev/null || true
+    chgrp "${WEB_GROUP}" "${STORAGE}/cache/plugin-audits" 2>/dev/null || true
+    find "${STORAGE}/cache/plugin-audits" -type f -exec chmod 664 {} + 2>/dev/null || true
+    if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+        sudo chown -R "${WEB_GROUP}:${WEB_GROUP}" "${STORAGE}/cache/plugin-audits" 2>/dev/null || true
+    fi
+fi
+
 if [[ -d "${STORAGE}/cache/twig" ]]; then
     chmod 2770 "${STORAGE}/cache/twig"
     chgrp "${WEB_GROUP}" "${STORAGE}/cache/twig" 2>/dev/null || true
@@ -38,6 +47,17 @@ fi
 
 if [[ -f "${STORAGE}/database/latch.sqlite" ]]; then
     chmod 660 "${STORAGE}/database/latch.sqlite" 2>/dev/null || true
+fi
+
+# Plugin settings (settings.json) and plugin.sqlite must be writable by the web server.
+if [[ -d "${STORAGE}/plugins" ]]; then
+    chmod 2775 "${STORAGE}/plugins" 2>/dev/null || true
+    chgrp "${WEB_GROUP}" "${STORAGE}/plugins" 2>/dev/null || true
+    find "${STORAGE}/plugins" -mindepth 1 -maxdepth 1 -type d -exec chmod 2775 {} + 2>/dev/null || true
+    find "${STORAGE}/plugins" -type f -exec chmod 664 {} + 2>/dev/null || true
+    if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+        sudo chown -R "${WEB_GROUP}:${WEB_GROUP}" "${STORAGE}/plugins" 2>/dev/null || true
+    fi
 fi
 
 echo "Storage permissions updated under ${STORAGE}"

@@ -9,6 +9,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.2.0] — 2026-07-11
+
+### Added
+- **`bin/latch fix-perms`** — one-shot repair for root-owned `storage/plugins/` and `storage/cache/plugin-audits/` (use after a bad `sudo php bin/latch plugin …`).
+- **Plugin auditor PSR-4 check** — CRITICAL finding when a plugin class path does not match `PluginLoader` autoload layout (blocks enable).
+- **Plugin auditor runtime checks** — CRITICAL findings for root-owned or non-writable plugin storage on **installed** plugins under `plugins/`.
+- **`PluginStoragePermissions`** — when `plugin enable` runs as root, chown `storage/plugins/{slug}/` to the web server user.
+
+### Fixed
+- **`bin/latch audit`** — includes full Doctor layer-4 permission checks (plugin storage, audit cache, world-readable DB/config); install and upgrade gates catch permission regressions.
+- **Plugin settings / audit cache writes** — clearer errors pointing at `sudo latch fix-perms` and the RPM `latch` wrapper.
+- **spam-bridge** (Latch-plugins **1.0.2**) — PSR-4 autoload split (`AppRegistrationEnforcer.php`), reload `settings.json` on each check so provider changes apply without disable/enable.
+
+### Changed
+- **`scripts/install.sh`** — runs `doctor` and `audit` as hard gates (no longer ignores doctor failures); prints RPM plugin permission reminders.
+- **Audit / update failures** — actionable “How to fix” hints (`fix-perms`, `doctor`, `sudo latch plugin enable`).
+- **Docs** — production plugin permissions in `PLUGINS.md`, `INSTALL.md`, `INSTALL-FEDORA.md`, and `CLI.md`.
+
 ## [0.4.1.0] — 2026-07-11
 
 ### Added

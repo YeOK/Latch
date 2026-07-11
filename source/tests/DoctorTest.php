@@ -70,6 +70,75 @@ final class DoctorTest extends TestCase
         $this->assertTrue($encryption['ok']);
     }
 
+    public function testPermissionIssuesForAuditEmptyWhenStorageAbsent(): void
+    {
+        $root = sys_get_temp_dir() . '/latch-doctor-' . bin2hex(random_bytes(4));
+        $configDir = $root . '/config';
+        mkdir($configDir, 0777, true);
+
+        file_put_contents($configDir . '/default.php', '<?php return [
+            "paths" => ["storage" => ' . var_export($root . '/storage', true) . '],
+        ];');
+
+        $issues = Doctor::permissionIssuesForAudit(new Config($configDir));
+
+        $this->assertSame([], $issues);
+    }
+
+    public function testPermissionIssuesForAuditFlagsWorldReadableDatabase(): void
+    {
+        $root = sys_get_temp_dir() . '/latch-doctor-' . bin2hex(random_bytes(4));
+        $configDir = $root . '/config';
+        $storageDir = $root . '/storage/database';
+        mkdir($configDir, 0777, true);
+        mkdir($storageDir, 0777, true);
+
+        $dbPath = $storageDir . '/latch.sqlite';
+        touch($dbPath);
+        chmod($dbPath, 0644);
+        chmod($root . '/storage', 0750);
+
+        file_put_contents($configDir . '/default.php', '<?php return [
+            "database" => ["path" => ' . var_export($dbPath, true) . '],
+            "paths" => ["storage" => ' . var_export($root . '/storage', true) . '],
+        ];');
+
+        $issues = Doctor::permissionIssuesForAudit(new Config($configDir));
+
+        $this->assertCount(1, $issues);
+        $this->assertStringContainsString('database is world-readable', $issues[0]);
+        $this->assertStringContainsString('chmod 660', $issues[0]);
+    }
+
+    public function testAuditFixHintsIncludesFixPermsForRootOwnedPluginStorage(): void
+    {
+        $issues = ['root-owned under storage/plugins/: spam-bridge — sudo chown -R apache:apache …'];
+
+        $hints = Doctor::auditFixHints($issues);
+
+        $this->assertStringContainsString('sudo latch fix-perms', $hints);
+        $this->assertStringContainsString('sudo latch plugin enable', $hints);
+    }
+
+    public function testPermissionIssuesForAuditFlagsWorldAccessibleStorage(): void
+    {
+        $root = sys_get_temp_dir() . '/latch-doctor-' . bin2hex(random_bytes(4));
+        $configDir = $root . '/config';
+        $storageDir = $root . '/storage';
+        mkdir($configDir, 0777, true);
+        mkdir($storageDir, 0777, true);
+        chmod($storageDir, 0755);
+
+        file_put_contents($configDir . '/default.php', '<?php return [
+            "paths" => ["storage" => ' . var_export($storageDir, true) . '],
+        ];');
+
+        $issues = Doctor::permissionIssuesForAudit(new Config($configDir));
+
+        $this->assertCount(1, $issues);
+        $this->assertStringContainsString('storage/ is world-accessible', $issues[0]);
+    }
+
     public function testCronDailyCheckFailsWhenNeverRun(): void
     {
         $root = sys_get_temp_dir() . '/latch-doctor-' . bin2hex(random_bytes(4));

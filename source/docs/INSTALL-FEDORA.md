@@ -113,13 +113,26 @@ One-time cutover for an existing install:
 
 ## Operator commands
 
+Use **`sudo latch`** for commands that write under `/var/lib/latch/storage/` (database, plugin settings, audit cache). The wrapper runs PHP as `apache`; plain `php bin/latch` as root or as your login user often causes permission errors on `plugin enable` and plugin settings saves.
+
 ```bash
 sudo latch doctor
 sudo latch backup
 sudo latch restore list
 sudo latch lock on
+sudo latch plugin install ./forum-stats-1.0.0.zip
+sudo latch plugin enable forum-stats
 sudo journalctl -u latch-cron-daily.service
 ```
+
+If plugin enable or settings save still fails, fix storage ownership once:
+
+```bash
+sudo chown -R apache:apache /var/lib/latch/storage/plugins /var/lib/latch/storage/cache/plugin-audits
+sudo bash /usr/share/latch/source/scripts/fix-latch-storage-perms.sh /usr/share/latch
+```
+
+Details: [PLUGINS.md — Production permissions](PLUGINS.md#production-permissions-rpm--apache).
 
 See [CLI.md](CLI.md) for the full command reference.
 

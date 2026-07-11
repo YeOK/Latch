@@ -157,6 +157,10 @@ sudo -u apache php bin/latch backup
 sudo -u apache php bin/latch maintenance
 ```
 
+On **Fedora/RPM** installs, `/usr/bin/latch` wraps the same commands as `apache` — prefer `sudo latch …` over `php bin/latch …` when installing or enabling plugins. See [INSTALL-FEDORA.md](INSTALL-FEDORA.md).
+
+Plugin state (`storage/plugins/{slug}/settings.json`, `plugin.sqlite`) and audit cache (`storage/cache/plugin-audits/`) must also be owned by the web user. If `plugin enable` fails with **audit cache** or admin cannot save plugin settings, run `scripts/fix-latch-storage-perms.sh` or see [PLUGINS.md — Production permissions](PLUGINS.md#production-permissions-rpm--apache).
+
 ## After install
 
 1. Sign in as admin at `/login`

@@ -261,7 +261,172 @@ final class Doctor
             ];
         }
 
+        $checks = array_merge($checks, self::checkPluginStorageOwnership($storagePath));
+
         return $checks;
+    }
+
+    /**
+     * Operator hints printed after `bin/latch audit` or update failures.
+     *
+     * @param list<string> $issues
+     */
+    public static function auditFixHints(array $issues): string
+    {
+        if ($issues === []) {
+            return '';
+        }
+
+        $joined = strtolower(implode(' ', $issues));
+        $webUser = \Latch\Core\Plugins\PluginStoragePermissions::webUser();
+        $hints = ['', 'How to fix:'];
+
+        $hasPermIssue = str_contains($joined, 'world-readable')
+            || str_contains($joined, 'world-accessible')
+            || str_contains($joined, 'root-owned')
+            || str_contains($joined, 'not writable');
+
+        if ($hasPermIssue) {
+            $hints[] = "  sudo latch fix-perms     # chown storage/plugins/ and plugin-audit cache to {$webUser}";
+            $hints[] = '  sudo latch doctor        # full preflight (PHP, vendor, DB, permissions)';
+        }
+
+        if (str_contains($joined, 'storage/plugins') || str_contains($joined, 'plugin-audits') || str_contains($joined, 'root-owned')) {
+            $hints[] = '  sudo latch plugin enable <slug>   # RPM: use the latch wrapper, not sudo php bin/latch';
+        }
+
+        if (str_contains($joined, 'encryption_key')) {
+            $hints[] = '  php bin/latch security-bootstrap';
+        }
+
+        if (str_contains($joined, 'email verification')) {
+            $hints[] = '  Configure mail in Admin → Settings, or disable require_email_verification';
+        }
+
+        if (str_contains($joined, 'fail2ban')) {
+            $hints[] = '  Install the latch RPM or copy deploy/server/fail2ban-latch-login.conf';
+        }
+
+        if (count($hints) === 2) {
+            return '';
+        }
+
+        return implode("\n", $hints) . "\n";
+    }
+
+    /**
+     * @param list<string> $issues
+     */
+    public static function writeAuditFailure(array $issues, string $prefix = ''): void
+    {
+        fwrite(STDERR, "{$prefix}audit: FAILED — " . count($issues) . " issue(s)\n");
+        foreach ($issues as $issue) {
+            fwrite(STDERR, "{$prefix}  - {$issue}\n");
+        }
+
+        $hints = self::auditFixHints($issues);
+        if ($hints === '') {
+            return;
+        }
+
+        foreach (explode("\n", trim($hints)) as $line) {
+            fwrite(STDERR, $prefix . $line . "\n");
+        }
+    }
+
+    /**
+     * Layer-4 permission failures for `bin/latch audit` / install-upgrade gates.
+     *
+     * @return list<string>
+     */
+    public static function permissionIssuesForAudit(Config $config): array
+    {
+        $issues = [];
+
+        foreach (self::checkPermissions($config) as $check) {
+            if (!$check['ok']) {
+                $issues[] = $check['detail'];
+            }
+        }
+
+        return $issues;
+    }
+
+    /**
+     * @return list<array{layer: string, name: string, ok: bool, detail: string}>
+     */
+    private static function checkPluginStorageOwnership(string $storagePath): array
+    {
+        $webUser = \Latch\Core\Plugins\PluginStoragePermissions::webUser();
+        $checks = [];
+
+        $pluginsDir = rtrim($storagePath, '/') . '/plugins';
+        $rootOwnedPlugins = self::rootOwnedEntries($pluginsDir, 1);
+        $checks[] = [
+            'layer' => '4-perms',
+            'name' => 'plugin_storage_owner',
+            'ok' => $rootOwnedPlugins === [],
+            'detail' => $rootOwnedPlugins === []
+                ? 'storage/plugins/ writable by ' . $webUser
+                : 'root-owned under storage/plugins/: ' . implode(', ', $rootOwnedPlugins)
+                    . ' — sudo chown -R ' . $webUser . ':' . $webUser . ' ' . $pluginsDir
+                    . ' or use: sudo latch plugin enable <slug>',
+        ];
+
+        $auditCacheDir = rtrim($storagePath, '/') . '/cache/plugin-audits';
+        $rootOwnedAudits = self::rootOwnedEntries($auditCacheDir, 0);
+        $checks[] = [
+            'layer' => '4-perms',
+            'name' => 'plugin_audit_cache_owner',
+            'ok' => $rootOwnedAudits === [],
+            'detail' => $rootOwnedAudits === []
+                ? 'storage/cache/plugin-audits/ writable by ' . $webUser
+                : 'root-owned audit cache: ' . implode(', ', $rootOwnedAudits)
+                    . ' — sudo chown -R ' . $webUser . ':' . $webUser . ' ' . $auditCacheDir
+                    . ' or use: sudo latch plugin enable <slug>',
+        ];
+
+        return $checks;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function rootOwnedEntries(string $dir, int $maxDepth): array
+    {
+        if (!is_dir($dir) || !function_exists('posix_getpwuid')) {
+            return [];
+        }
+
+        $rootOwned = [];
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST,
+        );
+        $iterator->setMaxDepth($maxDepth);
+
+        foreach ($iterator as $item) {
+            if (!$item instanceof \SplFileInfo) {
+                continue;
+            }
+
+            $owner = fileowner($item->getPathname());
+            if (!is_int($owner)) {
+                continue;
+            }
+
+            $passwd = posix_getpwuid($owner);
+            if (($passwd['name'] ?? '') !== 'root') {
+                continue;
+            }
+
+            $relative = ltrim(str_replace($dir, '', $item->getPathname()), '/');
+            if ($relative !== '') {
+                $rootOwned[] = $relative;
+            }
+        }
+
+        return array_slice(array_values(array_unique($rootOwned)), 0, 8);
     }
 
     /**

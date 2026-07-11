@@ -164,6 +164,13 @@ final class PluginAuditor
 
         $findings = array_merge($findings, $this->scanTree($pluginDir, $manifest));
 
+        if ($manifest !== null) {
+            $findings = array_merge($findings, $this->validatePsr4Autoload($pluginDir, $manifest));
+            if ($this->isInstalledPluginPath($pluginDir)) {
+                $findings = array_merge($findings, $this->validateRuntimeEnvironment($manifest->slug));
+            }
+        }
+
         return new PluginAuditReport($pluginDir, $slug, $findings);
     }
 
@@ -551,6 +558,260 @@ final class PluginAuditor
         }
 
         return false;
+    }
+
+    /**
+     * @return list<PluginAuditFinding>
+     */
+    private function validatePsr4Autoload(string $pluginDir, PluginManifest $manifest): array
+    {
+        $findings = [];
+        $srcDir = $pluginDir . '/src/';
+        if (!is_dir($srcDir)) {
+            return $findings;
+        }
+
+        $prefix = 'Latch\\Plugins\\' . PluginManifest::studlySlug($manifest->slug) . '\\';
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($srcDir, \FilesystemIterator::SKIP_DOTS),
+        );
+
+        foreach ($iterator as $fileInfo) {
+            if (!$fileInfo->isFile() || !str_ends_with(strtolower($fileInfo->getFilename()), '.php')) {
+                continue;
+            }
+
+            $absolute = $fileInfo->getPathname();
+            $relative = 'src/' . ltrim(str_replace('\\', '/', substr($absolute, strlen($srcDir))), '/');
+
+            foreach ($this->extractDeclaredTypes($absolute) as $fqcn) {
+                if (!str_starts_with($fqcn, $prefix)) {
+                    continue;
+                }
+
+                $relativeClass = substr($fqcn, strlen($prefix));
+                $expectedRelative = 'src/' . str_replace('\\', '/', $relativeClass) . '.php';
+                if ($relative !== $expectedRelative) {
+                    $findings[] = new PluginAuditFinding(
+                        PluginAuditFinding::SEVERITY_CRITICAL,
+                        'psr4_autoload_mismatch',
+                        "Class {$fqcn} must live in {$expectedRelative} for PluginLoader autoload (declared in {$relative})",
+                        $relative,
+                    );
+                }
+            }
+        }
+
+        return $findings;
+    }
+
+    private function isInstalledPluginPath(string $pluginDir): bool
+    {
+        $pluginsRoot = realpath($this->pluginsPath) ?: rtrim($this->pluginsPath, '/');
+        $pluginReal = realpath($pluginDir) ?: $pluginDir;
+
+        return $pluginReal === $pluginsRoot || str_starts_with($pluginReal, $pluginsRoot . DIRECTORY_SEPARATOR);
+    }
+
+    /**
+     * @return list<PluginAuditFinding>
+     */
+    private function validateRuntimeEnvironment(string $slug): array
+    {
+        $findings = [];
+        $webUser = PluginStoragePermissions::webUser();
+        $storageRoot = rtrim($this->storagePath, '/');
+
+        $pluginStorage = $storageRoot . '/plugins/' . $slug;
+        if (is_dir($pluginStorage)) {
+            $owner = $this->pathOwnerName($pluginStorage);
+            if ($owner === 'root') {
+                $findings[] = new PluginAuditFinding(
+                    PluginAuditFinding::SEVERITY_CRITICAL,
+                    'runtime_storage_root_owned',
+                    "storage/plugins/{$slug}/ is owned by root — settings and migrations may fail; run: sudo chown -R {$webUser}:{$webUser} {$pluginStorage}",
+                    "storage/plugins/{$slug}/",
+                );
+            } elseif (!$this->isWritableByWebUser($pluginStorage)) {
+                $findings[] = new PluginAuditFinding(
+                    PluginAuditFinding::SEVERITY_CRITICAL,
+                    'runtime_storage_not_writable',
+                    "storage/plugins/{$slug}/ is not writable by {$webUser} — plugin settings cannot be saved",
+                    "storage/plugins/{$slug}/",
+                );
+            }
+        }
+
+        $auditCacheDir = $storageRoot . '/cache/plugin-audits';
+        if (is_dir($auditCacheDir)) {
+            $owner = $this->pathOwnerName($auditCacheDir);
+            if ($owner === 'root') {
+                $findings[] = new PluginAuditFinding(
+                    PluginAuditFinding::SEVERITY_CRITICAL,
+                    'runtime_audit_cache_root_owned',
+                    'storage/cache/plugin-audits/ is owned by root — audit cache writes fail; run plugin commands as: sudo latch …',
+                    'storage/cache/plugin-audits/',
+                );
+            }
+
+            $auditCacheFile = $auditCacheDir . '/' . $slug . '.json';
+            if (is_file($auditCacheFile) && $this->pathOwnerName($auditCacheFile) === 'root') {
+                $findings[] = new PluginAuditFinding(
+                    PluginAuditFinding::SEVERITY_CRITICAL,
+                    'runtime_audit_cache_file_root_owned',
+                    "Audit cache file for {$slug} is owned by root — re-run: sudo latch plugin audit {$slug}",
+                    'storage/cache/plugin-audits/' . $slug . '.json',
+                );
+            }
+        }
+
+        return $findings;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function extractDeclaredTypes(string $filePath): array
+    {
+        $source = file_get_contents($filePath);
+        if (!is_string($source) || $source === '') {
+            return [];
+        }
+
+        $tokens = token_get_all($source);
+        $namespace = '';
+        $types = [];
+        $count = count($tokens);
+
+        for ($i = 0; $i < $count; ++$i) {
+            $token = $tokens[$i];
+            if (!is_array($token)) {
+                continue;
+            }
+
+            if ($token[0] === T_NAMESPACE) {
+                $namespace = $this->readQualifiedNameFromTokens($tokens, $i + 1);
+                continue;
+            }
+
+            if (!in_array($token[0], [T_CLASS, T_INTERFACE, T_TRAIT, T_ENUM], true)) {
+                continue;
+            }
+
+            if ($token[0] === T_CLASS && $this->previousMeaningfulTokenType($tokens, $i - 1) === T_NEW) {
+                continue;
+            }
+
+            $name = $this->readQualifiedNameFromTokens($tokens, $i + 1);
+            if ($name === '') {
+                continue;
+            }
+
+            $types[] = $namespace === '' ? $name : $namespace . '\\' . $name;
+        }
+
+        return $types;
+    }
+
+    /**
+     * @param list<mixed> $tokens
+     */
+    private function readQualifiedNameFromTokens(array $tokens, int $start): string
+    {
+        $parts = [];
+        $count = count($tokens);
+
+        for ($i = $start; $i < $count; ++$i) {
+            $token = $tokens[$i];
+            if (is_array($token) && $token[0] === T_WHITESPACE) {
+                continue;
+            }
+
+            if (is_array($token) && $token[0] === T_NAME_QUALIFIED) {
+                $parts[] = $token[1];
+
+                continue;
+            }
+
+            if (is_array($token) && $token[0] === T_NS_SEPARATOR) {
+                continue;
+            }
+
+            if (is_array($token) && $token[0] === T_STRING) {
+                $parts[] = $token[1];
+
+                continue;
+            }
+
+            break;
+        }
+
+        return implode('\\', $parts);
+    }
+
+    /**
+     * @param list<mixed> $tokens
+     */
+    private function previousMeaningfulTokenType(array $tokens, int $index): ?int
+    {
+        for ($i = $index; $i >= 0; --$i) {
+            $token = $tokens[$i];
+            if (!is_array($token)) {
+                continue;
+            }
+
+            if (in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+                continue;
+            }
+
+            return $token[0];
+        }
+
+        return null;
+    }
+
+    private function pathOwnerName(string $path): ?string
+    {
+        if (!function_exists('posix_getpwuid')) {
+            return null;
+        }
+
+        $owner = fileowner($path);
+        if (!is_int($owner)) {
+            return null;
+        }
+
+        $passwd = posix_getpwuid($owner);
+
+        return is_array($passwd) ? (string) ($passwd['name'] ?? '') : null;
+    }
+
+    private function isWritableByWebUser(string $path): bool
+    {
+        if (!function_exists('posix_getpwnam')) {
+            return is_writable($path);
+        }
+
+        $passwd = posix_getpwnam(PluginStoragePermissions::webUser());
+        if ($passwd === false) {
+            return is_writable($path);
+        }
+
+        $uid = (int) $passwd['uid'];
+        $gid = (int) $passwd['gid'];
+        $owner = fileowner($path);
+        $group = filegroup($path);
+        $mode = fileperms($path) & 0777;
+
+        if (is_int($owner) && $owner === $uid) {
+            return ($mode & 0200) !== 0;
+        }
+
+        if (is_int($group) && $group === $gid) {
+            return ($mode & 0020) !== 0;
+        }
+
+        return ($mode & 0002) !== 0;
     }
 
     /**

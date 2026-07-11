@@ -467,6 +467,95 @@ PHP);
         $this->assertCount(1, $scriptTags);
     }
 
+    public function testPsr4MismatchIsCritical(): void
+    {
+        $dir = $this->makeTempPlugin('psr4-bad', '<?php');
+        $studly = \Latch\Core\Plugins\PluginManifest::studlySlug('psr4-bad');
+        file_put_contents($dir . '/src/RegistrationEnforcer.php', <<<PHP
+<?php
+
+namespace Latch\\Plugins\\{$studly};
+
+class AppRegistrationEnforcer
+{
+}
+PHP);
+
+        $report = $this->auditor->auditPath($dir);
+
+        $this->assertFalse($report->passed());
+        $this->assertFalse($report->enableAllowed());
+        $this->assertContains('psr4_autoload_mismatch', $this->findingCodes($report->findings));
+    }
+
+    public function testPsr4ValidLayoutPasses(): void
+    {
+        $dir = $this->makeTempPlugin('psr4-ok', '<?php');
+        $studly = \Latch\Core\Plugins\PluginManifest::studlySlug('psr4-ok');
+        file_put_contents($dir . '/src/AppRegistrationEnforcer.php', <<<PHP
+<?php
+
+namespace Latch\\Plugins\\{$studly};
+
+class AppRegistrationEnforcer
+{
+}
+PHP);
+
+        $report = $this->auditor->auditPath($dir);
+
+        $this->assertNotContains('psr4_autoload_mismatch', $this->findingCodes($report->findings));
+    }
+
+    public function testRuntimeStorageNotWritableIsCritical(): void
+    {
+        $slug = 'audit-runtime-' . bin2hex(random_bytes(3));
+        $dir = $this->root . '/plugins/' . $slug;
+        mkdir($dir . '/src', 0777, true);
+        file_put_contents($dir . '/plugin.json', json_encode([
+            'name' => 'Runtime test',
+            'slug' => $slug,
+            'version' => '1.0.0',
+            'min_latch_version' => '0.3.0',
+            'hooks' => ['bootstrap'],
+            'permissions' => ['filesystem' => [], 'network' => [], 'config' => []],
+        ], JSON_THROW_ON_ERROR));
+        file_put_contents($dir . '/src/Plugin.php', '<?php');
+        $this->addTempDir($dir);
+
+        $storage = $this->root . '/storage/plugins/' . $slug;
+        if (is_dir($storage)) {
+            chmod($storage, 0777);
+        }
+
+        mkdir($storage, 0555, true);
+        $this->addTempDir($storage);
+
+        try {
+            $report = $this->auditor->auditPath($dir);
+            $this->assertContains('runtime_storage_not_writable', $this->findingCodes($report->findings));
+            $this->assertFalse($report->enableAllowed());
+        } finally {
+            if (is_dir($storage)) {
+                chmod($storage, 0777);
+            }
+        }
+    }
+
+    public function testRuntimeChecksSkippedWhenStorageAbsent(): void
+    {
+        $slug = 'runtime-absent-' . bin2hex(random_bytes(3));
+        $dir = $this->makeTempPlugin($slug, '<?php');
+
+        $report = $this->auditor->auditPath($dir);
+        $runtimeCodes = array_filter(
+            $this->findingCodes($report->findings),
+            static fn (string $code): bool => str_starts_with($code, 'runtime_'),
+        );
+
+        $this->assertSame([], array_values($runtimeCodes));
+    }
+
     /**
      * @param list<PluginAuditFinding> $findings
      * @return list<string>

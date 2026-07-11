@@ -60,7 +60,13 @@ echo "==> Forum install"
 echo "==> Doctor"
 (
     cd "${SOURCE}"
-    php bin/latch doctor || true
+    php bin/latch doctor
+)
+
+echo "==> Audit"
+(
+    cd "${SOURCE}"
+    php bin/latch audit
 )
 
 if [[ "${SKIP_CRON}" -eq 0 ]] && [[ "$(id -u)" -eq 0 ]]; then
@@ -76,5 +82,7 @@ echo ""
 echo "Install complete."
 echo "  Web root:  ${SOURCE}/public"
 echo "  Config:    ${SOURCE}/config/local.php"
-echo "  Next:      point Apache/nginx DocumentRoot at public/; run php bin/latch audit"
+echo "  Next:      point Apache/nginx DocumentRoot at public/"
+echo "  Plugins:   sudo latch plugin enable <slug>   # RPM — not sudo php bin/latch"
+echo "  Perms fix: sudo latch fix-perms              # if plugin settings or audit cache fail"
 echo "  Upgrades:  bash ${SCRIPT_DIR}/update.sh"

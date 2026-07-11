@@ -288,6 +288,38 @@ Enable/disable (CLI and admin) invalidates `tagPlugin:{slug}` and clears guest p
 
 **Audit gate:** `plugin enable` (CLI and admin) runs a fresh audit first. Critical findings block enable unless CLI `--force` (logged to `audit_log` as `plugin.enable_forced`).
 
+### Production permissions (RPM / `apache`)
+
+Stateful plugin data lives under `storage/plugins/{slug}/` (`settings.json`, `plugin.sqlite`) and audit results under `storage/cache/plugin-audits/`. Both must be **writable by the web server user** (`apache` on Fedora/RPM).
+
+| Symptom | Likely cause |
+|---------|----------------|
+| `Failed to write plugin audit cache` on `plugin enable` | CLI ran as root or a non-`apache` user; cache dir or `.json` files owned by `root` |
+| Admin plugin settings do not save / `settings.json` missing | `storage/plugins/{slug}/` created by root during `plugin enable` |
+| HTTP 500 after enable | Broken plugin autoload (check PHP-FPM log); disable with `sudo latch plugin disable <slug>` |
+
+**On RPM installs**, use the `/usr/bin/latch` wrapper (re-execs as `apache`):
+
+```bash
+sudo latch plugin install ./spam-bridge-1.0.2.zip
+sudo latch plugin enable spam-bridge
+```
+
+Do **not** run `php bin/latch plugin …` as root or as a deploy user unless that user is `apache`. Tarball installs: `sudo -u apache php bin/latch plugin enable <slug>`.
+
+When `plugin enable` runs as **root**, core chowns `storage/plugins/{slug}/` to the web user automatically (next core release). Audit cache and older root-owned trees may still need a one-time fix:
+
+```bash
+sudo chown -R apache:apache /var/lib/latch/storage/plugins /var/lib/latch/storage/cache/plugin-audits
+sudo chmod 2775 /var/lib/latch/storage/plugins /var/lib/latch/storage/cache/plugin-audits
+```
+
+Or: `sudo bash scripts/fix-latch-storage-perms.sh /usr/share/latch` (RPM layout; follows the `storage` symlink to `/var/lib/latch/storage`).
+
+`sudo latch audit` and `sudo latch doctor` report root-owned plugin storage or audit-cache entries. One-shot fix: `sudo latch fix-perms`.
+
+**Admin enable/disable** runs as `apache` and does not hit these CLI permission issues. Prefer **Admin → Plugins** for enable after `plugin install`, or use `sudo latch plugin enable`.
+
 ## Catalog plugins (Latch-plugins)
 
 Install from [Latch-plugins](https://github.com/YeOK/Latch-plugins) releases, then enable after audit. Reference and audit fixtures remain under `docs/plugins/` in core.

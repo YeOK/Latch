@@ -319,7 +319,7 @@ Customize Latch **without editing core** — see `docs/PLUGINS.md`. Installed pl
 
 ### Examples
 
-On production the SQLite file is owned by the web server — run **mutating** commands as that user:
+On production the SQLite file is owned by the web server. Prefer **mutating** commands as that user:
 
 ```bash
 sudo -u apache php bin/latch plugin list
@@ -329,6 +329,14 @@ sudo -u apache php bin/latch plugin enable forum-stats
 sudo -u apache php bin/latch plugin disable example
 sudo -u apache php bin/latch maintenance --clear-cache   # after enable/disable
 ```
+
+`plugin install` / `plugin enable` may be run with `sudo` on RPM installs (copying into `/usr/share/latch/...`). When run as root, Latch chowns `storage/plugins/{slug}/` to the web server so **Admin → plugin settings** can write `settings.json`. If enable fails on **plugin audit cache** or settings save, run mutating plugin commands as the web server user:
+
+```bash
+sudo -u apache php bin/latch plugin enable spam-bridge
+```
+
+Or fix ownership once: `sudo chown -R apache:apache /var/lib/latch/storage/plugins /var/lib/latch/storage/cache/plugin-audits`
 
 Audit and failed enable work **without** a writable database — the scanner runs **before** any DB write:
 

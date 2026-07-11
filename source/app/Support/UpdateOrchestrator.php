@@ -239,10 +239,7 @@ final class UpdateOrchestrator
             return true;
         }
 
-        fwrite(STDERR, '    audit: FAILED — ' . count($issues) . " issue(s)\n");
-        foreach ($issues as $issue) {
-            fwrite(STDERR, "      - {$issue}\n");
-        }
+        Doctor::writeAuditFailure($issues, '    ');
         return false;
     }
 

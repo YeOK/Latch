@@ -1,5 +1,8 @@
 #!/bin/bash
-# CLI wrapper — run Latch commands as the web server user when needed.
+# CLI wrapper — re-exec as WEB_USER (apache) so storage/, plugin settings, and
+# plugin-audits cache stay writable.
+#   sudo latch plugin enable <slug>
+#   sudo latch fix-perms    # repair root-owned plugin storage after a bad sudo php …
 set -euo pipefail
 
 LATCH_ROOT="${LATCH_ROOT:-/usr/share/latch/source}"

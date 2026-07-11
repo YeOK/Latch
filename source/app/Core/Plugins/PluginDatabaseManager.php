@@ -65,6 +65,8 @@ final class PluginDatabaseManager
             throw new RuntimeException('Could not create plugin storage directory: ' . $storageDir);
         }
 
+        PluginStoragePermissions::ensureWritable($storageDir);
+
         $db = new Database($this->databasePath($manifest->slug), false, $this->sqliteOptions);
         $migrator = new PluginMigrator($db, $this->migrationsPath($manifest));
 

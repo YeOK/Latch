@@ -82,9 +82,17 @@ final class PluginSettingsStore
             throw new RuntimeException('Could not create plugin storage directory.');
         }
 
+        PluginStoragePermissions::ensureWritable($this->pluginStorageDir);
+
         $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
         if (file_put_contents($this->settingsPath(), $json . "\n", LOCK_EX) === false) {
-            throw new RuntimeException('Could not write plugin settings.');
+            $hint = is_writable($this->pluginStorageDir)
+                ? ''
+                : ' Directory is not writable by the web server — after a root CLI install, run: sudo chown -R '
+                    . PluginStoragePermissions::webUser() . ':' . PluginStoragePermissions::webUser()
+                    . ' ' . $this->pluginStorageDir;
+
+            throw new RuntimeException('Could not write plugin settings.' . $hint);
         }
     }
 }

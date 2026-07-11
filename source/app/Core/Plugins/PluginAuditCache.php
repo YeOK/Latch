@@ -21,9 +21,11 @@ final class PluginAuditCache
     public function __construct(
         private readonly string $cacheDir,
     ) {
-        if (!is_dir($this->cacheDir) && !mkdir($this->cacheDir, 0750, true) && !is_dir($this->cacheDir)) {
+        if (!is_dir($this->cacheDir) && !mkdir($this->cacheDir, 02775, true) && !is_dir($this->cacheDir)) {
             throw new RuntimeException('Cannot create plugin audit cache directory: ' . $this->cacheDir);
         }
+
+        PluginStoragePermissions::ensureWritable($this->cacheDir);
     }
 
     /**
@@ -72,8 +74,15 @@ final class PluginAuditCache
             'report' => $report->toArray(),
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
 
+        PluginStoragePermissions::ensureWritable($this->cacheDir);
+
         if (file_put_contents($this->pathForSlug($slug), $payload, LOCK_EX) === false) {
-            throw new RuntimeException('Failed to write plugin audit cache for ' . $slug);
+            $hint = is_writable($this->cacheDir)
+                ? ''
+                : ' Fix: sudo latch fix-perms — or use sudo latch plugin enable ' . $slug
+                    . ' (not sudo php bin/latch).';
+
+            throw new RuntimeException('Failed to write plugin audit cache for ' . $slug . '.' . $hint);
         }
     }
 

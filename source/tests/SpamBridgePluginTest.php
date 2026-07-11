@@ -16,6 +16,7 @@ use Latch\Core\Request;
 use Latch\Core\Plugins\PluginDatabase;
 use Latch\Core\Plugins\PluginDatabaseManager;
 use Latch\Core\Plugins\PluginManifest;
+use Latch\Core\Plugins\PluginSettingsStore;
 use Latch\Core\Plugins\PostSaveContext;
 use Latch\Plugins\SpamBridge\AkismetClient;
 use Latch\Plugins\SpamBridge\RegistrationEnforcer;
@@ -123,6 +124,56 @@ final class SpamBridgePluginTest extends TestCase
         $this->assertNull($checker->checkPost($this->postContext('Spam body')));
     }
 
+    public function testBlocksPostWhenStopForumSpamReturnsBlacklistHit(): void
+    {
+        $json = '{"success":1,"email":{"appears":1,"frequency":255,"confidence":99.95}}';
+        $transport = new HttpTransport(static fn (string $method, string $url): ?string =>
+            $method === 'GET' && str_contains($url, 'stopforumspam.org') ? $json : null
+        );
+
+        $checker = $this->checker(
+            settings: new Settings('stop_forum_spam', 1, 90, false, true, false),
+            transport: $transport,
+            akismetKey: '',
+        );
+
+        $ctx = $this->postContext('Hello', ['id' => 3, 'role' => 'member', 'username' => 'member', 'email' => 'testing@xrumer.ru']);
+        $reason = $checker->checkPost($ctx);
+
+        $this->assertSame(
+            'Your submission was flagged as spam. Contact an administrator if you believe this is an error.',
+            $reason,
+        );
+    }
+
+    public function testReloadsProviderSettingBetweenChecks(): void
+    {
+        $calls = 0;
+        $transport = new HttpTransport(static function (string $method, string $url) use (&$calls): ?string {
+            if ($method !== 'GET' || !str_contains($url, 'stopforumspam.org')) {
+                return null;
+            }
+
+            $calls++;
+
+            return '{"success":1,"email":{"appears":1,"frequency":255,"confidence":99.95}}';
+        });
+
+        $checker = $this->checker(
+            settings: new Settings('akismet', 1, 90, false, true, false),
+            transport: $transport,
+            akismetKey: '',
+        );
+
+        $ctx = $this->postContext('Hello', ['id' => 3, 'role' => 'member', 'username' => 'member', 'email' => 'testing@xrumer.ru']);
+        $this->assertNull($checker->checkPost($ctx));
+        $this->assertSame(0, $calls);
+
+        $this->saveSettings(new Settings('stop_forum_spam', 1, 90, false, true, false));
+        $this->assertNotNull($checker->checkPost($ctx));
+        $this->assertSame(1, $calls);
+    }
+
     public function testStaffBypassSkipsChecks(): void
     {
         $transport = new HttpTransport(static fn (): string => 'true');
@@ -146,7 +197,7 @@ final class SpamBridgePluginTest extends TestCase
         $db = $manager->open($manifest);
         $this->assertInstanceOf(PluginDatabase::class, $db);
 
-        $log = new SpamLog($db, true);
+        $log = new SpamLog($db);
         $log->record('post', 'akismet', 5, null, 'akismet:spam', ['score' => 1]);
 
         $count = (int) $db->pdo()->query('SELECT COUNT(*) FROM spam_log')->fetchColumn();
@@ -197,10 +248,13 @@ final class SpamBridgePluginTest extends TestCase
         string $akismetKey,
         ?RegistrationEnforcer $enforcer = null,
     ): SpamChecker {
-        $config = new PluginConfig($akismetKey);
-        $akismet = new AkismetClient($akismetKey, $transport);
+        $manifest = PluginManifest::fromDirectory($this->pluginDir);
+        $this->saveSettings($settings);
+
+        $config = new PluginConfig($akismetKey !== '' ? $akismetKey : null);
+        $akismet = $akismetKey !== '' ? new AkismetClient($akismetKey, $transport) : null;
         $sfs = new StopForumSpamClient($transport);
-        $log = new SpamLog(null, false);
+        $log = new SpamLog(null);
 
         $_SERVER['REMOTE_ADDR'] = '203.0.113.50';
         $_SERVER['HTTP_USER_AGENT'] = 'LatchTest/1.0';
@@ -212,7 +266,8 @@ final class SpamBridgePluginTest extends TestCase
         };
 
         return new SpamChecker(
-            $settings,
+            $this->storageRoot,
+            $manifest,
             $config,
             $akismet,
             $sfs,
@@ -221,6 +276,20 @@ final class SpamBridgePluginTest extends TestCase
             'https://forum.test',
             $enforcer,
         );
+    }
+
+    private function saveSettings(Settings $settings): void
+    {
+        $manifest = PluginManifest::fromDirectory($this->pluginDir);
+        $store = PluginSettingsStore::forPlugin($manifest, $this->storageRoot);
+        $store->save([
+            'provider' => $settings->provider,
+            'strictness' => $settings->strictness,
+            'sfs_min_confidence' => $settings->sfsMinConfidence,
+            'staff_bypass' => $settings->staffBypass,
+            'check_registrations' => $settings->checkRegistrations,
+            'log_rejects' => $settings->logRejects,
+        ]);
     }
 
     /**

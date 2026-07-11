@@ -76,6 +76,7 @@ match ($command) {
     'install' => run_install($argv),
     'migrate' => run_migrate(),
     'audit' => run_audit(),
+    'fix-perms' => run_fix_perms(),
     'backup' => run_backup(),
     'cache-clear' => run_cache_clear(),
     'maintenance' => run_maintenance($argv),
@@ -121,7 +122,8 @@ Latch CLI
 
   php bin/latch install        Create database, config, and initial admin
   php bin/latch migrate        Apply SQLite schema migrations
-  php bin/latch audit          Security self-check
+  php bin/latch audit          Security + permissions self-check (install/upgrade gate)
+  php bin/latch fix-perms      Fix plugin storage and audit-cache ownership (sudo on RPM)
   php bin/latch backup         Tarball database + local config (WAL-safe)
   php bin/latch db-check       SQLite integrity + foreign-key check
   php bin/latch restore        List or restore from storage/backups/
@@ -218,18 +220,6 @@ Test mail options:
 HELP);
 }
 
-function audit_world_readable(string $path): bool
-{
-    return (fileperms($path) & 0004) !== 0;
-}
-
-function audit_world_accessible_dir(string $path): bool
-{
-    $mode = fileperms($path) & 0777;
-
-    return ($mode & 0005) !== 0;
-}
-
 function require_pdo(): void
 {
     if (class_exists(PDO::class)) {
@@ -265,21 +255,12 @@ function run_migrate(): void
 function collect_audit_issues(Config $config): array
 {
     $issues = [];
-    $storagePath = (string) $config->get('paths.storage');
 
     if (!$config->isInstalled()) {
         $issues[] = 'Database not installed';
     }
 
-    $dbPath = (string) $config->get('database.path');
-    if (is_file($dbPath) && audit_world_readable($dbPath)) {
-        $issues[] = 'Database file is world-readable: ' . $dbPath
-            . ' (' . substr(sprintf('%o', fileperms($dbPath) & 0777), -4) . ')';
-    }
-
-    if (is_dir($storagePath) && audit_world_accessible_dir($storagePath)) {
-        $issues[] = 'storage/ is world-accessible: ' . $storagePath;
-    }
+    $issues = array_merge($issues, Doctor::permissionIssuesForAudit($config));
 
     $publicPath = LATCH_ROOT . '/public';
     $sensitive = ['../storage', '../config/local.php', '../vendor'];
@@ -302,12 +283,6 @@ function collect_audit_issues(Config $config): array
 
     if (ini_get('display_errors') === '1') {
         $issues[] = 'display_errors is enabled (may leak debug info)';
-    }
-
-    $localPath = LATCH_ROOT . '/config/local.php';
-    if (is_file($localPath) && audit_world_readable($localPath)) {
-        $issues[] = 'config/local.php is world-readable: ' . $localPath
-            . ' (' . substr(sprintf('%o', fileperms($localPath) & 0777), -4) . ')';
     }
 
     if (trim((string) $config->get('security.encryption_key', '')) === '') {
@@ -338,10 +313,22 @@ function run_audit(): void
         exit(0);
     }
 
-    fwrite(STDERR, "audit: FAILED — " . count($issues) . " issue(s)\n");
-    foreach ($issues as $issue) {
-        fwrite(STDERR, "  - {$issue}\n");
+    Doctor::writeAuditFailure($issues);
+    exit(1);
+}
+
+function run_fix_perms(): void
+{
+    $config = new Config(LATCH_ROOT . '/config');
+    $storagePath = (string) $config->get('paths.storage');
+    $result = \Latch\Core\Plugins\PluginStoragePermissions::fixPluginStorage($storagePath);
+
+    if ($result['ok']) {
+        fwrite(STDOUT, 'fix-perms: ' . $result['message'] . "\n");
+        exit(0);
     }
+
+    fwrite(STDERR, 'fix-perms: ' . $result['message'] . "\n");
     exit(1);
 }
 
@@ -678,10 +665,7 @@ function run_test_audit_step(): bool
     $config = new Config(LATCH_ROOT . '/config');
     $issues = collect_audit_issues($config);
     if ($issues !== []) {
-        fwrite(STDERR, 'audit: FAILED — ' . count($issues) . " issue(s)\n");
-        foreach ($issues as $issue) {
-            fwrite(STDERR, "  - {$issue}\n");
-        }
+        Doctor::writeAuditFailure($issues);
 
         return false;
     }
@@ -2271,6 +2255,13 @@ function run_plugin(array $argv): void
         } catch (\Throwable $e) {
             fwrite(STDERR, 'Plugin database migration failed: ' . $e->getMessage() . "\n");
             exit(1);
+        }
+
+        $pluginStorageDir = $dbManager->storageDir($slug);
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0
+            && !\Latch\Core\Plugins\PluginStoragePermissions::ensureWritable($pluginStorageDir)) {
+            fwrite(STDERR, "Warning: could not chown {$pluginStorageDir} for the web server. Admin settings save may fail.\n");
+            fwrite(STDERR, "Fix: sudo latch fix-perms\n");
         }
 
         $enabled = $registry->enabledSlugs();

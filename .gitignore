@@ -5,6 +5,8 @@ source/storage/uploads/*
 source/storage/cache/*
 source/storage/logs/*
 source/storage/backups/*
+source/storage/plugins/*
+!source/storage/plugins/.gitkeep
 !source/storage/backups/.gitkeep
 !source/storage/**/.gitkeep
 

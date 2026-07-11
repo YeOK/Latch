@@ -68,6 +68,7 @@ if ! run_latch "${UPDATE_ARGS[@]}"; then
     echo "Update failed — site is still LOCKED." >&2
     echo "Fix the issue above, then:" >&2
     echo "  sudo -u ${WEB_USER} php ${LATCH_ROOT}/bin/latch audit" >&2
+    echo "  sudo latch fix-perms   # plugin storage / audit-cache permissions" >&2
     echo "  sudo -u ${WEB_USER} php ${LATCH_ROOT}/bin/latch lock off" >&2
     exit 1
 fi
