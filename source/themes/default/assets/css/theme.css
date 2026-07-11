@@ -3128,6 +3128,10 @@ body:not(.page-admin):not(.page-profile) :is(
     margin-right: 0.35rem;
 }
 
+.badge[hidden] {
+    display: none !important;
+}
+
 .badge-muted {
     background: var(--surface-raised);
     color: var(--muted);
