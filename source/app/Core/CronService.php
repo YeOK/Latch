@@ -44,6 +44,7 @@ final class CronService
         private readonly OAuthTokenRepository $oauthTokens,
         private readonly ApiAuditLogRepository $apiAuditLog,
         private readonly ?ReputationService $reputation = null,
+        private readonly ?MailQueueService $mailQueue = null,
         private readonly ?PluginAuditService $pluginAudits = null,
         private readonly ?PluginRegistry $pluginRegistry = null,
     ) {
@@ -59,10 +60,18 @@ final class CronService
             'search_attempts' => $this->rateLimiter->pruneSearchAttempts(),
             'api_rate_attempts' => $this->rateLimiter->pruneApiRateAttempts(),
             'reputation_queue' => 0,
+            'mail_queue_sent' => 0,
+            'mail_queue_failed' => 0,
         ];
 
         if ($this->reputation !== null && $this->reputationQueueExists()) {
             $stats['reputation_queue'] = $this->reputation->recomputeQueued();
+        }
+
+        if ($this->mailQueue !== null) {
+            $mailStats = $this->mailQueue->processBatch();
+            $stats['mail_queue_sent'] = $mailStats['sent'];
+            $stats['mail_queue_failed'] = $mailStats['failed'];
         }
 
         $this->recordRun('hourly', $this->elapsedMs($started), $stats);
@@ -90,6 +99,7 @@ final class CronService
             'user_orphans' => $this->pruneUserOrphans(),
             'deleted_users' => $this->pruneExpiredDeletedUsers(),
             'reputation_members' => 0,
+            'mail_queue_pruned' => 0,
             'plugin_audits_scanned' => 0,
             'plugin_audits_cached' => 0,
             'plugin_audits_failed' => 0,
@@ -98,6 +108,10 @@ final class CronService
 
         if ($this->reputation !== null && $this->reputationColumnsExist()) {
             $stats['reputation_members'] = $this->reputation->recomputeAll();
+        }
+
+        if ($this->mailQueue !== null) {
+            $stats['mail_queue_pruned'] = $this->mailQueue->pruneCompleted();
         }
 
         if ($this->pluginAudits !== null && $this->pluginRegistry !== null) {

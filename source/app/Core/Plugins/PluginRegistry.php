@@ -15,10 +15,17 @@ use Latch\Models\SettingRepository;
 
 /**
  * Discovers installed plugins and tracks which are enabled.
+ *
+ * Install policy: plugins bundled in the core tarball are **disabled on new installs**
+ * (`enabled_plugins` defaults to `[]` via migration 028). Upgrades preserve the
+ * operator's list — core must never auto-enable bundled slugs when shipping new plugins.
  */
 final class PluginRegistry
 {
     private const SETTING_KEY = 'enabled_plugins';
+
+    /** @var list<string> Default on fresh install — all bundled plugins stay off until explicitly enabled. */
+    public const DEFAULT_ENABLED_SLUGS = [];
 
     public function __construct(
         private readonly string $pluginsPath,

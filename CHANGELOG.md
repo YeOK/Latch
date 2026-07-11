@@ -9,6 +9,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.0.0] — 2026-07-11
+
+### Added
+- **Mail queue** — optional `mail_queue` table and worker for notification email bursts; enabled in Admin → Settings; drained by `cron hourly` or `php bin/latch mail process`. Auth emails (verify, reset, email change) stay synchronous.
+- **Plugin install/remove** — `php bin/latch plugin install <dir|zip>` copies into `plugins/{slug}/` with audit gate (rollback on critical); `plugin remove <slug> --confirm` deletes installed copy; optional `--purge-storage`.
+- **Word filter plugin** — bundled `plugins/word-filter/` blocks or masks profanity on `post.before_save`; ships basic blocked-word list; Aho-Corasick matcher; staff bypass; code fences ignored.
+- **Plugin admin settings** — `settings_schema` / `secrets_schema` in `plugin.json`; generic form at `/admin/plugins/{slug}/settings`; `PluginSettingsStore` merges defaults with `storage/plugins/{slug}/settings.json`; word-filter is the first consumer.
+- **Plugin catalog repo** — [github.com/YeOK/Latch-plugins](https://github.com/YeOK/Latch-plugins) created for future distributable plugins and GitHub Release zips; admin catalog install not implemented yet (`plugin install` local dir/zip remains).
+- **Bundled plugin install policy** — documented and enforced: `"bundled": true` in manifest; `enabled_plugins` defaults to `[]` on new installs; upgrades preserve operator enable/disable state (migration 028 `INSERT OR IGNORE`).
+
 ## [0.3.0.23] — 2026-07-10
 
 ### Added

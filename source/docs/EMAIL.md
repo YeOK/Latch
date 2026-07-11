@@ -1,6 +1,8 @@
 # Outbound email
 
-Latch sends plain-text email for **password reset**, **registration verification** (when enabled in Admin → Settings), and **email change confirmation** (link sent to the new address after re-auth on profile).
+Latch sends plain-text email for **password reset**, **registration verification** (when enabled in Admin → Settings), **email change confirmation** (link sent to the new address after re-auth on profile), and optional **notification email copies** (replies, mentions, warnings, etc.).
+
+Auth and account emails are sent **synchronously** on the request path. When **Queue notification emails** is enabled in Admin → Settings, notification copies are stored in `mail_queue` and drained by `cron hourly` (or `php bin/latch mail process`).
 
 Mail is designed for self-hosting: transport and sender details are configurable without code changes.
 
@@ -19,6 +21,9 @@ Settings are resolved in this order (later wins):
 | From address | `mail_from_email` | Envelope / header sender |
 | From name | `mail_from_name` | Display name in `From:` |
 | msmtp config path | `mail_msmtp_config` | Optional override; auto-detect if empty |
+| Queue notification emails | `mail_queue_enabled` | Off by default; enqueue notification copies for cron |
+| Queue batch size | `mail_queue_batch_size` | Messages per hourly/manual drain (default 50) |
+| Queue max attempts | `mail_queue_max_attempts` | Retries before a row is pruned (default 5) |
 
 ## Recommended: msmtp + SMTP relay
 

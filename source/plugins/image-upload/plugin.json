@@ -4,6 +4,7 @@
     "version": "1.0.0",
     "min_latch_version": "0.3.0",
     "description": "Insert post images via direct browser upload to Cloudflare R2 (images.forum.example.com).",
+    "bundled": true,
     "hooks": [
         "route.register",
         "theme.assets",

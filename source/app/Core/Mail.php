@@ -18,7 +18,7 @@ use Latch\Models\SettingRepository;
  *
  * Transport and from-address are configurable in Admin → Settings and config/local.php.
  */
-final class Mail
+final class Mail implements OutboundMailer
 {
     public const TRANSPORT_MSMTP = 'msmtp';
     public const TRANSPORT_MAIL = 'mail';

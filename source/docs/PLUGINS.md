@@ -30,6 +30,7 @@ plugins/
 | `min_latch_version` | yes | e.g. `0.3.0` — matched against `config` `app.version` |
 | `hooks` | yes | Subset of [hooks](#hooks) the plugin uses |
 | `description` | no | Short summary |
+| `bundled` | no | **`true`** — ships in the core tarball; disabled on new installs (see [Install policy](#install-policy-bundled)) |
 | `permissions.filesystem` | no | Writable paths (plugin dir or `storage/plugins/{slug}/`) |
 | `permissions.network` | no | Declare if plugin performs outbound HTTP |
 | `permissions.config` | no | Setting keys the plugin may read (not `local.php` secrets) |
@@ -164,9 +165,22 @@ Enabled slugs are stored in settings as JSON: `enabled_plugins` → `["example"]
 
 ```bash
 php bin/latch plugin list
+php bin/latch plugin install docs/plugins/example   # directory or .zip → plugins/{slug}/
 php bin/latch plugin enable example
 php bin/latch plugin disable example
+php bin/latch plugin remove example --confirm       # delete plugins/example/
+php bin/latch plugin remove example --confirm --purge-storage   # also delete storage/plugins/example/
 ```
+
+`plugin install` copies the tree, runs `plugin-audit`, and leaves the plugin **disabled**. Critical audit findings roll back the install. Remote URLs are not supported in v1 (local directory or `.zip` only).
+
+### Plugin catalog (future)
+
+**[github.com/YeOK/Latch-plugins](https://github.com/YeOK/Latch-plugins)** is the home for distributable plugins that ship outside the core tarball — sources, READMEs, and release `.zip` assets via GitHub Releases. The repo is live but empty until tier 1–2 catalog plugins are ready.
+
+Until admin browser install lands, download a release zip (or clone a plugin tree) and run `plugin install` locally. Admin install from the catalog is planned (GitHub-only; audit gate unchanged).
+
+**Bundled in core today:** `forum-stats`, `image-upload`, `word-filter` under `plugins/`.
 
 After enabling, purge guest page cache / Twig compile if needed (`php bin/latch maintenance --clear-cache`).
 
@@ -180,7 +194,16 @@ After enabling, purge guest page cache / Twig compile if needed (`php bin/latch 
 
 ## Bundled plugins
 
-Only **`forum-stats`** and **`image-upload`** ship under `plugins/` and are discovered by `plugin list`. Reference and audit fixtures live under `docs/plugins/` — copy a directory into `plugins/{slug}/` when you want to try or test it.
+**`forum-stats`**, **`image-upload`**, and **`word-filter`** ship under `plugins/` (manifest `"bundled": true`) and are discovered by `plugin list`. Reference and audit fixtures live under `docs/plugins/` — install with `php bin/latch plugin install docs/plugins/{slug}` when you want to try or test locally.
+
+### Install policy (bundled)
+
+| Event | `enabled_plugins` behaviour |
+|-------|----------------------------|
+| **New install** | `[]` — all bundled plugins **disabled** until you audit and enable |
+| **Upgrade** | Unchanged — operator choices are preserved; new bundled plugins in the tarball are **not** auto-enabled |
+
+Fresh sites run migration `028_plugins.sql` (`INSERT OR IGNORE` → empty array). Re-running migrations never overwrites an existing list. Enable explicitly via **Admin → Plugins** or `php bin/latch plugin enable <slug>`.
 
 ### `forum-stats` (distributable reference)
 
@@ -190,9 +213,13 @@ Bundled at `plugins/forum-stats/` — posts, topics, and registered member count
 
 Bundled at `plugins/image-upload/` — **Insert image** toolbar button; presigned direct upload to **Cloudflare R2**; markdown `![](https://your-cdn/…)` in posts. Credentials in `config/local.php` → `plugins.image_upload` (see `plugins/image-upload/README.md`). Uses `editor.compose`, `post.format.image_host`, `csp.img_src`, `csp.connect_src`, `post.before_save`.
 
+### `word-filter` (profanity filter)
+
+Bundled at `plugins/word-filter/` — blocks or masks profanity in post bodies and new topic titles via `post.before_save`. Ships a basic blocked-word list in `data/blocked-words.txt`; extend via `storage/plugins/word-filter/settings.json` (see `plugins/word-filter/README.md`). Uses Aho-Corasick matching; staff bypass by default.
+
 ## Reference plugins (`docs/plugins/`)
 
-Not auto-discovered. Copy into `plugins/{slug}/` before enable.
+Not auto-discovered until installed under `plugins/{slug}/`.
 
 ### `example` (good)
 
@@ -204,9 +231,8 @@ Reference at `docs/plugins/example/`:
 Try locally:
 
 ```bash
-cp -a docs/plugins/example plugins/example
 php bin/latch migrate   # applies 028_plugins.sql if needed
-php bin/latch plugin-audit example
+php bin/latch plugin install docs/plugins/example
 php bin/latch plugin enable example
 ```
 
@@ -317,8 +343,26 @@ Dangerous PHP tokens inside HTML strings can still trigger **critical** findings
 |-------|----------|-------|
 | `name`, `slug`, `version`, `min_latch_version`, `hooks` | Yes | `slug` must match directory name |
 | `description` | No | Shown in admin plugin list |
+| `settings_schema` | No | Admin-tunable options → `storage/plugins/{slug}/settings.json` |
+| `secrets_schema` | No | Secrets in `config/local.php` only; admin shows configured yes/no |
 | `permissions` | No | See below |
 | `ignored` | No | **`true`** — CLI-only via `plugin ignore`; plugin acts as not installed |
+
+### `settings_schema` (admin UI)
+
+Plugins with a non-empty `settings_schema` (or `secrets_schema`) get **Settings** on `/admin/plugins` and a form at `/admin/plugins/{slug}/settings`. Core validates POST input against the manifest and writes `storage/plugins/{slug}/settings.json` only.
+
+**Field types (v1):** `boolean`, `string`, `text`, `integer`, `select`, `multiselect`, `string_list`, `secret_ref` (display-only; links to `secrets_schema`).
+
+Plugins read merged values via `PluginSettingsStore::forPlugin($manifest, $storageRoot)->all()`.
+
+```json
+"settings_schema": [
+  { "key": "mode", "type": "select", "label": "Filter mode", "default": "block",
+    "options": [{ "value": "block", "label": "Block post" }, { "value": "mask", "label": "Mask words" }] },
+  { "key": "extra_words", "type": "string_list", "label": "Extra words", "default": [] }
+]
+```
 
 ### Manifest permissions
 

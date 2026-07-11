@@ -7,7 +7,7 @@
         <h1>Plugins</h1>
         <p class="muted">
             Installed extensions under <code>plugins/</code>. Each plugin must pass
-            <code>plugin-audit</code> before it can be enabled. Latch {{ latch_version }}.
+            <code>plugin-audit</code> before it can be enabled. Bundled plugins ship <strong>disabled</strong> on new installs. Latch {{ latch_version }}.
         </p>
     </section>
 
@@ -115,6 +115,9 @@
                             {% endif %}
                         </td>
                         <td>
+                            {% if row.has_settings %}
+                                <a class="btn btn-small" href="/admin/plugins/{{ manifest.slug }}/settings">Settings</a>
+                            {% endif %}
                             {% if row.enabled %}
                                 <form method="post" action="/admin/plugins/{{ manifest.slug }}/disable" class="inline-form">
                                     {{ csrf_field() }}
@@ -125,7 +128,7 @@
                                     {{ csrf_field() }}
                                     <button type="submit" class="btn btn-small btn-primary">Enable</button>
                                 </form>
-                            {% else %}
+                            {% elseif not row.has_settings %}
                                 <span class="muted">—</span>
                             {% endif %}
                         </td>

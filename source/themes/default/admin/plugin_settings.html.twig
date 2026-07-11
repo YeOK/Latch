@@ -1,0 +1,93 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}{{ manifest.name }} settings — Admin{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <h1>{{ manifest.name }}</h1>
+        <p class="muted">
+            Plugin settings for <code>{{ manifest.slug }}</code>.
+            <a href="/admin/plugins">← Back to plugins</a>
+        </p>
+    </section>
+
+    <form method="post" action="/admin/plugins/{{ manifest.slug }}/settings" class="form form-wide">
+        {{ csrf_field() }}
+
+        {% for field in settings_fields %}
+            {% if field.type == 'boolean' %}
+                <label class="checkbox">
+                    <input type="checkbox" name="{{ field.key }}" value="1"{% if field.checked %} checked{% endif %}>
+                    {{ field.label }}
+                </label>
+            {% elseif field.type == 'select' %}
+                <label>
+                    {{ field.label }}
+                    <select name="{{ field.key }}">
+                        {% for option in field.options %}
+                            <option value="{{ option.value }}"{% if field.value == option.value %} selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            {% elseif field.type == 'multiselect' %}
+                <fieldset>
+                    <legend>{{ field.label }}</legend>
+                    {% for option in field.options %}
+                        <label class="checkbox">
+                            <input type="checkbox" name="{{ field.key }}[]" value="{{ option.value }}"{% if field.selected[option.value] is defined %} checked{% endif %}>
+                            {{ option.label }}
+                        </label>
+                    {% endfor %}
+                </fieldset>
+            {% elseif field.type == 'integer' %}
+                <label>
+                    {{ field.label }}
+                    <input type="number" name="{{ field.key }}" value="{{ field.value }}"
+                        {% if field.min is not null %} min="{{ field.min }}"{% endif %}
+                        {% if field.max is not null %} max="{{ field.max }}"{% endif %}>
+                </label>
+            {% elseif field.type == 'text' %}
+                <label>
+                    {{ field.label }}
+                    <textarea name="{{ field.key }}" rows="5">{{ field.value }}</textarea>
+                </label>
+            {% elseif field.type == 'string_list' %}
+                <label>
+                    {{ field.label }}
+                    <textarea name="{{ field.key }}" rows="8" placeholder="One entry per line">{{ field.value }}</textarea>
+                </label>
+            {% else %}
+                <label>
+                    {{ field.label }}
+                    <input type="text" name="{{ field.key }}" value="{{ field.value }}">
+                </label>
+            {% endif %}
+            {% if field.description %}
+                <p class="muted">{{ field.description }}</p>
+            {% endif %}
+        {% endfor %}
+
+        {% if secret_fields is not empty %}
+            <h2>Secrets</h2>
+            <p class="muted">Secrets are configured in <code>config/local.php</code> only — never stored in the database or plugin settings file.</p>
+            {% for secret in secret_fields %}
+                <div class="form-static-row">
+                    <strong>{{ secret.label }}</strong>
+                    {% if secret.configured %}
+                        <span class="badge">Configured</span>
+                    {% else %}
+                        <span class="badge badge-muted">Not configured</span>
+                    {% endif %}
+                    {% if secret.config_path %}
+                        <div class="muted"><code>{{ secret.config_path }}</code></div>
+                    {% endif %}
+                    {% if secret.description %}
+                        <p class="muted">{{ secret.description }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary">Save settings</button>
+    </form>
+{% endblock %}

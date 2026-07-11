@@ -21,9 +21,10 @@ use Latch\Models\UserRepository;
 final class EmailNotificationService
 {
     public function __construct(
-        private readonly Mail $mail,
+        private readonly OutboundMailer $mail,
         private readonly SettingRepository $settings,
         private readonly UserRepository $users,
+        private readonly ?MailQueueService $mailQueue = null,
     ) {
     }
 
@@ -57,6 +58,10 @@ final class EmailNotificationService
         $body = $message . "\n\n" . $fullUrl . "\n\n—\n"
             . "You received this because email notifications are enabled on your account.\n"
             . 'Manage preferences: ' . rtrim($this->mail->siteUrl(), '/') . '/profile';
+
+        if ($this->mailQueue !== null && $this->mailQueue->enqueue($email, $subject, $body)) {
+            return;
+        }
 
         $this->mail->send($email, $subject, $body);
     }

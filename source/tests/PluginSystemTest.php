@@ -141,7 +141,30 @@ final class PluginSystemTest extends TestCase
 
         $this->assertContains('forum-stats', $slugs);
         $this->assertContains('image-upload', $slugs);
+        $this->assertContains('word-filter', $slugs);
         $this->assertNotContains('example', $slugs);
+    }
+
+    public function testBundledPluginsDisabledOnFreshInstall(): void
+    {
+        $pluginsPath = dirname(__DIR__) . '/plugins';
+        $registry = new PluginRegistry($pluginsPath, new SettingRepository($this->db));
+
+        $this->assertSame([], $registry->enabledSlugs());
+        foreach (PluginManifest::bundledSlugsInDirectory($pluginsPath) as $slug) {
+            $this->assertFalse($registry->isEnabled($slug), "Bundled plugin {$slug} must be disabled until explicitly enabled");
+        }
+    }
+
+    public function testUpgradePreservesEnabledPluginState(): void
+    {
+        $settings = new SettingRepository($this->db);
+        $settings->set('enabled_plugins', json_encode(['forum-stats', 'image-upload'], JSON_THROW_ON_ERROR));
+
+        $registry = new PluginRegistry(dirname(__DIR__) . '/plugins', $settings);
+
+        $this->assertSame(['forum-stats', 'image-upload'], $registry->enabledSlugs());
+        $this->assertFalse($registry->isEnabled('word-filter'));
     }
 
     public function testRegistryEnableList(): void

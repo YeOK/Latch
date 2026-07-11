@@ -57,6 +57,7 @@ use Latch\Models\OAuthTokenRepository;
 use Latch\Models\OidcIdentityRepository;
 use Latch\Models\EmailChangeRepository;
 use Latch\Models\EmailVerificationRepository;
+use Latch\Models\MailQueueRepository;
 use Latch\Models\NotificationRepository;
 use Latch\Models\PasswordResetRepository;
 use Latch\Models\PostReactionRepository;
@@ -93,6 +94,7 @@ final class Application
     private Cache $cache;
     private SecurityLog $securityLog;
     private Mail $mail;
+    private MailQueueService $mailQueue;
     private UserRepository $users;
     private BoardRepository $boards;
     private TopicRepository $topics;
@@ -200,6 +202,11 @@ final class Application
             $this->securityLog,
         );
         $this->mail = new Mail($this->config, $this->settings);
+        $this->mailQueue = new MailQueueService(
+            $this->mail,
+            $this->settings,
+            new MailQueueRepository($this->db),
+        );
         $recoveryCodes = new RecoveryCodeRepository($this->db);
         $this->twoFactor = new TwoFactor(
             $this->config,
@@ -233,7 +240,12 @@ final class Application
             $this->request,
         );
         $this->notifications = new NotificationRepository($this->db);
-        $emailNotifications = new EmailNotificationService($this->mail, $this->settings, $this->users);
+        $emailNotifications = new EmailNotificationService(
+            $this->mail,
+            $this->settings,
+            $this->users,
+            $this->mailQueue,
+        );
         $this->notificationMessageFormatter = new NotificationMessageFormatter();
         $this->notificationService = new NotificationService(
             $this->notifications,
@@ -495,6 +507,8 @@ final class Application
         $this->router->post('/admin/webhooks', $this->bind($admin, 'createWebhook'));
         $this->router->post('/admin/webhooks/:id/delete', $this->bind($admin, 'deleteWebhook'));
         $this->router->post('/admin/webhooks/:id/toggle', $this->bind($admin, 'toggleWebhook'));
+        $this->router->get('/admin/plugins/:slug/settings', $this->bind($admin, 'pluginSettings'));
+        $this->router->post('/admin/plugins/:slug/settings', $this->bind($admin, 'savePluginSettings'));
         $this->router->post('/admin/plugins/:slug/enable', $this->bind($admin, 'enablePlugin'));
         $this->router->post('/admin/plugins/:slug/disable', $this->bind($admin, 'disablePlugin'));
         $this->router->get('/admin/reports/feed', $this->bind($admin, 'reportQueueFeed'));
@@ -871,6 +885,11 @@ final class Application
     public function mail(): Mail
     {
         return $this->mail;
+    }
+
+    public function mailQueue(): MailQueueService
+    {
+        return $this->mailQueue;
     }
 
     public function twoFactor(): TwoFactor

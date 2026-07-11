@@ -20,6 +20,9 @@ use Latch\Core\Plugins\PluginAuditService;
 use Latch\Core\Plugins\PluginAuditor;
 use Latch\Core\Plugins\PluginAuditCache;
 use Latch\Core\Plugins\PluginManifest;
+use Latch\Core\Plugins\PluginSettingsForm;
+use Latch\Core\Plugins\PluginSettingsStore;
+use Latch\Core\Plugins\PluginSettingsValidator;
 use Latch\Core\ReportReasons;
 use Latch\Core\ReputationService;
 use Latch\Core\Response;
@@ -938,6 +941,8 @@ final class AdminController
             'email_notify_likes' => $this->app->settings()->getBool('email_notify_likes'),
             'email_notify_warnings' => $this->app->settings()->getBool('email_notify_warnings', true),
             'email_notify_staff' => $this->app->settings()->getBool('email_notify_staff', true),
+            'mail_queue_enabled' => $this->app->settings()->getBool('mail_queue_enabled'),
+            'mail_queue_pending' => $this->app->mailQueue()->pendingCount(),
             'anonymise_posts_on_delete' => $this->app->anonymisePostsOnDelete(),
             'oidc_google_enabled' => $this->app->settings()->getBool('oidc_google_enabled'),
             'oidc_github_enabled' => $this->app->settings()->getBool('oidc_github_enabled'),
@@ -1085,6 +1090,7 @@ final class AdminController
         $this->app->settings()->setBool('email_notify_likes', $this->app->request()->input('email_notify_likes') === '1');
         $this->app->settings()->setBool('email_notify_warnings', $this->app->request()->input('email_notify_warnings') === '1');
         $this->app->settings()->setBool('email_notify_staff', $this->app->request()->input('email_notify_staff') === '1');
+        $this->app->settings()->setBool('mail_queue_enabled', $this->app->request()->input('mail_queue_enabled') === '1');
         $this->app->settings()->setBool(
             'anonymise_posts_on_delete',
             $this->app->request()->input('anonymise_posts_on_delete') === '1',
@@ -1659,6 +1665,7 @@ final class AdminController
                 'manifest' => $manifest,
                 'enabled' => $row['enabled'],
                 'compatible' => $manifest->isCompatibleWith($latchVersion),
+                'has_settings' => $manifest->hasSettingsUi(),
                 'audit' => $this->auditRowForTemplate($auditResult['report'], $auditResult['scanned_at'], $auditResult['from_cache']),
             ];
         }
@@ -1667,6 +1674,65 @@ final class AdminController
             'plugins' => $rows,
             'latch_version' => $latchVersion,
         ]);
+    }
+
+    public function pluginSettings(array $params): void
+    {
+        $this->app->auth()->requireAdmin();
+
+        $manifest = $this->requirePluginSettingsManifest($params);
+        if ($manifest === null) {
+            return;
+        }
+
+        $storagePath = (string) $this->app->config()->get('paths.storage');
+        $store = PluginSettingsStore::forPlugin($manifest, $storagePath);
+        $values = $store->all();
+        $form = (new PluginSettingsForm())->build($manifest->settingsSchema, $values, $this->app->config());
+
+        $this->app->render('admin/plugin_settings.html.twig', [
+            'manifest' => $manifest,
+            'settings_fields' => $form['settings_fields'],
+            'secret_fields' => $form['secret_fields'],
+        ]);
+    }
+
+    public function savePluginSettings(array $params): void
+    {
+        $this->app->auth()->requireAdmin();
+        $this->validateStaffCsrf();
+
+        $manifest = $this->requirePluginSettingsManifest($params);
+        if ($manifest === null) {
+            return;
+        }
+
+        $slug = $manifest->slug;
+        $redirect = '/admin/plugins/' . $slug . '/settings';
+        $result = (new PluginSettingsValidator())->validate($_POST, $manifest->settingsSchema);
+        if ($result['error'] !== null) {
+            $this->finishStaffAction(false, $result['error'], $redirect);
+        }
+
+        try {
+            $store = PluginSettingsStore::forPlugin($manifest, (string) $this->app->config()->get('paths.storage'));
+            $store->save($result['values']);
+        } catch (\Throwable $e) {
+            $this->finishStaffAction(false, 'Could not save plugin settings.', $redirect);
+        }
+
+        $actor = $this->app->auth()->user();
+        $this->app->auditLog()->record(
+            (int) ($actor['id'] ?? 0),
+            'plugin.settings',
+            'plugin',
+            null,
+            $this->app->request()->ip(),
+            ['slug' => $slug],
+        );
+
+        $this->app->session()->flash('success', 'Plugin settings saved.');
+        $this->finishStaffAction(true, 'Plugin settings saved.', $redirect);
     }
 
     public function enablePlugin(array $params): void
@@ -1790,6 +1856,25 @@ final class AdminController
         }
 
         return null;
+    }
+
+    private function requirePluginSettingsManifest(array $params): ?PluginManifest
+    {
+        $slug = trim((string) ($params['slug'] ?? ''));
+        $manifest = $this->findPluginManifest($slug);
+        if ($manifest === null) {
+            Response::notFound('Plugin not found');
+
+            return null;
+        }
+
+        if (!$manifest->hasSettingsUi()) {
+            Response::notFound('This plugin has no settings');
+
+            return null;
+        }
+
+        return $manifest;
     }
 
     /**

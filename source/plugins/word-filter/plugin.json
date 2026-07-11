@@ -1,0 +1,58 @@
+{
+    "name": "Word filter",
+    "slug": "word-filter",
+    "version": "1.0.0",
+    "min_latch_version": "0.3.0",
+    "description": "Block or mask profanity in posts and new topic titles before save.",
+    "bundled": true,
+    "hooks": [
+        "post.before_save"
+    ],
+    "settings_schema": [
+        {
+            "key": "mode",
+            "type": "select",
+            "label": "Filter mode",
+            "default": "block",
+            "options": [
+                { "value": "block", "label": "Block post" },
+                { "value": "mask", "label": "Mask words" }
+            ]
+        },
+        {
+            "key": "case_sensitive",
+            "type": "boolean",
+            "label": "Case sensitive",
+            "default": false
+        },
+        {
+            "key": "staff_bypass",
+            "type": "boolean",
+            "label": "Staff bypass",
+            "description": "Admins and moderators skip the filter.",
+            "default": true
+        },
+        {
+            "key": "apply_to",
+            "type": "multiselect",
+            "label": "Apply to",
+            "default": ["body", "topic_title"],
+            "options": [
+                { "value": "body", "label": "Post body" },
+                { "value": "topic_title", "label": "New topic title" }
+            ]
+        },
+        {
+            "key": "extra_words",
+            "type": "string_list",
+            "label": "Extra blocked words",
+            "description": "One word per line, added to the bundled list in data/blocked-words.txt.",
+            "default": []
+        }
+    ],
+    "permissions": {
+        "filesystem": [],
+        "network": [],
+        "config": []
+    }
+}

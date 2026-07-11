@@ -128,6 +128,13 @@
         <h2>Email notifications</h2>
         <p class="muted">Optional email copies of in-app notifications. Requires outbound email above. Users can opt out on their profile.</p>
         <label class="checkbox">
+            <input type="checkbox" name="mail_queue_enabled" value="1"{% if mail_queue_enabled %} checked{% endif %}{% if not mail.enabled %} disabled{% endif %}>
+            Queue notification emails (processed by <code>cron hourly</code> or <code>php bin/latch mail process</code>)
+        </label>
+        {% if mail_queue_enabled and mail_queue_pending > 0 %}
+            <p class="muted">{{ mail_queue_pending }} message(s) waiting in the mail queue.</p>
+        {% endif %}
+        <label class="checkbox">
             <input type="checkbox" name="email_notify_replies" value="1"{% if email_notify_replies %} checked{% endif %}{% if not mail.enabled %} disabled{% endif %}>
             Replies and quotes on your topics/posts
         </label>

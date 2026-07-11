@@ -56,6 +56,14 @@ final class PluginAuditorTest extends TestCase
         $this->assertSame(0, $report->warnCount());
     }
 
+    public function testWordFilterPluginPassesAudit(): void
+    {
+        $report = $this->auditor->auditTarget('word-filter');
+
+        $this->assertTrue($report->passed(), $report->toHuman());
+        $this->assertSame(0, $report->warnCount());
+    }
+
     public function testBadexamplePluginFailsAudit(): void
     {
         $report = $this->auditor->auditTarget('docs/plugins/badexample');

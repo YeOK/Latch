@@ -50,6 +50,9 @@ final class MigratorTest extends TestCase
             ->query("SELECT 1 FROM schema_migrations WHERE version = '001a_security.sql'")
             ->fetchColumn();
         $this->assertTrue($securityApplied);
+
+        $enabled = $pdo->query("SELECT value FROM settings WHERE key = 'enabled_plugins'")->fetchColumn();
+        $this->assertSame('[]', $enabled);
     }
 
     public function testLegacySecurityMigrationAliasIsNotReapplied(): void

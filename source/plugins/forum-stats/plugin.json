@@ -4,6 +4,7 @@
     "version": "1.0.0",
     "min_latch_version": "0.3.0",
     "description": "Public forum totals on the home page — posts, topics, and registered members.",
+    "bundled": true,
     "hooks": [
         "home.after_boards",
         "route.register",

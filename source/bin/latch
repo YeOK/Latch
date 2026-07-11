@@ -19,6 +19,8 @@ use Latch\Core\Config;
 use Latch\Core\CronService;
 use Latch\Core\Database;
 use Latch\Core\Mail;
+use Latch\Core\MailQueueService;
+use Latch\Models\MailQueueRepository;
 use Latch\Core\Migrator;
 use Latch\Core\RateLimiter;
 use Latch\Core\ReputationService;
@@ -81,6 +83,7 @@ match ($command) {
     'cron' => run_cron($argv),
     'benchmark' => run_benchmark($argv),
     'test-mail' => run_test_mail($argv),
+    'mail' => run_mail($argv),
     'security-bootstrap' => run_security_bootstrap(),
     'search-reindex' => run_search_reindex(),
     'test-rss' => run_test_rss(),
@@ -135,6 +138,7 @@ Latch CLI
   php bin/latch lock on|off|status  Site maintenance lock (blocks web + API, no DB traffic)
   php bin/latch benchmark      Curl timing report for key pages
   php bin/latch test-mail      Send a test email (verify msmtp/SMTP)
+  php bin/latch mail process   Drain pending notification mail queue
   php bin/latch security-bootstrap  Set encryption_key + re-wrap TOTP secrets (server ops)
   php bin/latch search-reindex Rebuild FTS5 search index (topics, posts, tags)
   php bin/latch reputation-recompute [--user=ID]  Recompute member ranks (all or one user)
@@ -149,6 +153,8 @@ Latch CLI
   php bin/latch test-api-messages  Messages API + user OAuth (PKCE); see tests/api/
   php bin/latch plugin list [--all]  List plugins ( --all includes ignored)
   php bin/latch plugin audit <path|slug>  Security scan (alias for plugin-audit)
+  php bin/latch plugin install <path>  Copy directory or .zip into plugins/{slug}/ (audit gate)
+  php bin/latch plugin remove <slug> --confirm  Disable and delete installed plugin
   php bin/latch plugin enable <slug> [--force]  Enable after audit pass
   php bin/latch plugin disable <slug>  Disable a plugin
   php bin/latch plugin ignore <slug>  Mark plugin ignored in plugin.json (CLI only)
@@ -918,6 +924,18 @@ function run_cache_clear(): void
     fwrite(STDOUT, "Cleared Twig compile files: {$cleared['twig_files']}\n");
 }
 
+function build_mail_queue_service(Database $db): MailQueueService
+{
+    $config = new Config(LATCH_ROOT . '/config');
+    $settings = new SettingRepository($db);
+
+    return new MailQueueService(
+        new Mail($config, $settings),
+        $settings,
+        new MailQueueRepository($db),
+    );
+}
+
 function build_cron_service(Database $db): CronService
 {
     $config = new Config(LATCH_ROOT . '/config');
@@ -940,6 +958,7 @@ function build_cron_service(Database $db): CronService
         new OAuthTokenRepository($db),
         new ApiAuditLogRepository($db),
         new ReputationService($db, new UserRepository($db), $settings),
+        build_mail_queue_service($db),
         plugin_audit_service_from_config($config),
         $registry,
     );
@@ -1949,6 +1968,16 @@ function plugin_find_manifest(Config $config, string $slug): ?\Latch\Core\Plugin
     return null;
 }
 
+function plugin_registry_from_config(Config $config): \Latch\Core\Plugins\PluginRegistry
+{
+    $db = latch_cli_database($config);
+
+    return new \Latch\Core\Plugins\PluginRegistry(
+        (string) $config->get('paths.plugins'),
+        new SettingRepository($db),
+    );
+}
+
 function latch_cli_database(Config $config): Database
 {
     try {
@@ -2060,6 +2089,92 @@ function run_plugin(array $argv): void
         if (!$report->passed()) {
             exit(1);
         }
+
+        return;
+    }
+
+    if ($action === 'install') {
+        $source = $slug;
+        if ($source === '') {
+            fwrite(STDERR, "Usage: php bin/latch plugin install <directory|zip>\n");
+            exit(1);
+        }
+
+        $installer = new \Latch\Core\Plugins\PluginInstaller(
+            (string) $config->get('paths.plugins'),
+            (string) $config->get('paths.storage'),
+        );
+
+        try {
+            $manifest = $installer->installFromSource($source);
+        } catch (\Throwable $e) {
+            fwrite(STDERR, $e->getMessage() . "\n");
+            exit(1);
+        }
+
+        try {
+            $result = $auditService->getOrScan($manifest, true);
+            $report = $result['report'];
+        } catch (\Throwable $e) {
+            $installer->removeInstalled($manifest->slug);
+            fwrite(STDERR, $e->getMessage() . "\n");
+            exit(1);
+        }
+
+        if (!$report->passed()) {
+            $installer->removeInstalled($manifest->slug);
+            $auditService->forget($manifest->slug);
+            fwrite(STDERR, $report->toHuman());
+            fwrite(STDERR, "Install rolled back — fix critical audit findings and retry.\n");
+            exit(1);
+        }
+
+        $registry = plugin_registry_from_config($config);
+        $registry->disable($manifest->slug);
+
+        fwrite(STDOUT, "Installed plugin: {$manifest->slug} v{$manifest->version} (disabled)\n");
+        fwrite(STDOUT, $report->toHuman());
+        if ($report->warnCount() > 0) {
+            fwrite(STDOUT, "Review warnings before: php bin/latch plugin enable {$manifest->slug}\n");
+        } else {
+            fwrite(STDOUT, "Enable when ready: php bin/latch plugin enable {$manifest->slug}\n");
+        }
+
+        return;
+    }
+
+    if ($action === 'remove') {
+        if ($slug === '') {
+            fwrite(STDERR, "Usage: php bin/latch plugin remove <slug> --confirm [--purge-storage]\n");
+            exit(1);
+        }
+
+        if (!isset($opts['confirm'])) {
+            fwrite(STDERR, "Refusing to remove {$slug} without --confirm\n");
+            exit(1);
+        }
+
+        $installer = new \Latch\Core\Plugins\PluginInstaller(
+            (string) $config->get('paths.plugins'),
+            (string) $config->get('paths.storage'),
+        );
+
+        try {
+            $installer->removeInstalled($slug, isset($opts['purge-storage']));
+        } catch (\Throwable $e) {
+            fwrite(STDERR, $e->getMessage() . "\n");
+            exit(1);
+        }
+
+        $registry = plugin_registry_from_config($config);
+        $registry->disable($slug);
+        $auditService->forget($slug);
+
+        fwrite(STDOUT, "Removed plugin: {$slug}\n");
+        if (isset($opts['purge-storage'])) {
+            fwrite(STDOUT, "Purged storage/plugins/{$slug}/\n");
+        }
+        fwrite(STDOUT, "Clear page/Twig cache if the site was already running.\n");
 
         return;
     }
@@ -2248,7 +2363,7 @@ function run_plugin(array $argv): void
         return;
     }
 
-    fwrite(STDERR, "Usage: php bin/latch plugin list [--all]|audit <path|slug>|enable <slug>|disable <slug>|ignore <slug>|unignore <slug>\n");
+    fwrite(STDERR, "Usage: php bin/latch plugin list [--all]|install <dir|zip>|remove <slug> --confirm|audit <path|slug>|enable <slug>|disable <slug>|ignore <slug>|unignore <slug>\n");
     exit(1);
 }
 
@@ -2419,6 +2534,42 @@ function run_test_mail(array $argv): void
     }
 
     fwrite(STDOUT, "Test email sent successfully.\n");
+}
+
+function run_mail(array $argv): void
+{
+    require_pdo();
+
+    $sub = $argv[2] ?? '';
+    if ($sub !== 'process') {
+        fwrite(STDERR, "Usage: php bin/latch mail process\n");
+        exit(1);
+    }
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $storagePath = (string) $config->get('paths.storage');
+    if (SiteLock::isLocked($storagePath)) {
+        fwrite(STDOUT, "Skipped: site lock is enabled (php bin/latch lock off).\n");
+        exit(0);
+    }
+
+    $db = latch_cli_database($config);
+    $mailQueue = build_mail_queue_service($db);
+    $pending = $mailQueue->pendingCount();
+
+    if ($pending === 0) {
+        fwrite(STDOUT, "mail_queue: no pending messages\n");
+        exit(0);
+    }
+
+    $stats = $mailQueue->processBatch();
+    fwrite(STDOUT, sprintf(
+        "mail_queue: pending=%d sent=%d failed=%d remaining=%d\n",
+        $pending,
+        $stats['sent'],
+        $stats['failed'],
+        $mailQueue->pendingCount(),
+    ));
 }
 
 function run_api_client(array $argv): void

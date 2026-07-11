@@ -1,0 +1,16 @@
+# Bundled blocked words (one per line). Lines starting with # are ignored.
+# Customize via storage/plugins/word-filter/settings.json → extra_words.
+asshole
+bastard
+bitch
+bullshit
+crap
+damn
+dick
+fuck
+fucking
+piss
+shit
+shitty
+slut
+whore

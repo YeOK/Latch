@@ -22,7 +22,8 @@ php bin/latch help
 | `test` | Full PHPUnit suite (`Latch` testsuite) |
 | `test --smoke` | Operator gate — smoke PHPUnit + `db-check` + `audit` [+ HTTP/API] |
 | `test --security` | Security gate — security PHPUnit + `audit` [+ HTTP probes] |
-| `cron hourly` | Rate-limit prunes, reputation queue flush |
+| `cron hourly` | Rate-limit prunes, reputation queue flush, mail queue drain |
+| `mail process` | Drain pending notification mail queue (same as hourly cron step) |
 | `cron daily` | DB prunes, notifications, plugin security audits (cached), full reputation recompute (no cache purge) |
 | `cron weekly` | ANALYZE, DM/topic_reads cleanup; `--audit` prunes audit_log |
 | `reputation-recompute` | Manual full or per-user rank recompute |
@@ -215,7 +216,7 @@ php bin/latch cron weekly --audit   # also prune audit_log (e.g. monthly)
 
 | Job | Schedule (prod template) | Reputation |
 |-----|--------------------------|------------|
-| `hourly` | Every hour at `:00` | Flushes `reputation_queue` (debounced post/vote/warn events) |
+| `hourly` | Every hour at `:00` | Flushes `reputation_queue`; drains `mail_queue` when enabled |
 | `daily` | `03:15` | Plugin security audits (cached under `storage/cache/plugin-audits/`), full `recomputeAll()` for all members |
 | `weekly` | Sunday `04:30` | `ANALYZE`, DM/topic_reads prunes, **`foreign_key_violations`** count in log (0 = healthy) |
 
@@ -296,7 +297,7 @@ If your login user is in the `apache` group and `storage/` is group-writable (`c
 
 ## Plugins (`plugin` / `plugin-audit`)
 
-Customize Latch **without editing core** — see `docs/PLUGINS.md`. Installed plugins live in `plugins/{slug}/`. Enabled slugs are stored in `settings.enabled_plugins` (JSON). **Admin UI:** `/admin/plugins` (audit status, enable/disable).
+Customize Latch **without editing core** — see `docs/PLUGINS.md`. Installed plugins live in `plugins/{slug}/`. Enabled slugs are stored in `settings.enabled_plugins` (JSON). **Admin UI:** `/admin/plugins` (audit status, enable/disable, settings when `settings_schema` is declared). Distributable plugins will publish to **[github.com/YeOK/Latch-plugins](https://github.com/YeOK/Latch-plugins)** (catalog repo; admin install from Releases is future work).
 
 ### Quick reference
 
@@ -304,6 +305,9 @@ Customize Latch **without editing core** — see `docs/PLUGINS.md`. Installed pl
 |---------|---------|
 | `plugin list` | Discovered plugins, version, enabled/disabled, Latch compatibility |
 | `plugin list --all` | Include ignored plugins |
+| `plugin install <dir\|zip>` | Copy into `plugins/{slug}/`, audit gate, disabled by default |
+| `plugin remove <slug> --confirm` | Disable and delete `plugins/{slug}/` |
+| `plugin remove <slug> --confirm --purge-storage` | Also delete `storage/plugins/{slug}/` |
 | `plugin audit <path\|slug>` | Run security scan (same as `plugin-audit`; updates cache) |
 | `plugin enable <slug>` | Enable after fresh audit pass |
 | `plugin enable <slug> --force` | Override failed audit (logged to `audit_log`) |
@@ -333,14 +337,25 @@ php bin/latch plugin-audit docs/plugins/badexample   # exit 1 — test fixture
 # After copying to plugins/: php bin/latch plugin enable badexample  # blocked with report
 ```
 
+### Install / remove workflow
+
+```bash
+php bin/latch plugin install /path/to/my-plugin          # local directory
+php bin/latch plugin install ./releases/my-plugin.zip    # .zip (php-zip)
+php bin/latch plugin install docs/plugins/example        # reference copy
+php bin/latch plugin remove example --confirm
+```
+
+Install runs `plugin-audit` before completing. Critical findings roll back the copy. The plugin stays **disabled** until `plugin enable`.
+
 ### Enable workflow
 
-1. Copy or ship plugin into `plugins/{slug}/` with valid `plugin.json`
-2. `php bin/latch plugin-audit <slug>` — fix critical findings
+1. `php bin/latch plugin install <dir|zip>` or ship files into `plugins/{slug}/` with valid `plugin.json`
+2. `php bin/latch plugin-audit <slug>` — fix critical findings (install already audited once)
 3. `php bin/latch plugin enable <slug>` (re-runs audit) or enable in **Admin → Plugins**
 4. Clear cache if the site was already serving pages: `maintenance --clear-cache`
 
-Active bundled plugins: `forum-stats` (home page stats bar), `image-upload` (R2 compose upload). Reference copies in `docs/plugins/`: `example`, `badexample` (critical audit test), `warnexample` (warning audit test).
+Bundled plugins (`forum-stats`, `image-upload`, `word-filter`) ship **disabled** on new installs — enable after audit. Reference copies in `docs/plugins/`: `example`, `badexample` (critical audit test), `warnexample` (warning audit test).
 
 ### Security audit (`plugin-audit`)
 
@@ -473,6 +488,18 @@ Sends a test message using the configured mail transport (see `docs/EMAIL.md`).
 ```bash
 php bin/latch test-mail --to=you@example.com
 ```
+
+---
+
+## mail process
+
+Drains the optional notification mail queue (`mail_queue`). The same step runs inside `cron hourly` when **Queue notification emails** is enabled in Admin → Settings.
+
+```bash
+php bin/latch mail process
+```
+
+Stdout reports pending, sent, failed, and remaining counts. Auth emails (verify, reset, email change) are never queued.
 
 ---
 

@@ -18,6 +18,8 @@ use InvalidArgumentException;
  */
 final class PluginManifest
 {
+    public readonly PluginSettingsSchema $settingsSchema;
+
     /**
      * @param list<string> $hooks
      * @param array<string, mixed> $permissions
@@ -32,7 +34,10 @@ final class PluginManifest
         public readonly array $permissions = [],
         public readonly ?string $description = null,
         public readonly bool $ignored = false,
+        public readonly bool $bundled = false,
+        ?PluginSettingsSchema $settingsSchema = null,
     ) {
+        $this->settingsSchema = $settingsSchema ?? PluginSettingsSchema::empty();
     }
 
     public static function fromDirectory(string $pluginDir): self
@@ -83,6 +88,7 @@ final class PluginManifest
         }
 
         $permissions = is_array($data['permissions'] ?? null) ? $data['permissions'] : [];
+        $settingsSchema = PluginSettingsSchema::fromManifestData($data);
 
         return new self(
             name: $name,
@@ -94,7 +100,29 @@ final class PluginManifest
             permissions: $permissions,
             description: isset($data['description']) ? trim((string) $data['description']) : null,
             ignored: (bool) ($data['ignored'] ?? false),
+            bundled: (bool) ($data['bundled'] ?? false),
+            settingsSchema: $settingsSchema,
         );
+    }
+
+    /**
+     * @return list<string> Slugs of plugins declaring "bundled": true under plugins/.
+     */
+    public static function bundledSlugsInDirectory(string $pluginsPath): array
+    {
+        $slugs = [];
+        foreach (PluginRegistry::discoverInDirectory($pluginsPath) as $manifest) {
+            if ($manifest->bundled) {
+                $slugs[] = $manifest->slug;
+            }
+        }
+
+        return $slugs;
+    }
+
+    public function hasSettingsUi(): bool
+    {
+        return $this->settingsSchema->hasAdminUi();
     }
 
     public static function resolveDirectory(string $pluginsPath, string $slug): ?string
