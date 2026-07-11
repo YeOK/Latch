@@ -60,6 +60,26 @@ final class RateLimiter
         return (int) $stmt->fetchColumn() >= $maxPosts;
     }
 
+    /**
+     * Post flood limit for members; staff (admin/mod) are exempt for operator workflows (e.g. md-import).
+     *
+     * @param array<string, mixed> $user
+     */
+    public function exceedsPostLimit(array $user, int $maxPosts, int $windowMinutes): bool
+    {
+        $role = (string) ($user['role'] ?? '');
+        if (in_array($role, ['admin', 'mod'], true)) {
+            return false;
+        }
+
+        $userId = (int) ($user['id'] ?? 0);
+        if ($userId <= 0) {
+            return false;
+        }
+
+        return $this->tooManyPosts($userId, $maxPosts, $windowMinutes);
+    }
+
     public function tooManySearches(string $ip, int $maxAttempts = 30, int $windowMinutes = 1): bool
     {
         if (!$this->searchAttemptsTableExists()) {

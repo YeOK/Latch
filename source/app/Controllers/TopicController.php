@@ -463,7 +463,7 @@ final class TopicController
             Response::redirect('/login');
         }
 
-        if ($this->app->rateLimiter()->tooManyPosts((int) $user['id'], 10, 10)) {
+        if ($this->app->rateLimiter()->exceedsPostLimit($user, 10, 10)) {
             $this->app->session()->flash('error', 'You are posting too quickly. Wait a few minutes.');
             Response::redirect('/topic/' . $topic['id']);
         }

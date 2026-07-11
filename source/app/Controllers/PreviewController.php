@@ -33,7 +33,7 @@ final class PreviewController
             Response::redirect('/login');
         }
 
-        if ($this->app->rateLimiter()->tooManyPosts((int) $user['id'], 30, 10)) {
+        if ($this->app->rateLimiter()->exceedsPostLimit($user, 30, 10)) {
             Response::json(['error' => 'Too many preview requests.'], 429);
         }
 
