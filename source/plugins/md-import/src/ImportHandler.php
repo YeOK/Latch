@@ -16,7 +16,6 @@ use Latch\Core\Cache;
 use Latch\Core\Plugins\PostSaveContext;
 use Latch\Core\Response;
 use Latch\Models\PostRepository;
-use Latch\Plugins\ImageUpload\PluginConfig;
 use RuntimeException;
 
 final class ImportHandler
@@ -202,12 +201,7 @@ final class ImportHandler
 
     private function imagePlaceholderUrl(): string
     {
-        $config = PluginConfig::fromApp($this->app);
-        if ($config !== null) {
-            return 'https://' . $config->publicHost . MarkdownImport::IMAGE_PLACEHOLDER_PATH;
-        }
-
-        return 'https://md-import.invalid' . MarkdownImport::IMAGE_PLACEHOLDER_PATH;
+        return ImagePlaceholderUrl::resolve($this->app->config()->get('plugins.image_upload'));
     }
 
     private function readMarkdownInput(): ?string

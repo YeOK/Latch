@@ -37,7 +37,7 @@ HTML `<img>` / `<picture>` tags and markdown images on other hosts are converted
 
 `![description (replace image)](https://your-cdn/.md-import/REPLACE-ME.png)`
 
-The placeholder uses your **image-upload** CDN host when configured, so the import passes validation and renders as a broken image you can swap via **Insert image** in the editor. Relative paths and external URLs are not uploaded automatically.
+The placeholder uses `plugins.image_upload.public_host` from `config/local.php` when set (same host as the **image-upload** plugin). The image-upload plugin does not need to be enabled for import to work. Relative paths and external URLs are not uploaded automatically.
 
 ## Long documents
 

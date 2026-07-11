@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Latch\Tests;
 
+use Latch\Plugins\MdImport\ImagePlaceholderUrl;
 use Latch\Plugins\MdImport\MarkdownImport;
 use PHPUnit\Framework\TestCase;
 
@@ -110,6 +111,25 @@ MD;
             'See ![shot (replace image)](' . $placeholder . ') here.',
             $parsed['body'],
         );
+    }
+
+    public function testImagePlaceholderUsesConfiguredPublicHost(): void
+    {
+        $url = ImagePlaceholderUrl::resolve([
+            'public_host' => 'images.forum.example.com',
+            'account_id' => 'x',
+        ]);
+
+        $this->assertSame(
+            'https://images.forum.example.com' . MarkdownImport::IMAGE_PLACEHOLDER_PATH,
+            $url,
+        );
+    }
+
+    public function testImagePlaceholderFallsBackWithoutImageUploadConfig(): void
+    {
+        $this->assertSame(ImagePlaceholderUrl::fallback(), ImagePlaceholderUrl::resolve(null));
+        $this->assertSame(ImagePlaceholderUrl::fallback(), ImagePlaceholderUrl::resolve(['account_id' => 'x']));
     }
 
     public function testLeavesMarkdownImagesInCodeFencesUntouched(): void
