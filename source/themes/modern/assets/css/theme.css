@@ -53,6 +53,8 @@
     --border: #2d3748;
     --accent: #2dd4bf;
     --accent-hover: #5eead4;
+    --btn-bg: #0d9488;
+    --btn-bg-hover: #0f766e;
     --accent-soft: #134e4a;
     --brand-fg: #a7f3ec;
     --danger: #e74c3c;
@@ -1183,7 +1185,7 @@ body:not(.page-admin):not(.page-profile) :is(
     padding: 0.65rem 1.1rem;
     border-radius: 999px;
     border: none;
-    background: var(--accent);
+    background: var(--btn-bg, var(--accent));
     color: #fff;
     font: inherit;
     font-weight: 600;
@@ -1192,7 +1194,7 @@ body:not(.page-admin):not(.page-profile) :is(
 }
 
 .scroll-reply-btn:hover {
-    background: var(--accent-hover);
+    background: var(--btn-bg-hover, var(--accent-hover));
 }
 
 .scroll-reply-btn[hidden] {
@@ -1212,7 +1214,7 @@ body:not(.page-admin):not(.page-profile) :is(
     padding: 0;
     border-radius: 999px;
     border: none;
-    background: var(--accent);
+    background: var(--btn-bg, var(--accent));
     color: #fff;
     box-shadow: var(--shadow);
     cursor: pointer;
@@ -1220,7 +1222,7 @@ body:not(.page-admin):not(.page-profile) :is(
 }
 
 .scroll-top-btn:hover {
-    background: var(--accent-hover);
+    background: var(--btn-bg-hover, var(--accent-hover));
 }
 
 .scroll-top-btn[hidden] {
@@ -2209,12 +2211,21 @@ body:not(.page-admin):not(.page-profile) :is(
 }
 
 .btn-primary {
-    background: var(--accent);
+    background: var(--btn-bg, var(--accent));
     color: #fff;
 }
 
 .btn-primary:hover {
-    background: var(--accent-hover);
+    background: var(--btn-bg-hover, var(--accent-hover));
+}
+
+[data-theme="dark"] .latch-git-release-actions .btn {
+    background: var(--btn-bg);
+    color: #fff;
+}
+
+[data-theme="dark"] .latch-git-release-actions .btn:hover {
+    background: var(--btn-bg-hover);
 }
 
 .btn-small {

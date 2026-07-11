@@ -52,6 +52,8 @@
     --border: #2d3748;
     --accent: #5b8def;
     --accent-hover: #7aa3f5;
+    --btn-bg: #2563eb;
+    --btn-bg-hover: #1d4ed8;
     --accent-soft: #1e2d4a;
     --badge-fg: #6b9af2;
     --badge-bg: #1a2640;
@@ -1635,7 +1637,7 @@ body:not(.page-admin):not(.page-profile) :is(
     padding: 0.65rem 1.1rem;
     border-radius: 999px;
     border: none;
-    background: var(--accent);
+    background: var(--btn-bg, var(--accent));
     color: #fff;
     font: inherit;
     font-weight: 600;
@@ -1644,7 +1646,7 @@ body:not(.page-admin):not(.page-profile) :is(
 }
 
 .scroll-reply-btn:hover {
-    background: var(--accent-hover);
+    background: var(--btn-bg-hover, var(--accent-hover));
 }
 
 .scroll-reply-btn[hidden] {
@@ -1664,7 +1666,7 @@ body:not(.page-admin):not(.page-profile) :is(
     padding: 0;
     border-radius: 999px;
     border: none;
-    background: var(--accent);
+    background: var(--btn-bg, var(--accent));
     color: #fff;
     box-shadow: var(--shadow);
     cursor: pointer;
@@ -1672,7 +1674,7 @@ body:not(.page-admin):not(.page-profile) :is(
 }
 
 .scroll-top-btn:hover {
-    background: var(--accent-hover);
+    background: var(--btn-bg-hover, var(--accent-hover));
 }
 
 .scroll-top-btn[hidden] {
@@ -3052,12 +3054,22 @@ body:not(.page-admin):not(.page-profile) :is(
 }
 
 .btn-primary {
-    background: var(--accent);
+    background: var(--btn-bg, var(--accent));
     color: #fff;
 }
 
 .btn-primary:hover {
-    background: var(--accent-hover);
+    background: var(--btn-bg-hover, var(--accent-hover));
+}
+
+/* git-release plugin + filled .btn links — dark accent is too light for white label (WCAG 4.5:1) */
+[data-theme="dark"] .latch-git-release-actions .btn {
+    background: var(--btn-bg);
+    color: #fff;
+}
+
+[data-theme="dark"] .latch-git-release-actions .btn:hover {
+    background: var(--btn-bg-hover);
 }
 
 .btn-small {
