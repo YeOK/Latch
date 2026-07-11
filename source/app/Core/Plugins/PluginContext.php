@@ -35,9 +35,9 @@ final class PluginContext
         return $this->manifest;
     }
 
-    public function hooks(): HookRegistry
+    public function hooks(): PluginHookRegistrar
     {
-        return $this->hooks;
+        return new PluginHookRegistrar($this->hooks, $this->manifest->slug);
     }
 
     public function path(): string
@@ -48,5 +48,13 @@ final class PluginContext
     public function slug(): string
     {
         return $this->manifest->slug;
+    }
+
+    /**
+     * Per-plugin SQLite (null when manifest database is disabled or not yet migrated).
+     */
+    public function database(): ?PluginDatabase
+    {
+        return $this->app->pluginDatabaseManager()->open($this->manifest);
     }
 }

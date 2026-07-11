@@ -28,6 +28,7 @@ final class PluginLoader
         private readonly PluginRegistry $registry,
         private readonly HookRegistry $hooks,
         private readonly string $latchVersion,
+        private readonly PluginDatabaseManager $databaseManager,
     ) {
     }
 
@@ -45,6 +46,10 @@ final class PluginLoader
             }
 
             if (!$manifest->isCompatibleWith($this->latchVersion)) {
+                continue;
+            }
+
+            if (!$this->prepareDatabase($manifest)) {
                 continue;
             }
 
@@ -89,6 +94,21 @@ final class PluginLoader
         }
 
         return $plugin;
+    }
+
+    private function prepareDatabase(PluginManifest $manifest): bool
+    {
+        if (!$this->databaseManager->usesDatabase($manifest)) {
+            return true;
+        }
+
+        try {
+            $this->databaseManager->migrate($manifest);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return true;
     }
 
     private function registerAutoloader(PluginManifest $manifest): void

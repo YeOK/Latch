@@ -29,6 +29,19 @@ final class FragmentCacheTest extends TestCase
         $this->assertNull($cache->getFragment($key));
     }
 
+    public function testTagPluginInvalidationClearsFragments(): void
+    {
+        $cacheDir = sys_get_temp_dir() . '/latch-frag-plugin-' . bin2hex(random_bytes(4));
+        $cache = new Cache($cacheDir);
+        $key = Cache::makeFragmentKey('plugin:forum-stats:home.after_boards', ['_locale' => 'en']);
+
+        $cache->setFragment($key, '<section>stats</section>', 300, [Cache::tagPlugin('forum-stats')]);
+        $this->assertSame('<section>stats</section>', $cache->getFragment($key));
+
+        $cache->invalidateTag(Cache::tagPlugin('forum-stats'));
+        $this->assertNull($cache->getFragment($key));
+    }
+
     public function testPurgeAllClearsFragments(): void
     {
         $cacheDir = sys_get_temp_dir() . '/latch-frag-purge-' . bin2hex(random_bytes(4));

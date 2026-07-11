@@ -30,10 +30,14 @@ plugins/
 | `min_latch_version` | yes | e.g. `0.3.0` — matched against `config` `app.version` |
 | `hooks` | yes | Subset of [hooks](#hooks) the plugin uses |
 | `description` | no | Short summary |
-| `bundled` | no | **`true`** — ships in the core tarball; disabled on new installs (see [Install policy](#install-policy-bundled)) |
+| `bundled` | no | Legacy **`true`** — shipped in older core tarballs; catalog plugins omit this field |
 | `permissions.filesystem` | no | Writable paths (plugin dir or `storage/plugins/{slug}/`) |
 | `permissions.network` | no | Declare if plugin performs outbound HTTP |
 | `permissions.config` | no | Setting keys the plugin may read (not `local.php` secrets) |
+| `database.enabled` | no | **`true`** — use `storage/plugins/{slug}/plugin.sqlite` + `migrations/*.sql` (see [Plugin database](#plugin-database)) |
+| `settings_schema` | no | Admin-editable fields → `storage/plugins/{slug}/settings.json` |
+| `secrets_schema` | no | `local.php` key paths (display-only in admin; values never stored in DB/JSON) |
+| `cache` | no | Guest page / fragment behaviour for collect hooks (see [Guest cache](#guest-cache)) |
 
 Bootstrap class convention:
 
@@ -78,6 +82,52 @@ Declare every hook you use in `plugin.json` → `hooks`.
 | `locale.translations` | filter | live | Translator boot; `($strings, $locale)` | Merged translation array for active locale |
 
 Twig globals from collect hooks: `plugin_theme_assets`, `plugin_theme_scripts`, `plugin_footer_html`, `plugin_home_after_boards_html`, `plugin_admin_menu_items`, `plugin_composer_toolbar`.
+
+## Guest cache
+
+Collect hooks (`theme.assets`, `layout.footer`, `home.after_boards`, etc.) can declare how their HTML is cached for **guests** via the manifest `cache` object. Logged-in users always bypass guest page and fragment caches.
+
+```json
+"cache": {
+  "guest_page": "bake",
+  "invalidate_on": ["site"],
+  "fragment": null,
+  "client": null
+}
+```
+
+| Field | Values | Meaning |
+|-------|--------|---------|
+| `guest_page` | `bake` (default), `fragment`, `client`, `bypass` | How hook HTML is served to guests |
+| `invalidate_on` | `["site"]`, `["plugin"]`, `["site","plugin"]` | Extra cache tags; core merges with hook placement defaults |
+| `fragment` | hook name e.g. `home.after_boards` | Required when `guest_page` = `fragment` — per-plugin fragment cache keyed by `tagPlugin:{slug}` |
+| `client` | route e.g. `/plugin/git-release/widget.json` | Required when `guest_page` = `client` — page cache stores a placeholder; browser loads JSON later |
+
+| `guest_page` mode | Use when | Guest behaviour |
+|-------------------|----------|-----------------|
+| **`bake`** | Static/slow-changing HTML (forum-stats) | Hook runs on page cache miss; HTML inside full page cache |
+| **`fragment`** | Plugin block should refresh independently | Plugin HTML in fragment cache; bust via `tagPlugin:{slug}` |
+| **`client`** | External/live data (git-release, GitHub API) | Minimal shell in page cache; browser loads JSON endpoint |
+| **`bypass`** | Must never cache plugin output | Guest page cache disabled for the whole site while enabled (rare) |
+
+**Invalidation:**
+
+- Enable/disable plugin → `tagPlugin:{slug}` plus Twig/page cache clear (admin and CLI).
+- Post/topic/board changes → core calls `invalidateCacheTags()` and merges `tagPlugin:{slug}` for plugins with `invalidate_on` including `"plugin"`.
+- `user.register` → core busts `tagSite` (e.g. forum-stats member counts with `invalidate_on: ["site"]`).
+
+**Audit:** `plugin-audit` flags `fragment` without `cache.fragment`, `client` without `cache.client`, `cache.client` paths that are not same-origin (must start with `/`), or a `cache.fragment` hook not listed in `hooks`.
+
+**Example (forum-stats):**
+
+```json
+"cache": {
+  "guest_page": "bake",
+  "invalidate_on": ["site"]
+}
+```
+
+Omit `cache` entirely to use the same defaults (`bake` + `invalidate_on: ["site"]`).
 
 ### `post.before_save` / `post.after_save`
 
@@ -159,6 +209,44 @@ $context->hooks()->add(HookName::ROUTE_REGISTER, function ($router, $app): void 
 });
 ```
 
+## Plugin database
+
+Plugins that need their own tables use a **separate SQLite file** — never `latch.sqlite`.
+
+| Layer | Location |
+|-------|----------|
+| Plugin DB | `storage/plugins/{slug}/plugin.sqlite` |
+| Migrations | `plugins/{slug}/migrations/*.sql` (shipped with plugin code) |
+| Settings | `storage/plugins/{slug}/settings.json` (non-secret toggles) |
+
+Declare in `plugin.json`:
+
+```json
+"database": { "enabled": true }
+```
+
+**Lifecycle:**
+
+1. **`plugin enable`** (CLI or admin) runs pending migrations before adding the slug to `enabled_plugins`.
+2. **App boot** runs pending migrations for enabled plugins (e.g. after a plugin upgrade adds new SQL files).
+3. **Disable** leaves `plugin.sqlite` on disk.
+4. **`plugin remove --confirm --purge-storage`** deletes the whole `storage/plugins/{slug}/` tree.
+
+Migration tracking uses `plugin_migrations` (per file) and `plugin_meta` (`schema_version`, `applied_at`) inside `plugin.sqlite`. Same WAL / `busy_timeout` pragmas as core.
+
+**In plugin code:**
+
+```php
+$db = $context->database();
+if ($db !== null) {
+    $db->pdo()->prepare('INSERT INTO spam_log (...) VALUES (...)')->execute([...]);
+}
+```
+
+Reference: `docs/plugins/dbexample/` (install with `plugin install docs/plugins/dbexample`). For reject logging, see the `spam_log` schema in that README — used by the planned **spam-bridge** plugin.
+
+`bin/latch backup` archives all of `storage/`, including every `plugin.sqlite`.
+
 ## Enable / disable
 
 Enabled slugs are stored in settings as JSON: `enabled_plugins` → `["example"]`.
@@ -174,15 +262,23 @@ php bin/latch plugin remove example --confirm --purge-storage   # also delete st
 
 `plugin install` copies the tree, runs `plugin-audit`, and leaves the plugin **disabled**. Critical audit findings roll back the install. Remote URLs are not supported in v1 (local directory or `.zip` only).
 
-### Plugin catalog (future)
+### Plugin catalog
 
-**[github.com/YeOK/Latch-plugins](https://github.com/YeOK/Latch-plugins)** is the home for distributable plugins that ship outside the core tarball — sources, READMEs, and release `.zip` assets via GitHub Releases. The repo is live but empty until tier 1–2 catalog plugins are ready.
+**[github.com/YeOK/Latch-plugins](https://github.com/YeOK/Latch-plugins)** — tier 1 distributable plugins (sources + GitHub Release `.zip` assets). The core tarball no longer ships these under `plugins/`; install from a release zip or clone:
 
-Until admin browser install lands, download a release zip (or clone a plugin tree) and run `plugin install` locally. Admin install from the catalog is planned (GitHub-only; audit gate unchanged).
+```bash
+php bin/latch plugin install ./forum-stats-1.0.0.zip
+php bin/latch plugin-audit forum-stats
+php bin/latch plugin enable forum-stats
+```
 
-**Bundled in core today:** `forum-stats`, `image-upload`, `word-filter` under `plugins/`.
+Catalog v1.0.0: `forum-stats`, `image-upload`, `word-filter`, `spam-bridge`, `slack-notify`. See the catalog README for bundle zip and per-plugin READMEs.
 
-After enabling, purge guest page cache / Twig compile if needed (`php bin/latch maintenance --clear-cache`).
+Until admin browser install lands, use `plugin install` with a local path or zip. Admin install from the catalog is planned (GitHub-only; audit gate unchanged).
+
+**Shipped in core `plugins/` today:** `md-import` only (operator plugin — not in the public catalog).
+
+Enable/disable (CLI and admin) invalidates `tagPlugin:{slug}` and clears guest page / Twig cache automatically.
 
 **Admin UI:** `/admin/plugins` lists discovered plugins, audit status, and enable/disable (CSRF-protected). Enable is blocked until `plugin-audit` passes. Audit results are **cached** on disk (`storage/cache/plugin-audits/`); the admin page reuses the cache when plugin files are unchanged, otherwise scans once and refreshes the cache.
 
@@ -192,30 +288,38 @@ After enabling, purge guest page cache / Twig compile if needed (`php bin/latch 
 
 **Audit gate:** `plugin enable` (CLI and admin) runs a fresh audit first. Critical findings block enable unless CLI `--force` (logged to `audit_log` as `plugin.enable_forced`).
 
-## Bundled plugins
+## Catalog plugins (Latch-plugins)
 
-**`forum-stats`**, **`image-upload`**, and **`word-filter`** ship under `plugins/` (manifest `"bundled": true`) and are discovered by `plugin list`. Reference and audit fixtures live under `docs/plugins/` — install with `php bin/latch plugin install docs/plugins/{slug}` when you want to try or test locally.
+Install from [Latch-plugins](https://github.com/YeOK/Latch-plugins) releases, then enable after audit. Reference and audit fixtures remain under `docs/plugins/` in core.
 
-### Install policy (bundled)
+### Install policy
 
 | Event | `enabled_plugins` behaviour |
 |-------|----------------------------|
-| **New install** | `[]` — all bundled plugins **disabled** until you audit and enable |
-| **Upgrade** | Unchanged — operator choices are preserved; new bundled plugins in the tarball are **not** auto-enabled |
+| **New install** | `[]` — plugins **disabled** until you audit and enable |
+| **Upgrade** | Unchanged — operator choices are preserved; newly installed plugins are **not** auto-enabled |
 
-Fresh sites run migration `028_plugins.sql` (`INSERT OR IGNORE` → empty array). Re-running migrations never overwrites an existing list. Enable explicitly via **Admin → Plugins** or `php bin/latch plugin enable <slug>`.
+Fresh sites run migration `028_plugins.sql` (`INSERT OR IGNORE` → empty array). Enable explicitly via **Admin → Plugins** or `php bin/latch plugin enable <slug>`.
 
-### `forum-stats` (distributable reference)
+### `forum-stats`
 
-Bundled at `plugins/forum-stats/` — posts, topics, and registered member counts on the home page via `home.after_boards`. Copy the directory to distribute; enable after `plugin-audit` passes.
+Home page totals — posts, topics, registered members via `home.after_boards`. Catalog plugin; `cache.guest_page: bake`, `invalidate_on: ["site"]`.
 
 ### `image-upload` (R2 / CDN post images)
 
-Bundled at `plugins/image-upload/` — **Insert image** toolbar button; presigned direct upload to **Cloudflare R2**; markdown `![](https://your-cdn/…)` in posts. Credentials in `config/local.php` → `plugins.image_upload` (see `plugins/image-upload/README.md`). Uses `editor.compose`, `post.format.image_host`, `csp.img_src`, `csp.connect_src`, `post.before_save`.
+**Insert image** toolbar button; presigned direct upload to **Cloudflare R2**; markdown `![](https://your-cdn/…)` in posts. R2 secrets in `config/local.php` → `plugins.image_upload`; upload limits in **Admin → Plugins → Image upload → Settings**. Uses `editor.compose`, `post.format.image_host`, `csp.img_src`, `csp.connect_src`, `post.before_save`.
 
 ### `word-filter` (profanity filter)
 
-Bundled at `plugins/word-filter/` — blocks or masks profanity in post bodies and new topic titles via `post.before_save`. Ships a basic blocked-word list in `data/blocked-words.txt`; extend via `storage/plugins/word-filter/settings.json` (see `plugins/word-filter/README.md`). Uses Aho-Corasick matching; staff bypass by default.
+Blocks or masks profanity in post bodies and new topic titles via `post.before_save`. Ships `data/blocked-words.txt`; extend via admin settings / `storage/plugins/word-filter/settings.json`. Aho-Corasick matching; staff bypass by default.
+
+### `spam-bridge` (Akismet / Stop Forum Spam)
+
+External spam checks on posts (`post.before_save`) and registrations (`user.register`). Akismet key in `config/local.php` → `plugins.spam_bridge.akismet_api_key`; toggles in admin. Rejections log to `storage/plugins/spam-bridge/plugin.sqlite` (`spam_log`).
+
+### `slack-notify` (Slack / Discord incoming webhook)
+
+Team chat pings on new topics, replies, and optionally registrations via `post.after_save` and `user.register`. Webhook URL in `config/local.php` → `plugins.slack_notify.webhook_url`; event toggles in admin.
 
 ## Reference plugins (`docs/plugins/`)
 
@@ -243,6 +347,15 @@ Reference at `docs/plugins/badexample/` — intentional `eval`, undeclared netwo
 ### `warnexample` (audit warning fixture)
 
 Reference at `docs/plugins/warnexample/` — intentional markup warnings in `src/WarnTrap.php` and JS warnings in `assets/warn.js`. Copy to `plugins/` to verify audit UI shows **warnings** separately from critical (`plugin-audit warnexample` exits 0 with warnings). Enable is allowed. **Never enable on production.**
+
+### `dbexample` (plugin database)
+
+Reference at `docs/plugins/dbexample/` — `"database": { "enabled": true }`, `migrations/001_event_log.sql`, and footer line reading row count via `$context->database()`. Use as a template for plugins with `spam_log` or other plugin-owned tables.
+
+```bash
+php bin/latch plugin install docs/plugins/dbexample
+php bin/latch plugin enable dbexample
+```
 
 ## Author checklist
 

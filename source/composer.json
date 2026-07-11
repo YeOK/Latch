@@ -14,10 +14,7 @@
     "autoload": {
         "psr-4": {
             "Latch\\": "app/",
-            "Latch\\Plugins\\ForumStats\\": "plugins/forum-stats/src/",
-            "Latch\\Plugins\\ImageUpload\\": "plugins/image-upload/src/",
-            "Latch\\Plugins\\MdImport\\": "plugins/md-import/src/",
-            "Latch\\Plugins\\WordFilter\\": "plugins/word-filter/src/"
+            "Latch\\Plugins\\MdImport\\": "plugins/md-import/src/"
         }
     },
     "autoload-dev": {

@@ -26,14 +26,14 @@ final class WordFilterPluginTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->pluginDir = dirname(__DIR__) . '/plugins/word-filter';
+        $this->pluginDir = CatalogPath::plugin('word-filter');
     }
 
     public function testPluginPassesAudit(): void
     {
         $root = dirname(__DIR__);
         $auditor = new PluginAuditor($root, $root . '/plugins', $root . '/storage');
-        $report = $auditor->auditTarget('word-filter');
+        $report = $auditor->auditPath($this->pluginDir);
 
         $this->assertTrue($report->passed(), $report->toHuman());
         $this->assertSame(0, $report->warnCount());

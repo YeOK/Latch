@@ -47,9 +47,12 @@ sudo -u apache php bin/latch audit
 
 ### `php bin/latch test`
 
-Runs the full **Latch** PHPUnit testsuite (~260 tests). Covers repositories, formatters, plugins, moderation, API scopes, migrations, and most application logic.
+Runs the full **Latch** PHPUnit testsuite (~410 tests). Covers repositories, formatters, plugins, moderation, API scopes, migrations, and most application logic.
+
+**Plugin tests** expect the [Latch-plugins](https://github.com/YeOK/Latch-plugins) catalog cloned as a sibling directory (`../Latch-plugins` next to `Latch-Git`) or `LATCH_PLUGINS_CATALOG` pointing at the catalog root.
 
 ```bash
+git clone https://github.com/YeOK/Latch-plugins.git ../Latch-plugins   # once per machine
 php bin/latch test
 # equivalent:
 ./vendor/bin/phpunit -c phpunit.xml.dist --testsuite Latch

@@ -1764,6 +1764,17 @@ final class AdminController
             );
         }
 
+        try {
+            $this->app->pluginDatabaseManager()->migrate($manifest);
+        } catch (\Throwable $e) {
+            error_log('Plugin database migration failed for ' . $slug . ': ' . $e->getMessage());
+            $this->finishStaffAction(
+                false,
+                'Plugin database migration failed. Check server logs for details.',
+                '/admin/plugins',
+            );
+        }
+
         $registry = $this->app->plugins();
         $enabled = $registry->enabledSlugs();
         if (!in_array($slug, $enabled, true)) {
@@ -1780,6 +1791,8 @@ final class AdminController
             $this->app->request()->ip(),
             ['slug' => $slug, 'version' => $manifest->version],
         );
+
+        $this->app->invalidatePluginCache($slug);
 
         $storagePath = (string) $this->app->config()->get('paths.storage');
         SiteMaintenance::clearCaches($this->app->cache(), $storagePath);
@@ -1814,6 +1827,8 @@ final class AdminController
             $this->app->request()->ip(),
             ['slug' => $slug],
         );
+
+        $this->app->invalidatePluginCache($slug);
 
         $storagePath = (string) $this->app->config()->get('paths.storage');
         SiteMaintenance::clearCaches($this->app->cache(), $storagePath);

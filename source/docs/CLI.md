@@ -323,6 +323,7 @@ On production the SQLite file is owned by the web server — run **mutating** co
 
 ```bash
 sudo -u apache php bin/latch plugin list
+php bin/latch plugin install ./forum-stats-1.0.0.zip   # from Latch-plugins release
 sudo -u apache php bin/latch plugin-audit forum-stats
 sudo -u apache php bin/latch plugin enable forum-stats
 sudo -u apache php bin/latch plugin disable example
@@ -355,7 +356,7 @@ Install runs `plugin-audit` before completing. Critical findings roll back the c
 3. `php bin/latch plugin enable <slug>` (re-runs audit) or enable in **Admin → Plugins**
 4. Clear cache if the site was already serving pages: `maintenance --clear-cache`
 
-Bundled plugins (`forum-stats`, `image-upload`, `word-filter`) ship **disabled** on new installs — enable after audit. Reference copies in `docs/plugins/`: `example`, `badexample` (critical audit test), `warnexample` (warning audit test).
+Catalog plugins ([Latch-plugins](https://github.com/YeOK/Latch-plugins)) install via `plugin install <dir|zip>` — **disabled** until you audit and enable. Core ships `md-import` (operator) under `plugins/` only. Reference copies in `docs/plugins/`: `example`, `badexample`, `warnexample`, `dbexample`.
 
 ### Security audit (`plugin-audit`)
 

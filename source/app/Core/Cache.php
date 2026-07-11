@@ -156,6 +156,11 @@ final class Cache
         return 'user:' . $userId;
     }
 
+    public static function tagPlugin(string $slug): string
+    {
+        return 'plugin:' . $slug;
+    }
+
     private function readEntry(string $path, string $key): ?string
     {
         if (!is_file($path)) {

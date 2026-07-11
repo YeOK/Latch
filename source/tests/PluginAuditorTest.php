@@ -42,15 +42,83 @@ final class PluginAuditorTest extends TestCase
 
     public function testForumStatsPluginPassesAudit(): void
     {
-        $report = $this->auditor->auditTarget('forum-stats');
+        $report = $this->auditor->auditPath(CatalogPath::plugin('forum-stats'));
 
         $this->assertTrue($report->passed(), $report->toHuman());
         $this->assertSame(0, $report->warnCount());
     }
 
+    public function testFragmentCacheWithoutHookIsCritical(): void
+    {
+        $dir = $this->makeTempPlugin('cache-frag-missing', '<?php', [
+            'cache' => ['guest_page' => 'fragment'],
+        ]);
+
+        $report = $this->auditor->auditPath($dir);
+
+        $this->assertContains('manifest_cache_fragment', $this->findingCodes($report->findings));
+    }
+
+    public function testFragmentCacheHookMustBeDeclared(): void
+    {
+        $dir = $this->makeTempPlugin('cache-frag-hook', '<?php', [
+            'hooks' => ['bootstrap'],
+            'cache' => [
+                'guest_page' => 'fragment',
+                'fragment' => 'home.after_boards',
+            ],
+        ]);
+
+        $report = $this->auditor->auditPath($dir);
+
+        $this->assertContains('manifest_cache_fragment_hook', $this->findingCodes($report->findings));
+    }
+
+    public function testClientCacheWithoutRouteIsCritical(): void
+    {
+        $dir = $this->makeTempPlugin('cache-client-missing', '<?php', [
+            'cache' => ['guest_page' => 'client'],
+        ]);
+
+        $report = $this->auditor->auditPath($dir);
+
+        $this->assertContains('manifest_cache_client', $this->findingCodes($report->findings));
+    }
+
+    public function testClientCacheRejectsExternalRoute(): void
+    {
+        $dir = $this->makeTempPlugin('cache-client-external', '<?php', [
+            'cache' => [
+                'guest_page' => 'client',
+                'client' => 'https://evil.example/widget.json',
+            ],
+        ]);
+
+        $report = $this->auditor->auditPath($dir);
+
+        $this->assertContains('manifest_cache_client_route', $this->findingCodes($report->findings));
+    }
+
+    public function testValidFragmentCacheConfigPasses(): void
+    {
+        $dir = $this->makeTempPlugin('cache-frag-ok', '<?php', [
+            'hooks' => ['home.after_boards'],
+            'cache' => [
+                'guest_page' => 'fragment',
+                'fragment' => 'home.after_boards',
+                'invalidate_on' => ['plugin'],
+            ],
+        ]);
+
+        $report = $this->auditor->auditPath($dir);
+
+        $this->assertNotContains('manifest_cache_fragment', $this->findingCodes($report->findings));
+        $this->assertNotContains('manifest_cache_fragment_hook', $this->findingCodes($report->findings));
+    }
+
     public function testImageUploadPluginPassesAudit(): void
     {
-        $report = $this->auditor->auditTarget('image-upload');
+        $report = $this->auditor->auditPath(CatalogPath::plugin('image-upload'));
 
         $this->assertTrue($report->passed(), $report->toHuman());
         $this->assertSame(0, $report->warnCount());
@@ -58,7 +126,7 @@ final class PluginAuditorTest extends TestCase
 
     public function testWordFilterPluginPassesAudit(): void
     {
-        $report = $this->auditor->auditTarget('word-filter');
+        $report = $this->auditor->auditPath(CatalogPath::plugin('word-filter'));
 
         $this->assertTrue($report->passed(), $report->toHuman());
         $this->assertSame(0, $report->warnCount());
@@ -88,21 +156,29 @@ final class PluginAuditorTest extends TestCase
         $this->assertContains('js_eval', $this->findingCodes($report->findings));
     }
 
-    public function testBundledPluginsAllowEnable(): void
+    public function testCatalogPluginsAllowEnable(): void
     {
-        foreach (['forum-stats', 'image-upload', 'md-import'] as $slug) {
-            $report = $this->auditor->auditTarget($slug);
+        foreach (['forum-stats', 'image-upload', 'word-filter', 'spam-bridge', 'slack-notify'] as $slug) {
+            $report = $this->auditor->auditPath(CatalogPath::plugin($slug));
             $this->assertTrue($report->enableAllowed(), $slug . ': ' . $report->toHuman());
         }
     }
 
-    public function testResolvesSlugAndRelativePath(): void
+    public function testResolvesCatalogPluginPath(): void
     {
-        $bySlug = $this->auditor->resolvePath('forum-stats');
-        $byRelative = $this->auditor->resolvePath('plugins/forum-stats');
+        $catalog = CatalogPath::plugin('forum-stats');
+        $resolved = $this->auditor->resolvePath($catalog);
+
+        $this->assertSame(realpath($catalog) ?: $catalog, $resolved);
+    }
+
+    public function testResolvesInstalledPluginSlug(): void
+    {
+        $bySlug = $this->auditor->resolvePath('md-import');
+        $byRelative = $this->auditor->resolvePath('plugins/md-import');
 
         $this->assertSame($bySlug, $byRelative);
-        $this->assertStringEndsWith('/plugins/forum-stats', $bySlug);
+        $this->assertStringEndsWith('/plugins/md-import', $bySlug);
     }
 
     public function testResolvesDocsPluginPath(): void
@@ -144,7 +220,7 @@ PHP);
         $dir = $this->makeTempPlugin('ok-net', <<<'PHP'
 <?php
 file_get_contents('https://example.com/hook');
-PHP, network: true);
+PHP, [], true);
 
         $report = $this->auditor->auditPath($dir);
 
@@ -418,15 +494,17 @@ PHP);
         $this->fail("Expected finding code {$code}");
     }
 
-    private function makeTempPlugin(string $slug, string $phpBody, bool $network = false): string
+    /**
+     * @param array<string, mixed> $manifestOverrides
+     */
+    private function makeTempPlugin(string $slug, string $phpBody, array $manifestOverrides = [], bool $network = false): string
     {
         $parent = sys_get_temp_dir() . '/latch-plugin-audit-' . bin2hex(random_bytes(4));
         mkdir($parent, 0777, true);
         $dir = $parent . '/' . $slug;
         mkdir($dir . '/src', 0777, true);
 
-        $networkJson = $network ? 'true' : '[]';
-        file_put_contents($dir . '/plugin.json', json_encode([
+        $manifest = array_merge([
             'name' => 'Test ' . $slug,
             'slug' => $slug,
             'version' => '1.0.0',
@@ -437,7 +515,9 @@ PHP);
                 'network' => $network ? true : [],
                 'config' => [],
             ],
-        ], JSON_THROW_ON_ERROR));
+        ], $manifestOverrides);
+
+        file_put_contents($dir . '/plugin.json', json_encode($manifest, JSON_THROW_ON_ERROR));
 
         file_put_contents($dir . '/src/Plugin.php', $phpBody);
 

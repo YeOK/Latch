@@ -29,7 +29,7 @@ final class PluginSettingsStoreTest extends TestCase
     {
         $this->storageRoot = sys_get_temp_dir() . '/latch-plugin-settings-' . bin2hex(random_bytes(4));
         mkdir($this->storageRoot, 0775, true);
-        $this->pluginDir = dirname(__DIR__) . '/plugins/word-filter';
+        $this->pluginDir = CatalogPath::plugin('word-filter');
     }
 
     protected function tearDown(): void

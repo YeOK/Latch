@@ -1968,6 +1968,14 @@ function plugin_find_manifest(Config $config, string $slug): ?\Latch\Core\Plugin
     return null;
 }
 
+function plugin_bust_cache_after_toggle(Config $config, string $slug): void
+{
+    $storagePath = (string) $config->get('paths.storage');
+    $cache = new Cache($storagePath);
+    $cache->invalidateTag(Cache::tagPlugin($slug));
+    SiteMaintenance::clearCaches($cache, $storagePath);
+}
+
 function plugin_registry_from_config(Config $config): \Latch\Core\Plugins\PluginRegistry
 {
     $db = latch_cli_database($config);
@@ -2250,14 +2258,30 @@ function run_plugin(array $argv): void
             }
         }
 
+        $dbManager = new \Latch\Core\Plugins\PluginDatabaseManager(
+            (string) $config->get('paths.storage'),
+            \Latch\Core\Database::sqliteOptionsFromConfig($config),
+        );
+
+        try {
+            $applied = $dbManager->migrate($manifest);
+            if ($applied > 0) {
+                fwrite(STDOUT, "Applied {$applied} plugin database migration(s).\n");
+            }
+        } catch (\Throwable $e) {
+            fwrite(STDERR, 'Plugin database migration failed: ' . $e->getMessage() . "\n");
+            exit(1);
+        }
+
         $enabled = $registry->enabledSlugs();
         if (!in_array($slug, $enabled, true)) {
             $enabled[] = $slug;
         }
 
         $registry->setEnabledSlugs($enabled);
+        plugin_bust_cache_after_toggle($config, $slug);
         fwrite(STDOUT, "Enabled plugin: {$slug}\n");
-        fwrite(STDOUT, "Clear page/Twig cache if the site was already running.\n");
+        fwrite(STDOUT, "Guest page and Twig cache cleared.\n");
 
         return;
     }
@@ -2357,8 +2381,9 @@ function run_plugin(array $argv): void
             static fn (string $s): bool => $s !== $slug,
         ));
         $registry->setEnabledSlugs($enabled);
+        plugin_bust_cache_after_toggle($config, $slug);
         fwrite(STDOUT, "Disabled plugin: {$slug}\n");
-        fwrite(STDOUT, "Clear page/Twig cache if the site was already running.\n");
+        fwrite(STDOUT, "Guest page and Twig cache cleared.\n");
 
         return;
     }

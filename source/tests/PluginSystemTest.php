@@ -134,15 +134,20 @@ final class PluginSystemTest extends TestCase
         $this->assertInstanceOf(PluginInterface::class, $plugin);
     }
 
-    public function testRegistryDiscoversBundledPlugins(): void
+    public function testRegistryDiscoversOperatorPlugins(): void
     {
         $registry = new PluginRegistry(dirname(__DIR__) . '/plugins', new SettingRepository($this->db));
         $slugs = array_map(static fn (PluginManifest $m): string => $m->slug, $registry->discover());
 
-        $this->assertContains('forum-stats', $slugs);
-        $this->assertContains('image-upload', $slugs);
-        $this->assertContains('word-filter', $slugs);
+        $this->assertContains('md-import', $slugs);
         $this->assertNotContains('example', $slugs);
+    }
+
+    public function testCatalogPluginsAreNotShippedInCoreTree(): void
+    {
+        foreach (CatalogPath::TIER1_SLUGS as $slug) {
+            $this->assertDirectoryDoesNotExist(dirname(__DIR__) . '/plugins/' . $slug);
+        }
     }
 
     public function testBundledPluginsDisabledOnFreshInstall(): void

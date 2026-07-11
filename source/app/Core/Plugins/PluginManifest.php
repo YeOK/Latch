@@ -35,6 +35,8 @@ final class PluginManifest
         public readonly ?string $description = null,
         public readonly bool $ignored = false,
         public readonly bool $bundled = false,
+        public readonly bool $databaseEnabled = false,
+        public readonly PluginCacheConfig $cacheConfig = new PluginCacheConfig(),
         ?PluginSettingsSchema $settingsSchema = null,
     ) {
         $this->settingsSchema = $settingsSchema ?? PluginSettingsSchema::empty();
@@ -89,6 +91,9 @@ final class PluginManifest
 
         $permissions = is_array($data['permissions'] ?? null) ? $data['permissions'] : [];
         $settingsSchema = PluginSettingsSchema::fromManifestData($data);
+        $database = is_array($data['database'] ?? null) ? $data['database'] : [];
+        $databaseEnabled = (bool) ($database['enabled'] ?? false);
+        $cacheConfig = PluginCacheConfig::fromManifestData($data);
 
         return new self(
             name: $name,
@@ -101,6 +106,8 @@ final class PluginManifest
             description: isset($data['description']) ? trim((string) $data['description']) : null,
             ignored: (bool) ($data['ignored'] ?? false),
             bundled: (bool) ($data['bundled'] ?? false),
+            databaseEnabled: $databaseEnabled,
+            cacheConfig: $cacheConfig,
             settingsSchema: $settingsSchema,
         );
     }

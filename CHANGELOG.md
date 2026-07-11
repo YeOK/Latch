@@ -9,6 +9,25 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.1.0] — 2026-07-11
+
+### Added
+- **Latch-plugins catalog v1.0.0** — tier 1 plugins (`forum-stats`, `image-upload`, `word-filter`, `spam-bridge`, `slack-notify`) published at [github.com/YeOK/Latch-plugins](https://github.com/YeOK/Latch-plugins) with per-plugin and bundle release zips.
+- **PR-P6 manifest cache** — `cache` object in `plugin.json`; `tagPlugin:{slug}` invalidation; bake / fragment / client / bypass guest modes; `PluginCollectContext`; CLI enable/disable busts plugin cache.
+- **PR-P3 plugin database** — per-plugin `plugin.sqlite`, `PluginMigrator`, migrations on enable/boot; `docs/plugins/dbexample/` reference.
+- **spam-bridge** — Akismet + Stop Forum Spam on `post.before_save` / `user.register`; `spam_log` in plugin SQLite (catalog).
+- **slack-notify** — Slack/Discord incoming webhooks on `post.after_save` / `user.register` (catalog).
+
+### Fixed
+- **PluginCollectContext fatal** — `Application::resolvedLocale()` and `cspNonce()` are public so the app boots with PR-P6; regression test added.
+- **Guest cache bypass** — `guest_page: bypass` now disables fragment cache as well as full page cache.
+
+### Changed
+- **Plugin packaging** — tier 1 plugins removed from core `plugins/`; install via `plugin install` from catalog zips. Operator `md-import` excluded from public tarball.
+- **PR-P4 image-upload** — operator toggles (`max_mb`, `key_prefix`, `allowed_types`) in admin settings / `settings.json`; R2 secrets remain in `local.php` only.
+- **PHPUnit** — catalog plugins resolved from sibling `Latch-plugins/` (or `LATCH_PLUGINS_CATALOG`) for plugin tests.
+- **Release build** — exclude internal `docs/design/` and `docs/RELEASE-v0.3.0.md` from public tarball.
+
 ## [0.4.0.0] — 2026-07-11
 
 ### Added

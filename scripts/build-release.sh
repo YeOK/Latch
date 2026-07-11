@@ -94,6 +94,8 @@ rsync -a \
     --exclude='source/tests/api/user-token.local.json' \
     --exclude='source/tests/api/pkce.local.json' \
     --exclude='PLAN.md' \
+    --exclude='docs/design/' \
+    --exclude='docs/RELEASE-v0.3.0.md' \
     --exclude='deploy/forum-data/' \
     --exclude='deploy/msmtp.conf' \
     --exclude='deploy/server/fail2ban-latch-login.local' \

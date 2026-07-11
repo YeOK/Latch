@@ -219,6 +219,57 @@ final class PluginAuditor
             );
         }
 
+        $findings = array_merge($findings, $this->validateCacheConfig($manifest));
+
+        return $findings;
+    }
+
+    /**
+     * @return list<PluginAuditFinding>
+     */
+    private function validateCacheConfig(PluginManifest $manifest): array
+    {
+        $findings = [];
+        $cache = $manifest->cacheConfig;
+
+        if ($cache->isFragment()) {
+            if ($cache->fragmentHook === null) {
+                $findings[] = new PluginAuditFinding(
+                    PluginAuditFinding::SEVERITY_CRITICAL,
+                    'manifest_cache_fragment',
+                    'cache.fragment is required when guest_page is fragment',
+                    'plugin.json',
+                );
+            } elseif (!in_array($cache->fragmentHook, $manifest->hooks, true)) {
+                $findings[] = new PluginAuditFinding(
+                    PluginAuditFinding::SEVERITY_CRITICAL,
+                    'manifest_cache_fragment_hook',
+                    'cache.fragment must be declared in hooks',
+                    'plugin.json',
+                );
+            }
+        }
+
+        if ($cache->isClient() && ($cache->clientRoute === null || $cache->clientRoute === '')) {
+            $findings[] = new PluginAuditFinding(
+                PluginAuditFinding::SEVERITY_CRITICAL,
+                'manifest_cache_client',
+                'cache.client is required when guest_page is client',
+                'plugin.json',
+            );
+        } elseif (
+            $cache->isClient()
+            && $cache->clientRoute !== null
+            && !preg_match('#^/[a-zA-Z0-9/_\-.]+(\?[a-zA-Z0-9&=%_\-.]+)?$#', $cache->clientRoute)
+        ) {
+            $findings[] = new PluginAuditFinding(
+                PluginAuditFinding::SEVERITY_CRITICAL,
+                'manifest_cache_client_route',
+                'cache.client must be a same-origin path (e.g. /plugin/foo/widget.json)',
+                'plugin.json',
+            );
+        }
+
         return $findings;
     }
 

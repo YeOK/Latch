@@ -11,7 +11,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.4.0.0
+Version:        0.4.1.0
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -193,6 +193,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sat Jul 11 2026 YeOK <yeokky@gmail.com> - 0.4.1.0-1
+- Latch-plugins catalog; plugin DB framework; manifest cache; spam-bridge + slack-notify; image-upload settings migration
+
 * Sat Jul 11 2026 YeOK <yeokky@gmail.com> - 0.4.0.0-1
 - Mail queue; plugin install/remove; word-filter plugin; plugin admin settings UI; bundled plugin disabled-by-default policy
 

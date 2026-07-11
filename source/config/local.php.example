@@ -26,7 +26,7 @@ return [
             'client_secret' => '',
         ],
     ],
-    // Phase 4 — image upload plugin (Cloudflare R2; secrets stay here)
+    // Phase 4 — plugin secrets (never in admin UI or database)
     'plugins' => [
         'image_upload' => [
             'account_id' => '',
@@ -34,8 +34,13 @@ return [
             'secret_access_key' => '',
             'bucket' => 'latch-forum-images',
             'public_host' => 'images.forum.example.com',
-            'max_mb' => 8,
-            'key_prefix' => 'forum/',
+            // max_mb, key_prefix, allowed_types → Admin → Plugins → Image upload → Settings
+        ],
+        'spam_bridge' => [
+            'akismet_api_key' => '',
+        ],
+        'slack_notify' => [
+            'webhook_url' => '',
         ],
     ],
     // Optional SQLite performance tuning (defaults in config/default.php).

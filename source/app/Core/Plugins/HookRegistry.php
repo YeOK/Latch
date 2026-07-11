@@ -16,15 +16,24 @@ namespace Latch\Core\Plugins;
  */
 final class HookRegistry
 {
-    /** @var array<string, list<array{priority: int, callback: callable}>> */
+    /** @var array<string, list<array{priority: int, callback: callable, plugin_slug: ?string}>> */
     private array $hooks = [];
 
-    public function add(string $hook, callable $callback, int $priority = 10): void
+    public function add(string $hook, callable $callback, int $priority = 10, ?string $pluginSlug = null): void
     {
         $this->hooks[$hook][] = [
             'priority' => $priority,
             'callback' => $callback,
+            'plugin_slug' => $pluginSlug,
         ];
+    }
+
+    /**
+     * @return list<array{priority: int, callback: callable, plugin_slug: ?string}>
+     */
+    public function entries(string $hook): array
+    {
+        return $this->sorted($hook);
     }
 
     public function dispatch(string $hook, mixed ...$args): void
@@ -83,7 +92,7 @@ final class HookRegistry
     }
 
     /**
-     * @return list<array{priority: int, callback: callable}>
+     * @return list<array{priority: int, callback: callable, plugin_slug: ?string}>
      */
     private function sorted(string $hook): array
     {
@@ -103,7 +112,7 @@ final class HookRegistry
     /**
      * @param array<mixed> $value
      */
-    private static function isAssociativeMenuItem(array $value): bool
+    public static function isAssociativeMenuItem(array $value): bool
     {
         return isset($value['label'], $value['href']) && is_string($value['label']) && is_string($value['href']);
     }

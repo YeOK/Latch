@@ -15,6 +15,8 @@ php bin/latch doctor
 
 Run the dev server: `bash scripts/dev-server.sh` (from the repo root).
 
+Clone [Latch-plugins](https://github.com/YeOK/Latch-plugins) as `../Latch-plugins` (sibling of `Latch-Git`) before running `php bin/latch test` — plugin tests resolve the catalog from that path.
+
 ## Tests
 
 ```bash

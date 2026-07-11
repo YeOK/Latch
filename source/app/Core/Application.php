@@ -15,6 +15,9 @@ use Closure;
 use Latch\Core\BoardIcons\BoardIconRegistry;
 use Latch\Core\Plugins\HookName;
 use Latch\Core\Plugins\HookRegistry;
+use Latch\Core\Plugins\PluginCacheCoordinator;
+use Latch\Core\Plugins\PluginCollectContext;
+use Latch\Core\Plugins\PluginDatabaseManager;
 use Latch\Core\Plugins\PluginLoader;
 use Latch\Core\Plugins\PluginRegistry;
 use Latch\Core\Plugins\PostSaveContext;
@@ -80,7 +83,7 @@ use Latch\Models\RecoveryCodeRepository;
 use Latch\Models\SearchRepository;
 use Latch\Models\TagRepository;
 
-final class Application
+final class Application implements PluginCollectContext
 {
     private Config $config;
     private Session $session;
@@ -145,6 +148,8 @@ final class Application
     private HookRegistry $hookRegistry;
     private PluginRegistry $pluginRegistry;
     private PluginLoader $pluginLoader;
+    private PluginDatabaseManager $pluginDatabaseManager;
+    private PluginCacheCoordinator $pluginCacheCoordinator;
     private WebhookRepository $webhooks;
     private WebhookDispatcher $webhookDispatcher;
     private string $cspNonce;
@@ -303,14 +308,23 @@ final class Application
             (string) $this->config->get('paths.plugins'),
             $this->settings,
         );
+        $this->pluginDatabaseManager = new PluginDatabaseManager(
+            $storagePath,
+            Database::sqliteOptionsFromConfig($this->config),
+        );
         $this->pluginLoader = new PluginLoader(
             $this->pluginRegistry,
             $this->hookRegistry,
             $this->latchVersion(),
+            $this->pluginDatabaseManager,
         );
 
         $this->registerRoutes();
         $this->pluginLoader->boot($this);
+        $this->pluginCacheCoordinator = new PluginCacheCoordinator(
+            $this->pluginLoader->loaded(),
+            $this->hookRegistry,
+        );
         $this->hookRegistry->dispatch(HookName::ROUTE_REGISTER, $this->router, $this);
         $this->hookRegistry->dispatch(HookName::BOARD_ICONS, $this->boardIcons);
         $this->hookRegistry->dispatch(HookName::BOOTSTRAP, $this);
@@ -755,7 +769,20 @@ final class Application
             return false;
         }
 
+        if ($this->pluginCacheCoordinator->disablesGuestPageCache()) {
+            return false;
+        }
+
         return true;
+    }
+
+    public function guestFragmentCacheEnabled(): bool
+    {
+        if ($this->pluginCacheCoordinator->disablesGuestPageCache()) {
+            return false;
+        }
+
+        return $this->canUseFragmentCache();
     }
 
     private function canUseFragmentCache(): bool
@@ -777,12 +804,22 @@ final class Application
 
     public function invalidateCacheTags(array $tags): void
     {
-        $this->cache->invalidateTags($tags);
+        $tags = array_merge($tags, $this->pluginCacheCoordinator->invalidationTagsForContentChange());
+        $this->cache->invalidateTags(array_values(array_unique($tags)));
     }
 
     public function bustSiteCache(): void
     {
         $this->cache->invalidateTag(Cache::tagSite());
+    }
+
+    public function invalidatePluginCache(string $slug): void
+    {
+        if (!$this->cacheEnabled()) {
+            return;
+        }
+
+        $this->cache->invalidateTag(Cache::tagPlugin($slug));
     }
 
     /** Drop all guest HTML cache entries (e.g. after site-wide access change). */
@@ -940,6 +977,11 @@ final class Application
     public function plugins(): PluginRegistry
     {
         return $this->pluginRegistry;
+    }
+
+    public function pluginDatabaseManager(): PluginDatabaseManager
+    {
+        return $this->pluginDatabaseManager;
     }
 
     public function latchVersion(): string
@@ -1419,6 +1461,7 @@ final class Application
     {
         $this->hookRegistry->dispatch(HookName::USER_REGISTER, $user, $this);
         $this->webhookDispatcher->userRegistered($user);
+        $this->bustSiteCache();
     }
 
     public function webhookRepository(): WebhookRepository
@@ -1544,7 +1587,7 @@ final class Application
         return $this->translator()->get($key, $replace);
     }
 
-    private function resolvedLocale(): string
+    public function resolvedLocale(): string
     {
         $user = $this->auth->user();
 
@@ -1553,6 +1596,11 @@ final class Application
             $this->request->cookie(Locale::COOKIE),
             $this->defaultLocale(),
         );
+    }
+
+    public function cspNonce(): string
+    {
+        return $this->cspNonce;
     }
 
     private function translator(): Translator
@@ -1708,12 +1756,12 @@ final class Application
             'messages_unread' => $user !== null ? $this->directMessages->countUnreadForUser((int) $user['id']) : 0,
             'watched_unread' => $user !== null ? $this->topicWatches->countUnreadWatched((int) $user['id']) : 0,
             'oidc_providers' => $this->buildOidcProviderList(),
-            'plugin_theme_assets' => $this->hookRegistry->collect(HookName::THEME_ASSETS, $this),
-            'plugin_theme_scripts' => $this->hookRegistry->collect(HookName::THEME_SCRIPTS, $this),
-            'plugin_footer_html' => $this->hookRegistry->collect(HookName::LAYOUT_FOOTER, $this),
-            'plugin_home_after_boards_html' => $this->hookRegistry->collect(HookName::HOME_AFTER_BOARDS, $this),
-            'plugin_admin_menu_items' => $this->hookRegistry->collect(HookName::ADMIN_MENU, $this),
-            'plugin_composer_toolbar' => $this->hookRegistry->collect(HookName::EDITOR_COMPOSE, $this),
+            'plugin_theme_assets' => $this->pluginCacheCoordinator->collect($this, HookName::THEME_ASSETS),
+            'plugin_theme_scripts' => $this->pluginCacheCoordinator->collect($this, HookName::THEME_SCRIPTS),
+            'plugin_footer_html' => $this->pluginCacheCoordinator->collect($this, HookName::LAYOUT_FOOTER),
+            'plugin_home_after_boards_html' => $this->pluginCacheCoordinator->collect($this, HookName::HOME_AFTER_BOARDS),
+            'plugin_admin_menu_items' => $this->pluginCacheCoordinator->collect($this, HookName::ADMIN_MENU),
+            'plugin_composer_toolbar' => $this->pluginCacheCoordinator->collect($this, HookName::EDITOR_COMPOSE),
         ];
     }
 
