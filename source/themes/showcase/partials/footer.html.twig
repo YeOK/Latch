@@ -1,0 +1,36 @@
+<footer class="sc-footer">
+    <div class="sc-footer-inner">
+        <div class="sc-footer-brand">
+            {% include 'partials/brand.html.twig' with { brand_variant: 'footer' } %}
+            {% if site.tagline %}
+                <p class="sc-footer-tagline muted">{{ site.tagline }}</p>
+            {% endif %}
+        </div>
+        <nav class="sc-footer-nav" aria-label="{{ trans('footer.explore') }}">
+            <a href="/">{{ trans('common.boards') }}</a>
+            <a href="/search">{{ trans('common.search') }}</a>
+            {% if not members_only or user %}<a href="/feed.xml">{{ trans('footer.rss') }}</a>{% endif %}
+            <a href="/privacy">{{ trans('footer.privacy_policy') }}</a>
+            <a href="/cookies">{{ trans('footer.cookie_policy') }}</a>
+            {% if user %}
+                <a href="/profile">{{ trans('footer.your_profile') }}</a>
+            {% else %}
+                <a href="/login">{{ trans('footer.sign_in') }}</a>
+            {% endif %}
+        </nav>
+        <div class="sc-footer-meta">
+            {% include 'partials/locale_switcher.html.twig' with { variant: 'footer' } %}
+            <p class="sc-footer-copy muted">
+                {{ trans('footer.copyright', { year: "now"|date("Y"), operator: privacy_operator_name }) }}
+                · {{ trans('footer.powered_by') }} <a href="https://github.com/YeOK/Latch" rel="noopener">Latch</a>
+                · <span class="sc-footer-pack">Showcase theme</span>
+            </p>
+            {% if gdpr_enabled %}
+                <button type="button" class="link-button" id="footer-cookie-settings">{{ trans('footer.cookie_settings') }}</button>
+            {% endif %}
+        </div>
+        {% for html in plugin_footer_html|default([]) %}
+            {{ html|raw }}
+        {% endfor %}
+    </div>
+</footer>

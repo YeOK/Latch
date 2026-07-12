@@ -1,0 +1,11 @@
+{
+    "name": "Latch Showcase",
+    "version": "1.0.0",
+    "author": "Latch",
+    "description": "Demo pack: custom layout shell, home/board/topic templates, partials, CSS, and JS — not just color tokens",
+    "supports_color_modes": true,
+    "assets": {
+        "css": ["css/theme.css"],
+        "js": ["js/showcase.js"]
+    }
+}

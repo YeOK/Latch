@@ -1,0 +1,78 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}{{ trans('home.page_title', { site: site.name }) }}{% endblock %}
+
+{% block main_class %} sc-page-home{% endblock %}
+
+{% block content %}
+    <section class="sc-hero" aria-labelledby="sc-hero-title">
+        <div class="sc-hero-bg" aria-hidden="true"></div>
+        <div class="sc-hero-content">
+            <p class="sc-hero-kicker">{{ trans('home.title') }}</p>
+            <h1 id="sc-hero-title" class="sc-hero-title">{{ site.name }}</h1>
+            {% if site.tagline %}
+                <p class="sc-hero-lead">{{ site.tagline }}</p>
+            {% endif %}
+            {% if members_only and not user %}
+                {% set sign_in_link = '<a href="/login">' ~ trans('home.members_lead_sign_in') ~ '</a>' %}
+                {% set register_link = '<a href="/register">' ~ trans('home.members_lead_register') ~ '</a>' %}
+                {% if allow_registration %}
+                    {% set lead = trans('home.members_lead')|replace({
+                        (trans('home.members_lead_sign_in')): sign_in_link,
+                        (trans('home.members_lead_register')): register_link
+                    }) %}
+                {% else %}
+                    {% set or_register_phrase = ' or ' ~ trans('home.members_lead_register') %}
+                    {% set lead = trans('home.members_lead')|replace({
+                        (or_register_phrase): '',
+                        (trans('home.members_lead_sign_in')): sign_in_link
+                    }) %}
+                {% endif %}
+                <p class="sc-hero-note">{{ lead|raw }}</p>
+            {% endif %}
+        </div>
+        {% if boards is not empty %}
+            <dl class="sc-hero-stats">
+                <div>
+                    <dt>{{ trans('common.boards') }}</dt>
+                    <dd>{{ boards|length }}</dd>
+                </div>
+                <div>
+                    <dt>{{ trans('home.topics') }}</dt>
+                    <dd>{{ boards|reduce((carry, b) => carry + (b.topic_count|default(0)), 0) }}</dd>
+                </div>
+            </dl>
+        {% endif %}
+    </section>
+
+    {% if boards is empty %}
+        {% if members_only and not user %}
+            <div class="sc-callout">
+                <h2>{{ trans('common.welcome') }}</h2>
+                <p>{{ trans('home.welcome_body') }}</p>
+                <p class="sc-callout-actions">
+                    <a class="btn btn-primary" href="/login">{{ trans('nav.sign_in') }}</a>
+                    <a class="btn" href="/register">{{ trans('nav.register') }}</a>
+                </p>
+            </div>
+        {% else %}
+            <p class="empty">{{ trans('home.no_boards') }}</p>
+        {% endif %}
+    {% else %}
+        <section class="sc-board-grid" aria-label="{{ trans('common.boards') }}">
+            {% if board_panel_html is defined and board_panel_html is not empty %}
+                {% for html in board_panel_html %}
+                    {{ html|raw }}
+                {% endfor %}
+            {% else %}
+                {% for board in boards %}
+                    {% include 'partials/home_board_panel.html.twig' with { board: board } %}
+                {% endfor %}
+            {% endif %}
+        </section>
+    {% endif %}
+
+    {% for html in plugin_home_after_boards_html|default([]) %}
+        {{ html|raw }}
+    {% endfor %}
+{% endblock %}

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}" dir="{{ locale_dir }}" data-theme="{{ theme_effective }}" data-theme-mode="{{ theme_mode }}" data-theme-pack="showcase">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}{{ site.name }}{% endblock %}</title>
+    {% block seo %}{% include 'partials/seo_head.twig' %}{% endblock %}
+    {% include 'partials/site_icons.html.twig' %}
+    {% if not members_only or user %}
+        <link rel="alternate" type="application/rss+xml" title="{{ site.name }} {{ trans('common.rss') }}" href="/feed.xml">
+    {% endif %}
+    <script nonce="{{ csp_nonce }}">
+    (function(){try{var m=localStorage.getItem('latch_theme');if(!m){var c=document.cookie.match(/(?:^|; )latch_theme=([^;]*)/);m=c?decodeURIComponent(c[1]):'{{ theme_mode }}';}if(m==='dark'||(m==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.dataset.theme='dark';else if(m==='light')document.documentElement.dataset.theme='light';document.documentElement.dataset.themeMode=m;}catch(e){}})();
+    </script>
+    <link rel="stylesheet" href="/assets/css/theme.css?v={{ asset_version }}">
+    {% for asset in plugin_theme_assets|default([]) %}
+        <link rel="stylesheet" href="{{ asset }}">
+    {% endfor %}
+    {% for html in plugin_head_html|default([]) %}
+        {{ html|raw }}
+    {% endfor %}
+</head>
+{% set is_forum_page = current_path == '/' or current_path starts with '/board/' or current_path starts with '/topic/' or current_path starts with '/tag/' or current_path starts with '/search' or current_path starts with '/watched' %}
+{% set body_class = current_path starts with '/admin' ? 'page-admin' : (current_path starts with '/profile' ? 'page-profile' : (is_forum_page ? (current_path == '/' ? 'page-home page-forum' : 'page-forum') : '')) %}
+<body class="theme-showcase{% if body_class %} {{ body_class }}{% endif %}"{% if user %} data-logged-in="1" data-username="{{ user.username }}"{% endif %}{% if gdpr_enabled %} data-gdpr="1"{% endif %}>
+    {% include 'partials/staff_report_bar.html.twig' %}
+    {% include 'partials/members_only_banner.html.twig' %}
+
+    <div class="sc-shell">
+        <header class="sc-header" id="sc-header">
+            <div class="sc-header-accent" aria-hidden="true"></div>
+            <div class="sc-header-inner">
+                <div class="sc-header-brand-row">
+                    {% include 'partials/brand.html.twig' %}
+                    <nav class="sc-quick-nav" aria-label="{{ trans('nav.site_tools') }}">
+                        <a class="sc-quick-nav-link{% if current_path == '/' %} is-active{% endif %}" href="/">{{ trans('common.boards') }}</a>
+                        <a class="sc-quick-nav-link{% if current_path starts with '/search' %} is-active{% endif %}" href="/search">{{ trans('common.search') }}</a>
+                        {% if user and direct_messages_enabled|default(false) %}
+                            <a class="sc-quick-nav-link{% if current_path starts with '/messages' %} is-active{% endif %}" href="/messages">{{ trans('user_menu.messages') }}</a>
+                        {% endif %}
+                        {% if user %}
+                            <a class="sc-quick-nav-link{% if current_path starts with '/watched' %} is-active{% endif %}" href="/watched">{{ trans('user_menu.watched') }}</a>
+                        {% endif %}
+                    </nav>
+                </div>
+                <div class="sc-header-tools">
+                    <div class="sc-header-search" id="sub-header-panel">
+                        {% include 'partials/site_search.html.twig' %}
+                    </div>
+                    <div class="sc-header-actions">
+                        {% include 'partials/theme_toggle.html.twig' %}
+                        {% include 'partials/sub_header_auth.html.twig' %}
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="sc-main{% block main_class %}{% endblock %}">
+            <div class="sc-main-inner">
+                {% if not (current_path starts with '/admin') %}
+                    {% include 'partials/flash.html.twig' %}
+                {% endif %}
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+
+        {% include 'partials/rss_bar.twig' %}
+        {% include 'partials/footer.html.twig' %}
+    </div>
+
+    {% include 'partials/cookie_consent.html.twig' %}
+    {% if user %}
+        {% include 'partials/account_overlay.html.twig' %}
+        {% if direct_messages_enabled|default(false) %}
+            {% include 'partials/messages_overlay.html.twig' %}
+        {% endif %}
+    {% endif %}
+    {% include 'partials/i18n_js.html.twig' %}
+    <script src="/assets/js/theme.js?v={{ asset_version }}" defer></script>
+    <script src="/assets/js/showcase.js?v={{ asset_version }}" defer></script>
+    {% if user %}
+        <script src="/assets/js/notifications.js?v={{ asset_version }}" defer></script>
+        <script src="/assets/js/account-panel.js?v={{ asset_version }}" defer></script>
+        {% if direct_messages_enabled|default(false) %}
+            <script src="/assets/js/messages.js?v={{ asset_version }}" defer></script>
+            <script src="/assets/js/messages-panel.js?v={{ asset_version }}" defer></script>
+        {% endif %}
+    {% endif %}
+    {% if is_mod %}
+        <script src="/assets/js/staff-reports.js?v={{ asset_version }}" defer></script>
+        <script src="/assets/js/staff-actions.js?v={{ asset_version }}" defer></script>
+    {% endif %}
+    {% for script in plugin_theme_scripts|default([]) %}
+        <script src="{{ script }}" defer></script>
+    {% endfor %}
+    {% if plugin_client_loader|default(false) %}
+        <script src="/assets/js/plugin-clients.js?v={{ asset_version }}" defer></script>
+    {% endif %}
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,54 @@
+{# Timeline-style topic list for the Showcase pack #}
+{% if topics is empty %}
+    <p class="empty">{{ trans('home.no_topics_yet') }}</p>
+{% else %}
+    <ol class="sc-topic-timeline" role="list">
+        {% for topic in topics %}
+            <li class="sc-topic-timeline-item card" id="topic-row-{{ topic.id }}"
+                data-topic-pinned="{{ topic.is_pinned ? '1' : '0' }}"
+                data-topic-locked="{{ topic.is_locked ? '1' : '0' }}">
+                {% if topic_mod_selectable|default(false) %}
+                    <label class="mod-topic-check board-mod-tools-active-only">
+                        <input type="checkbox"
+                               class="mod-topic-checkbox"
+                               value="{{ topic.id }}"
+                               aria-label="Select topic: {{ topic.title }}">
+                    </label>
+                {% endif %}
+                <div class="sc-topic-timeline-marker" aria-hidden="true"></div>
+                <div class="sc-topic-timeline-body">
+                    <div class="sc-topic-timeline-head">
+                        {% include 'partials/avatar.twig' with {
+                            username: topic.author_name,
+                            avatar_src: topic.avatar_src|default(''),
+                            avatar_pending_src: topic.avatar_pending_src|default(''),
+                            avatar_hue: topic.avatar_hue|default(210),
+                            size: 40
+                        } %}
+                        <div>
+                            <h3 class="sc-topic-timeline-title">
+                                {% if topic.is_unread is defined and topic.is_unread %}<span class="badge badge-unread">{{ trans('common.new') }}</span>{% endif %}
+                                {% if topic.is_pinned %}<span class="badge">{{ trans('common.pinned') }}</span>{% endif %}
+                                {% if topic.is_locked %}<span class="badge badge-muted">{{ trans('common.locked') }}</span>{% endif %}
+                                <a href="/topic/{{ topic.id }}"{% if topic.is_unread is defined and topic.is_unread %} class="topic-unread-link"{% endif %}>{{ topic.title }}</a>
+                            </h3>
+                            <p class="sc-topic-timeline-author muted">
+                                {{ trans('common.by') }} {% include 'partials/username_link.twig' with { username: topic.author_name } %}
+                                {% if topic.board_slug is defined and topic.board_name is defined %}
+                                    · <a href="/board/{{ topic.board_slug }}">{{ topic.board_name }}</a>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% if topic.tags is defined and topic.tags is not empty %}
+                        {% include 'partials/topic_tags.html.twig' with { tags: topic.tags } %}
+                    {% endif %}
+                    <div class="sc-topic-timeline-stats muted">
+                        <span>{{ topic.post_count }} {{ topic.post_count == 1 ? trans('common.post') : trans('common.posts') }}</span>
+                        <time datetime="{{ topic.last_post_at }}">{{ topic.last_post_at|format_datetime }}</time>
+                    </div>
+                </div>
+            </li>
+        {% endfor %}
+    </ol>
+{% endif %}
