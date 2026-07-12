@@ -29,7 +29,7 @@
         <p class="admin-hint admin-hint--info">All matching entries in the scanned range are shown.</p>
     {% endif %}
 
-    <form class="log-filter-form" method="get" action="/admin/logs/view">
+    <form class="log-filter-form" id="log-viewer-filter-form" method="get" action="/admin/logs/view">
         <input type="hidden" name="source" value="{{ source.id }}">
         {% if live %}<input type="hidden" name="live" value="1">{% endif %}
 
@@ -67,12 +67,12 @@
                 </label>
             {% endif %}
         </div>
-
-        <div class="log-filter-actions">
-            <button type="submit" class="btn btn-small btn-primary">Apply filters</button>
-            <a class="btn btn-small" href="/admin/logs/view?source={{ source.id|url_encode }}{% if live %}&amp;live=1{% endif %}">Clear</a>
-        </div>
     </form>
+
+    <div class="log-filter-actions">
+        <button type="submit" class="btn btn-small btn-primary" form="log-viewer-filter-form">Apply filters</button>
+        <a class="btn btn-small" href="/admin/logs/view?source={{ source.id|url_encode }}{% if live %}&amp;live=1{% endif %}">Clear</a>
+    </div>
 
     <div id="log-viewer-output" class="log-viewer-output" data-format="{{ source.format }}">
         {% if source.status == 'missing' %}
