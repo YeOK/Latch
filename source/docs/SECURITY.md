@@ -43,6 +43,56 @@ User id `1` (first installed admin) cannot be demoted or banned by other admins.
 
 - **Security log:** `storage/logs/security.log` (JSON lines) — login, reset, ban, reports, founder blocks
 - **Audit log:** SQLite `audit_log` table — admin/mod actions, settings changes, report triage
+- **Restore log:** `storage/logs/restore.log` (plain text) — break-glass restore when `audit_log` is not writable
+
+### Admin log viewer
+
+**Admin → Logs** (`/admin/logs`) is separate from **Audit log** (`/admin/audit`):
+
+| Page | Answers |
+|------|---------|
+| Audit log | What did staff do in the app? (SQLite rows) |
+| Logs | What is the runtime emitting? (file tail) |
+
+Access requires **admin role + mandatory 2FA** (same gate as sensitive admin pages). Mods cannot open file logs — raw access/error logs may contain cookies, full URLs, and stack traces.
+
+**Built-in sources** (always listed, no extra config):
+
+| ID | File | Format |
+|----|------|--------|
+| `latch.security` | `storage/logs/security.log` | JSON lines |
+| `latch.restore` | `storage/logs/restore.log` | Plain text |
+
+**Server logs** (Apache/nginx, PHP-FPM) are **opt-in**: set `logs.server_logs_enabled` and `logs.sources[]` in `config/local.php`. Paths must resolve under allowed roots (`/var/log` and `{paths.storage}/logs` by default). Latch never accepts a raw path from the browser — only configured source IDs.
+
+Viewer behaviour:
+
+- Bounded reverse tail (default 200 lines, max 500); **Load older** via byte `cursor`
+- **Security log** filters: exact `event`, `ip`, `username`, ISO `since`/`until` (event list in `config/default.php` → `logs.security_event_types`)
+- **Text logs** substring filter (`q`, case-insensitive)
+- **Redaction** on every line (passwords, tokens, `Authorization`, `Cookie` headers) before HTML/JSON/CLI output
+- **Rotation** detected via file size/mtime fingerprint — stale cursors reset with a banner
+- **Live mode** (`?live=1`) polls `/admin/logs/feed` every 30s (not HTML refresh); feed rate-limited 30/min per admin
+
+Staff access is audited:
+
+| Action | `audit_log.action` | When |
+|--------|-------------------|------|
+| Open / refresh viewer (HTML) | `logs.view` | Each page load / Refresh |
+| Live / JSON feed poll | `logs.feed` | Debounced — at most once per admin+source per 5 minutes |
+
+**CLI parity** (SSH, same reader and filters):
+
+```bash
+php bin/latch logs list
+php bin/latch logs tail --source=latch.security --event=login_fail --follow
+```
+
+On Fedora RPM: `sudo latch logs …`. See [CLI.md — logs](CLI.md#logs).
+
+**Correlating auth abuse** — spike in `login_fail` in `latch.security` often matches failed `POST /login` lines in Apache access logs (same pattern fail2ban uses). Enable server sources in `local.php` to tail both from the admin UI; see [INSTALL-FEDORA.md](INSTALL-FEDORA.md#server-logs-admin-viewer) and `packaging/README.md`.
+
+Common security log `event` values: `login_fail`, `login_success`, `login_banned`, `login_totp_fail`, `oidc_fail`, `ban`, `password_reset_request`, `founder_block`, `oauth_app_revoke`. Full curated list: `config/default.php` → `logs.security_event_types`.
 
 ## Client IP behind Cloudflare
 

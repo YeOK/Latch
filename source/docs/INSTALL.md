@@ -137,6 +137,56 @@ Override in `config/local.php` only when you need to tune a busy site — instal
 
 See also [PERFORMANCE.md](PERFORMANCE.md) (query hot paths, SQLite scale), [CDN.md](CDN.md) (Cloudflare cache rules), and [SECURITY.md](SECURITY.md) (WAL backups, permissions).
 
+## Admin log viewer (optional)
+
+Latch application logs are always visible in **Admin → Logs** and via CLI. To also tail **web server** logs from the admin panel (or `bin/latch logs`), add to `config/local.php`:
+
+```php
+'logs' => [
+    // Master switch — built-in latch.* sources stay on without this.
+    'server_logs_enabled' => true,
+
+    // Optional extra roots (absolute paths only; max 5). Defaults already include
+    // /var/log and {paths.storage}/logs — omit unless you use a custom layout.
+    // 'allowed_roots' => ['/srv/latch/logs'],
+
+    'sources' => [
+        [
+            'id' => 'httpd.access',
+            'label' => 'Apache access',
+            'group' => 'Web server',
+            'path' => '/var/log/httpd/latch-access.log',
+            'format' => 'text',
+        ],
+        [
+            'id' => 'httpd.error',
+            'label' => 'Apache error',
+            'group' => 'Web server',
+            'path' => '/var/log/httpd/latch-error.log',
+            'format' => 'text',
+        ],
+        [
+            'id' => 'php-fpm.slow',
+            'label' => 'PHP-FPM slowlog',
+            'group' => 'PHP',
+            'path' => '/var/log/php-fpm/www-slow.log',
+            'format' => 'text',
+        ],
+    ],
+],
+```
+
+Adjust paths for your stack (Debian `apache2`, nginx, custom vhost `ErrorLog`/`CustomLog`). PHP-FPM must be able to **read** each file — on Fedora, Apache access/error logs under `/var/log/httpd/` are usually group-readable; PHP-FPM slowlog often needs `setfacl` (see [INSTALL-FEDORA.md](INSTALL-FEDORA.md#server-logs-admin-viewer)).
+
+Verify from the install tree:
+
+```bash
+php bin/latch logs list
+php bin/latch logs tail --source=latch.security --lines=20
+```
+
+Details: [SECURITY.md — Admin log viewer](SECURITY.md#admin-log-viewer), [CLI.md — logs](CLI.md#logs).
+
 ## File permissions
 
 `storage/` must be writable by the web server user (`apache` on Fedora). Production layouts use **2770** directories and **660** database files (group `apache`, no world access).

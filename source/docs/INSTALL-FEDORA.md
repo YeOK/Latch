@@ -136,6 +136,67 @@ Details: [PLUGINS.md — Production permissions](PLUGINS.md#production-permissio
 
 See [CLI.md](CLI.md) for the full command reference.
 
+## Server logs (admin viewer)
+
+The COPR vhost (`packaging/latch-httpd.conf` → `/etc/httpd/conf.d/latch.conf`) writes:
+
+| Log | Default path |
+|-----|----------------|
+| Access | `/var/log/httpd/latch-access.log` |
+| Error | `/var/log/httpd/latch-error.log` |
+
+fail2ban `latch-login` watches the access log (`packaging/fail2ban/latch-login.local`). Application auth events also land in `storage/logs/security.log` (symlinked to `/var/lib/latch/storage/logs/`).
+
+**Admin → Logs** always shows Latch-owned files. To tail Apache/PHP-FPM logs in the UI or CLI, enable server sources in `/etc/latch/local.php`:
+
+```php
+'logs' => [
+    'server_logs_enabled' => true,
+    'sources' => [
+        [
+            'id' => 'httpd.access',
+            'label' => 'Apache access',
+            'group' => 'Web server',
+            'path' => '/var/log/httpd/latch-access.log',
+            'format' => 'text',
+        ],
+        [
+            'id' => 'httpd.error',
+            'label' => 'Apache error',
+            'group' => 'Web server',
+            'path' => '/var/log/httpd/latch-error.log',
+            'format' => 'text',
+        ],
+        [
+            'id' => 'php-fpm.slow',
+            'label' => 'PHP-FPM slowlog',
+            'group' => 'PHP',
+            'path' => '/var/log/php-fpm/www-slow.log',
+            'format' => 'text',
+        ],
+    ],
+],
+```
+
+PHP-FPM runs as `apache`. Default perms on `/var/log/httpd/latch-*.log` are typically root-owned, group `apache`, mode `0640` — **readable** by the viewer without extra steps.
+
+Slowlog and other files may not be:
+
+```bash
+# Preferred — grant read without changing group membership
+sudo setfacl -m u:apache:r /var/log/php-fpm/www-slow.log
+
+# Verify
+sudo latch logs list
+sudo latch logs tail --source=httpd.access --lines=5
+```
+
+Unreadable sources show a **permission denied** badge in the admin UI. Phase 5 adds `bin/latch doctor` warnings for misconfigured paths.
+
+**Debugging login abuse** — filter `latch.security` for `login_fail`, then correlate timestamps with `httpd.access` (`POST /login`). Same access log path fail2ban uses.
+
+More: [SECURITY.md — Admin log viewer](SECURITY.md#admin-log-viewer), [CLI.md — logs](CLI.md#logs), `packaging/README.md`.
+
 ## Related docs
 
 - [INSTALL.md](INSTALL.md) — generic install (tarball, git)  
