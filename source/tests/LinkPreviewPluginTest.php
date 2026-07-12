@@ -81,6 +81,22 @@ final class LinkPreviewPluginTest extends TestCase
         $this->assertSame(['https://1.1.1.1/public'], $calls);
     }
 
+    public function testEmbedJsBindsEachPlayButtonToItsContainer(): void
+    {
+        $js = file_get_contents($this->pluginDir . '/assets/embed.js');
+        $this->assertIsString($js);
+
+        $this->assertStringContainsString(
+            "mountEmbed(btn.closest('.link-embed'), true)",
+            $js,
+            'Play handlers must resolve the embed from the clicked button, not a shared loop variable',
+        );
+        $this->assertStringNotContainsString(
+            'mountEmbed(el, true)',
+            $js,
+        );
+    }
+
     public function testHttpTransportFollowsSafeRedirect(): void
     {
         $calls = [];
