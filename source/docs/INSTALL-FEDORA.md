@@ -62,7 +62,7 @@ sudo systemctl reload httpd
 
 Symlinks wire `source/config/local.php` → `/etc/latch/local.php` and `source/storage` → `/var/lib/latch/storage`.
 
-`latch-setup` creates `/etc/latch/local.php` with a random `security.encryption_key` before `bin/latch install`. Fresh tarball installs do the same via `install`; if you copied an old `local.php` without a key, run `sudo -u apache latch security-bootstrap`. If enrolled 2FA stops accepting codes after a key mismatch, see [CLI.md — totp](CLI.md#totp) (`sudo latch totp reset admin --confirm` as last resort).
+`latch-setup` creates `/etc/latch/local.php` with a random `security.encryption_key` before `bin/latch install`. Fresh tarball installs do the same via `install`; if you copied an old `local.php` without a key, run `sudo latch security-bootstrap`. If enrolled 2FA stops accepting codes after a key mismatch, see [CLI.md — totp](CLI.md#totp) (`sudo latch totp reset admin --confirm` as last resort).
 
 ## Upgrades
 
@@ -93,11 +93,11 @@ sudo dnf install latch httpd php-fpm
 sudo install -d -o apache -g apache /var/lib/latch/storage/backups
 sudo cp latch-backup-YYYYMMDD-HHMMSS.tar.gz /var/lib/latch/storage/backups/
 
-sudo -u apache latch lock on
-sudo -u apache latch restore --latest --with-config
-sudo -u apache latch db-check
-sudo -u apache latch search-reindex
-sudo -u apache latch lock off
+sudo latch lock on
+sudo latch restore --latest --with-config
+sudo latch db-check
+sudo latch search-reindex
+sudo latch lock off
 
 sudo systemctl enable --now httpd latch-cron-hourly.timer latch-cron-daily.timer latch-cron-weekly.timer
 ```
@@ -156,7 +156,7 @@ The COPR vhost (`packaging/latch-httpd.conf` → `/etc/httpd/conf.d/latch.conf`)
 | Access | `/var/log/httpd/latch-access.log` |
 | Error | `/var/log/httpd/latch-error.log` |
 
-fail2ban `latch-login` watches the access log (`packaging/fail2ban/latch-login.local`). Application auth events also land in `storage/logs/security.log` (symlinked to `/var/lib/latch/storage/logs/`).
+fail2ban `latch-login` watches `security.log` for `login_fail` events (`packaging/fail2ban/latch-login.local` → `/var/lib/latch/storage/logs/security.log`). Apache access logs are optional for correlation in Admin → Logs (`latch-access.log`).
 
 **Admin → Logs** always shows Latch-owned files. To tail Apache/PHP-FPM logs in the UI or CLI, enable server sources in `/etc/latch/local.php`:
 
