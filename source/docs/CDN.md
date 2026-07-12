@@ -62,7 +62,7 @@ and http.request.uri.path starts_with "/assets/"
 - Edge TTL → **1 month** (or respect origin)
 - Browser TTL → respect origin
 
-Latch asset URLs include `?v={{ asset_version }}` — bumping `asset_version` in admin invalidates browsers; purge CDN if you cache aggressively without query strings.
+Latch asset URLs include `?v={{ asset_version }}` — the stamp includes the active theme pack id (so switching `default` ↔ `modern` changes `?v=` even when CSS mtimes overlap). Bump `theme.asset_version` in config for manual invalidation; purge CDN `/assets/*` if an edge still serves stale CSS after a theme change.
 
 ### 3. Optional: short edge cache for guest HTML
 

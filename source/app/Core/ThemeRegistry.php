@@ -92,6 +92,12 @@ final class ThemeRegistry
         return $this->isValid($fallback) ? $fallback : 'default';
     }
 
+    /** Stable per-pack salt so asset ?v= changes when active_theme changes (not only when CSS mtimes change). */
+    public static function assetVersionSalt(string $activeThemeId): int
+    {
+        return crc32($activeThemeId) & 0x7FFFFFFF;
+    }
+
     /**
      * @return array<string, mixed>|null
      */

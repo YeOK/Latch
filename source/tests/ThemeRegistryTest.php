@@ -59,6 +59,14 @@ final class ThemeRegistryTest extends TestCase
         $this->assertSame('modern', $registry->resolve('modern', 'default'));
     }
 
+    public function testAssetVersionSaltDiffersPerPack(): void
+    {
+        $this->assertNotSame(
+            ThemeRegistry::assetVersionSalt('default'),
+            ThemeRegistry::assetVersionSalt('modern'),
+        );
+    }
+
     private function removeTree(string $path): void
     {
         if (!is_dir($path)) {

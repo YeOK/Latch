@@ -618,7 +618,7 @@ final class Application implements PluginCollectContext
             $this->emitThemeAsset(
                 'text/css; charset=utf-8',
                 file_get_contents($defaultFile) . "\n" . file_get_contents($activeFile),
-                $defaultFile . '|' . filemtime($defaultFile) . '|' . $activeFile . '|' . filemtime($activeFile),
+                $active . '|' . $defaultFile . '|' . filemtime($defaultFile) . '|' . $activeFile . '|' . filemtime($activeFile),
             );
             return;
         }
@@ -639,7 +639,7 @@ final class Application implements PluginCollectContext
             default => 'application/octet-stream',
         };
 
-        $this->emitThemeAsset($mime, (string) file_get_contents($file), $file . '|' . filemtime($file));
+        $this->emitThemeAsset($mime, (string) file_get_contents($file), $active . '|' . $file . '|' . filemtime($file));
     }
 
     private function serveBrandingAsset(string $relativePath): void
@@ -694,11 +694,6 @@ final class Application implements PluginCollectContext
 
     private function themeAssetStamp(): int
     {
-        static $stamp = null;
-        if ($stamp !== null) {
-            return $stamp;
-        }
-
         $themesPath = (string) $this->config->get('paths.themes');
         $active = $this->activeTheme();
         $paths = [
@@ -717,9 +712,10 @@ final class Application implements PluginCollectContext
             }
         }
 
-        $stamp = $max > 0 ? $max : time();
+        $base = $max > 0 ? $max : time();
 
-        return $stamp;
+        // Token packs (modern) share default JS mtimes; include pack id so ?v= busts CDN on theme switch.
+        return (int) ($base + ThemeRegistry::assetVersionSalt($active));
     }
 
     /**
