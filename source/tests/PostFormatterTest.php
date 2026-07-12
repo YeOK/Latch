@@ -157,6 +157,21 @@ final class PostFormatterTest extends TestCase
         $this->assertStringContainsString('echo &#039;hi&#039;', $html);
     }
 
+    public function testStandaloneBareHttpsUrlAutolinks(): void
+    {
+        $html = $this->formatter->format('https://example.test/page');
+
+        $this->assertStringContainsString('<a href="https://example.test/page"', $html);
+    }
+
+    public function testInlineBareHttpsUrlIsNotAutolinked(): void
+    {
+        $html = $this->formatter->format('Visit https://example.test/page today.');
+
+        $this->assertStringNotContainsString('<a href=', $html);
+        $this->assertStringContainsString('https://example.test/page', $html);
+    }
+
     public function testRendersIndentedCodeFence(): void
     {
         $html = $this->formatter->format(

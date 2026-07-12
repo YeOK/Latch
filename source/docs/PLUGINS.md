@@ -75,13 +75,26 @@ Declare every hook you use in `plugin.json` → `hooks`.
 | `admin.menu` | collect | live | Admin layout; `($app)` | Nav items: `{label, href, match?}` |
 | `editor.compose` | collect | live | Compose toolbar; `($app)` | HTML for extra toolbar buttons |
 | `post.format.image_host` | filter | live | Markdown `![](url)` render; `($allowed, $host)` | Return `true` to allow host |
+| `post.format.link` | filter | live | Link render; `($html, $url, $label, $standalone)` | Replace default `<a>` (onebox / embed when `$standalone`) |
+| `post.format.after` | filter | live | After full post HTML; `($html, $rawBody)` | Optional HTML pass over entire post |
+| `post.delete` | dispatch | live | Post trashed or permanently purged; `($post, $topic, $app)` | — |
+| `post.vote` | dispatch | live | After vote saved; `($postId, $userId, $vote, $app)` — `$vote` is `like`, `dislike`, or `null` (cleared) | — |
+| `topic.delete` | dispatch | live | Topic archived or trash topic purged; `($topic, $board, $app)` | — |
 | `csp.img_src` | collect | live | Response headers (after plugin boot); `($app)` | Extra `img-src` hostnames (no scheme) |
 | `csp.connect_src` | collect | live | Response headers (after plugin boot); `($app)` | Extra `connect-src` hostnames for `fetch` (e.g. R2 presigned PUT) |
+| `csp.frame_src` | collect | live | Response headers (after plugin boot); `($app)` | Extra `frame-src` hostnames (e.g. YouTube embed) |
+| `csp.script_src` | collect | live | Response headers (after plugin boot); `($app)` | Extra `script-src` hostnames (e.g. Plausible, Matomo) |
 | `theme.scripts` | collect | live | Each page render; `($app)` | Deferred `<script src>` URLs appended in layout |
+| `layout.head` | collect | live | Each page render; `($app)` | HTML snippet(s) in `<head>` (analytics, meta) |
+| `topic.actions` | collect | live | Topic page only; `($app, $topic, $board)` | HTML beside topic header actions (share buttons) |
+| `profile.form` | collect | live | Profile page only; `($app, $user)` | Extra profile form fields |
+| `profile.before_save` | dispatch | live | Before profile save; `($ctx)` | Mutate `$ctx->bio` or `$ctx->reject($reason)` |
 | `avatar.resolve` | filter | live | Avatar URL build; `($url, $email, $size)` | Final avatar URL string |
 | `locale.translations` | filter | live | Translator boot; `($strings, $locale)` | Merged translation array for active locale |
 
-Twig globals from collect hooks: `plugin_theme_assets`, `plugin_theme_scripts`, `plugin_footer_html`, `plugin_home_after_boards_html`, `plugin_admin_menu_items`, `plugin_composer_toolbar`.
+Twig globals from collect hooks: `plugin_theme_assets`, `plugin_theme_scripts`, `plugin_head_html`, `plugin_footer_html`, `plugin_home_after_boards_html`, `plugin_admin_menu_items`, `plugin_composer_toolbar`.
+
+Per-page collect hooks (passed from controllers): `plugin_topic_actions` (topic view), `plugin_profile_form_html` (profile).
 
 ## Guest cache
 
@@ -165,6 +178,53 @@ $hooks->add(HookName::ADMIN_MENU, static fn (): array => [
     'href' => '/admin/my-plugin',
     'match' => '/admin/my-plugin',  // optional prefix for active state
 ]);
+```
+
+### `post.format.link` + CSP (link preview)
+
+When a URL is the **only** content in a paragraph (bare `https://…`, `[url]…[/url]`, `[https://…]`, or markdown link), core passes `$standalone = true` to `post.format.link`. Inline URLs in prose stay default `<a>` tags.
+
+```php
+$hooks->add(HookName::POST_FORMAT_LINK, static function (string $html, string $url, string $label, bool $standalone): string {
+    if (!$standalone) {
+        return $html;
+    }
+    // return onebox card or video embed HTML
+    return '<aside class="link-onebox">…</aside>';
+});
+$hooks->add(HookName::CSP_IMG_SRC, static fn (): string => 'i.ytimg.com');
+$hooks->add(HookName::CSP_FRAME_SRC, static fn (): string => 'www.youtube-nocookie.com');
+```
+
+Pair `post.format.after` only when you need to transform the full rendered post HTML.
+
+### `layout.head` + `csp.script_src` (privacy analytics)
+
+```php
+$hooks->add(HookName::LAYOUT_HEAD, static fn (): string =>
+    '<script defer src="https://plausible.io/js/script.js" data-domain="forum.example.com"></script>'
+);
+$hooks->add(HookName::CSP_SCRIPT_SRC, static fn (): string => 'plausible.io');
+```
+
+### `topic.actions` (fediverse share)
+
+```php
+$hooks->add(HookName::TOPIC_ACTIONS, static function (Application $app, array $topic, array $board): string {
+    $url = $app->siteUrl() . '/topic/' . $topic['id'];
+    return '<a class="btn btn-icon" href="https://mastodon.social/share?text=' . rawurlencode($url) . '">Share</a>';
+});
+```
+
+### `profile.form` + `profile.before_save` (avatar-url)
+
+```php
+$hooks->add(HookName::PROFILE_FORM, static fn (): string =>
+    '<label>Custom avatar URL <input type="url" name="avatar_url" …></label>'
+);
+$hooks->add(HookName::PROFILE_BEFORE_SAVE, static function (ProfileSaveContext $ctx): void {
+    // validate and persist plugin-owned avatar URL
+});
 ```
 
 ### `post.format.image_host` + `csp.img_src`

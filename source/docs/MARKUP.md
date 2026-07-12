@@ -111,6 +111,7 @@ Quotes can contain other inline markup; nested formatting is rendered inside the
 | `[url=https://…]label[/url]` | BBCode-style external link |
 | `[url]https://…[/url]` | Auto-linked URL as label |
 | `[https://…]` | Shorthand auto-link |
+| Bare `https://…` on its own line | Auto-linked (standalone paragraph only; plugins may expand via `post.format.link`) |
 | `[label](/board/general)` | Relative link (same site, no `target="_blank"`) |
 | `![alt](https://host/image.png)` | Image **only if** host is allowlisted; else `[image blocked]` |
 | `@username` | Link to `/user/username` (`<a class="mention">`) when username is 3–32 chars |
@@ -201,6 +202,7 @@ Do not add these manually unless you operate imports or announcement scripts.
 
 - Style output classes in `theme.css` — see [THEMING.md](THEMING.md).
 - Plugins may extend image hosts via `post.format.image_host` and CSP `img-src` hooks (`image-upload`).
+- Plugins may replace standalone URL links with onebox/embed cards via `post.format.link` (`link-preview`).
 - Plugins may adjust body before save via `post.before_save`; rejected bodies return a flash error.
 
 ---

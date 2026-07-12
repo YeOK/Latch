@@ -28,6 +28,9 @@
                 {{ trans('profile.bio') }}
                 <textarea name="bio" rows="3" maxlength="{{ input_limits.bio_max }}">{{ bio }}</textarea>
             </label>
+            {% for html in plugin_profile_form_html|default([]) %}
+                {{ html|raw }}
+            {% endfor %}
             <button type="submit" class="btn btn-primary">{{ trans('profile.save_profile') }}</button>
         </form>
     </section>

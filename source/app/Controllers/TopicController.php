@@ -119,6 +119,7 @@ final class TopicController
         $this->app->render('topic/show.html.twig', [
             'topic' => $topic,
             'board' => $board,
+            'plugin_topic_actions' => $this->app->collectTopicActions($topic, $board),
             'posts' => $posts,
             'post_total' => $postBundle['total'],
             'posts_paginated' => $postBundle['paginated'],

@@ -19,12 +19,16 @@ final class SecurityHeaders
     /**
      * @param list<string> $extraImgSrc Hostnames (no scheme) appended to CSP img-src.
      * @param list<string> $extraConnectSrc Hostnames (no scheme) appended to CSP connect-src.
+     * @param list<string> $extraFrameSrc Hostnames (no scheme) appended to CSP frame-src.
+     * @param list<string> $extraScriptSrc Hostnames (no scheme) appended to CSP script-src.
      */
     public static function apply(
         bool $isHttps = false,
         ?string $cspNonce = null,
         array $extraImgSrc = [],
         array $extraConnectSrc = [],
+        array $extraFrameSrc = [],
+        array $extraScriptSrc = [],
     ): void
     {
         if (function_exists('header_remove')) {
@@ -44,6 +48,13 @@ final class SecurityHeaders
             ? "'self' 'nonce-{$cspNonce}'"
             : "'self'";
 
+        foreach ($extraScriptSrc as $host) {
+            $host = trim((string) $host);
+            if ($host !== '' && preg_match('/^[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$/', $host) === 1) {
+                $scriptSrc .= ' https://' . $host;
+            }
+        }
+
         $imgSrc = "'self' https://www.gravatar.com https://secure.gravatar.com data:";
         foreach ($extraImgSrc as $host) {
             $host = trim((string) $host);
@@ -60,14 +71,22 @@ final class SecurityHeaders
             }
         }
 
+        $frameSrc = 'https://challenges.cloudflare.com';
+        foreach ($extraFrameSrc as $host) {
+            $host = trim((string) $host);
+            if ($host !== '' && preg_match('/^[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$/', $host) === 1) {
+                $frameSrc .= ' https://' . $host;
+            }
+        }
+
         header(
             'Content-Security-Policy: default-src \'self\'; '
             . "script-src {$scriptSrc} https://challenges.cloudflare.com; "
             . 'style-src \'self\'; '
             . "img-src {$imgSrc}; "
             . "connect-src {$connectSrc}; "
-            . 'font-src \'self\'; '
-            . 'frame-src https://challenges.cloudflare.com; '
+            . "font-src \'self\'; "
+            . "frame-src {$frameSrc}; "
             . 'form-action \'self\'; '
             . 'frame-ancestors \'none\'; '
             . 'base-uri \'self\''

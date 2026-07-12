@@ -81,6 +81,7 @@ final class PostVoteController
         }
 
         $this->app->enqueueReputationUpdate((int) $post['user_id']);
+        $this->app->firePostVote($postId, $userId, $vote);
 
         Response::json([
             'ok' => true,

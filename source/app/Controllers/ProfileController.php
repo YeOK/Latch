@@ -16,6 +16,7 @@ use Latch\Core\Cache;
 use Latch\Core\OAuthScopes;
 use Latch\Core\Response;
 use Latch\Core\Locale;
+use Latch\Core\Plugins\ProfileSaveContext;
 use Latch\Core\ThemeMode;
 final class ProfileController
 {
@@ -59,6 +60,7 @@ final class ProfileController
             'accept_messages' => $this->app->users()->acceptsMessages($user),
             'mail_enabled' => $this->app->settings()->getBool('mail_enabled') && $this->app->mail()->isConfigured(),
             'anonymise_posts_on_delete' => $this->app->anonymisePostsOnDelete(),
+            'plugin_profile_form_html' => $this->app->collectProfileForm($user),
         ]);
     }
 
@@ -164,7 +166,14 @@ final class ProfileController
             Response::redirect('/profile');
         }
 
-        $this->app->users()->updateProfile((int) $user['id'], $bio);
+        $profileContext = new ProfileSaveContext($bio, $user);
+        $rejectReason = $this->app->applyProfileBeforeSave($profileContext);
+        if ($rejectReason !== null) {
+            $this->app->session()->flash('error', $rejectReason);
+            Response::redirect('/profile');
+        }
+
+        $this->app->users()->updateProfile((int) $user['id'], $profileContext->bio);
         $this->app->invalidateCacheTags([Cache::tagUser((int) $user['id'])]);
         $this->app->session()->flash('success', 'Profile updated.');
         Response::redirect('/profile');

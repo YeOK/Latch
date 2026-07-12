@@ -18,6 +18,7 @@ use Latch\Core\Plugins\PluginInterface;
 use Latch\Core\Plugins\PluginManifest;
 use Latch\Core\Plugins\PluginRegistry;
 use Latch\Core\Plugins\PostSaveContext;
+use Latch\Core\Plugins\ProfileSaveContext;
 use Latch\Models\SettingRepository;
 use PHPUnit\Framework\TestCase;
 
@@ -89,6 +90,81 @@ final class PluginSystemTest extends TestCase
         });
 
         $hooks->dispatch(HookName::POST_BEFORE_SAVE, $ctx);
+
+        $this->assertSame('blocked', $ctx->rejectReason);
+    }
+
+    public function testHookNameRegistryListsAllKnownHooks(): void
+    {
+        $this->assertCount(28, HookName::all());
+        $this->assertContains(HookName::POST_FORMAT_LINK, HookName::all());
+        $this->assertContains(HookName::CSP_FRAME_SRC, HookName::all());
+        $this->assertContains(HookName::TOPIC_ACTIONS, HookName::all());
+    }
+
+    public function testLinkFormatFilterReplacesStandaloneUrls(): void
+    {
+        $hooks = new HookRegistry();
+        $hooks->add(
+            HookName::POST_FORMAT_LINK,
+            static function (string $html, string $url, string $label, bool $standalone): string {
+                if (!$standalone) {
+                    return $html;
+                }
+
+                return '<div class="onebox" data-url="' . htmlspecialchars($url, ENT_QUOTES) . '">' . $label . '</div>';
+            },
+        );
+
+        $formatter = new \Latch\Core\PostFormatter();
+        $formatter->setLinkFormatter(
+            static fn (string $html, string $url, string $label, bool $standalone): string => $hooks->filter(
+                HookName::POST_FORMAT_LINK,
+                $html,
+                $url,
+                $label,
+                $standalone,
+            ),
+        );
+
+        $standalone = $formatter->format('https://example.test/video');
+        $inline = $formatter->format("See https://example.test/video for details.");
+
+        $this->assertStringContainsString('class="onebox"', $standalone);
+        $this->assertStringNotContainsString('<a href=', $standalone);
+        $this->assertStringNotContainsString('<a href=', $inline);
+        $this->assertStringContainsString('https://example.test/video', $inline);
+        $this->assertStringNotContainsString('class="onebox"', $inline);
+    }
+
+    public function testFormatAfterFilterRunsOnRenderedHtml(): void
+    {
+        $hooks = new HookRegistry();
+        $hooks->add(
+            HookName::POST_FORMAT_AFTER,
+            static fn (string $html): string => '<div class="post-wrap">' . $html . '</div>',
+        );
+
+        $formatter = new \Latch\Core\PostFormatter();
+        $formatter->setFormatAfterFilter(
+            static fn (string $html, string $raw): string => $hooks->filter(HookName::POST_FORMAT_AFTER, $html, $raw),
+        );
+
+        $html = $formatter->format('Hello world');
+
+        $this->assertStringContainsString('<div class="post-wrap">', $html);
+        $this->assertStringContainsString('<p>Hello world</p>', $html);
+    }
+
+    public function testProfileSaveContextReject(): void
+    {
+        $ctx = new ProfileSaveContext('hello', ['id' => 1, 'username' => 'alice']);
+        $hooks = new HookRegistry();
+        $hooks->add(HookName::PROFILE_BEFORE_SAVE, static function (ProfileSaveContext $context): void {
+            $context->reject('blocked');
+        });
+
+        $hooks->dispatch(HookName::PROFILE_BEFORE_SAVE, $ctx);
 
         $this->assertSame('blocked', $ctx->rejectReason);
     }

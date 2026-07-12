@@ -21,6 +21,12 @@ final class PostFormatter
     /** @var (callable(string): bool)|null */
     private $imageHostAllowed = null;
 
+    /** @var (callable(string, string, string, bool): string)|null */
+    private $linkFormatter = null;
+
+    /** @var (callable(string, string): string)|null */
+    private $formatAfterFilter = null;
+
     /** @var array<string, string> Most-used first — picker order matches this list. */
     private const SMILEYS = [
         ':smile:' => '😊',
@@ -56,6 +62,18 @@ final class PostFormatter
     public function setImageHostChecker(callable $checker): void
     {
         $this->imageHostAllowed = $checker;
+    }
+
+    /** @param callable(string, string, string, bool): string $formatter */
+    public function setLinkFormatter(callable $formatter): void
+    {
+        $this->linkFormatter = $formatter;
+    }
+
+    /** @param callable(string, string): string $filter */
+    public function setFormatAfterFilter(callable $filter): void
+    {
+        $this->formatAfterFilter = $filter;
     }
 
     public function plainText(string $raw): string
@@ -107,6 +125,10 @@ final class PostFormatter
                 'text' => $this->formatTextBlock($block['content']),
                 default => '',
             };
+        }
+
+        if ($this->formatAfterFilter !== null) {
+            $html = ($this->formatAfterFilter)($html, $raw);
         }
 
         return $mdImport ? '<div class="post-md-import">' . $html . '</div>' : $html;
@@ -287,6 +309,12 @@ final class PostFormatter
                 continue;
             }
 
+            $standaloneUrl = $this->parseStandaloneUrlParagraph($paragraph);
+            if ($standaloneUrl !== null) {
+                $out[] = '<p>' . $this->safeLink($standaloneUrl['url'], $standaloneUrl['label'], true) . '</p>';
+                continue;
+            }
+
             if (preg_match('/^(#{1,3})\s+(.+)$/s', $paragraph, $m) && !str_contains($paragraph, "\n")) {
                 $level = strlen($m[1]);
                 $tag = match ($level) {
@@ -444,7 +472,7 @@ final class PostFormatter
         return '<img src="' . $safeUrl . '" alt="' . $safeAlt . '" class="post-image" loading="lazy" decoding="async">';
     }
 
-    private function safeLink(string $url, string $label): string
+    private function safeLink(string $url, string $label, bool $standalone = false): string
     {
         $url = trim(htmlspecialchars_decode($url, ENT_QUOTES));
         $label = htmlspecialchars_decode($label, ENT_QUOTES);
@@ -452,17 +480,60 @@ final class PostFormatter
 
         if (preg_match('/^https?:\/\//i', $url)) {
             $safeUrl = htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $html = '<a href="' . $safeUrl . '" rel="nofollow ugc" target="_blank">' . $safeLabel . '</a>';
 
-            return '<a href="' . $safeUrl . '" rel="nofollow ugc" target="_blank">' . $safeLabel . '</a>';
+            if ($this->linkFormatter !== null) {
+                $html = ($this->linkFormatter)($html, $url, $label, $standalone);
+            }
+
+            return $html;
         }
 
         if ($this->isSafeRelativeUrl($url)) {
             $safeUrl = htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $html = '<a href="' . $safeUrl . '">' . $safeLabel . '</a>';
 
-            return '<a href="' . $safeUrl . '">' . $safeLabel . '</a>';
+            if ($this->linkFormatter !== null) {
+                $html = ($this->linkFormatter)($html, $url, $label, $standalone);
+            }
+
+            return $html;
         }
 
         return $safeLabel;
+    }
+
+    /**
+     * @return array{url: string, label: string}|null
+     */
+    private function parseStandaloneUrlParagraph(string $paragraph): ?array
+    {
+        $paragraph = trim($paragraph);
+        if ($paragraph === '' || str_contains($paragraph, "\n")) {
+            return null;
+        }
+
+        if (preg_match('/^https:\/\/\S+$/i', $paragraph) === 1) {
+            return ['url' => $paragraph, 'label' => $paragraph];
+        }
+
+        if (preg_match('/^\[(https?:\/\/[^\]]+)\]$/i', $paragraph, $m) === 1) {
+            return ['url' => $m[1], 'label' => $m[1]];
+        }
+
+        if (preg_match('/^\[url\](https?:\/\/[^\[]+)\[\/url\]$/i', $paragraph, $m) === 1) {
+            return ['url' => $m[1], 'label' => $m[1]];
+        }
+
+        if (preg_match('/^\[url=(https?:\/\/[^\]]+)\]([^\[]+)\[\/url\]$/i', $paragraph, $m) === 1) {
+            return ['url' => $m[1], 'label' => $m[2]];
+        }
+
+        if (preg_match('/^\[([^\]]+)\]\((https?:\/\/[^\)]+)\)$/', $paragraph, $m) === 1) {
+            return ['url' => $m[2], 'label' => $m[1]];
+        }
+
+        return null;
     }
 
     private function isSafeRelativeUrl(string $url): bool

@@ -25,6 +25,9 @@
                 </h1>
             </div>
             <div class="page-header-actions">
+                {% for html in plugin_topic_actions|default([]) %}
+                    {{ html|raw }}
+                {% endfor %}
                 {% if user and not topic.deleted_at %}
                     <button type="button"
                             class="btn btn-icon field-haze-btn topic-watch-btn{% if is_watching %} is-watching{% endif %}"

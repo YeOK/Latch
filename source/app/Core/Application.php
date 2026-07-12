@@ -21,6 +21,7 @@ use Latch\Core\Plugins\PluginDatabaseManager;
 use Latch\Core\Plugins\PluginLoader;
 use Latch\Core\Plugins\PluginRegistry;
 use Latch\Core\Plugins\PostSaveContext;
+use Latch\Core\Plugins\ProfileSaveContext;
 use Latch\Core\SeoMeta;
 use Latch\Controllers\AdminController;
 use Latch\Controllers\ApiMessagesController;
@@ -332,6 +333,22 @@ final class Application implements PluginCollectContext
         $this->postFormatter->setImageHostChecker(
             fn (string $host): bool => $this->isImageHostAllowed($host),
         );
+        $this->postFormatter->setLinkFormatter(
+            fn (string $html, string $url, string $label, bool $standalone): string => (string) $this->hookRegistry->filter(
+                HookName::POST_FORMAT_LINK,
+                $html,
+                $url,
+                $label,
+                $standalone,
+            ),
+        );
+        $this->postFormatter->setFormatAfterFilter(
+            fn (string $html, string $raw): string => (string) $this->hookRegistry->filter(
+                HookName::POST_FORMAT_AFTER,
+                $html,
+                $raw,
+            ),
+        );
         $this->view->bindPostFormatter($this->postFormatter);
 
         SecurityHeaders::apply(
@@ -339,6 +356,8 @@ final class Application implements PluginCollectContext
             $this->cspNonce,
             $this->hookRegistry->collect(HookName::CSP_IMG_SRC),
             $this->hookRegistry->collect(HookName::CSP_CONNECT_SRC),
+            $this->hookRegistry->collect(HookName::CSP_FRAME_SRC),
+            $this->hookRegistry->collect(HookName::CSP_SCRIPT_SRC),
         );
     }
 
@@ -1457,6 +1476,55 @@ final class Application implements PluginCollectContext
     }
 
     /**
+     * @param array<string, mixed> $post
+     * @param array<string, mixed> $topic
+     */
+    public function firePostDelete(array $post, array $topic): void
+    {
+        $this->hookRegistry->dispatch(HookName::POST_DELETE, $post, $topic, $this);
+    }
+
+    /**
+     * @param array<string, mixed> $topic
+     * @param array<string, mixed> $board
+     */
+    public function fireTopicDelete(array $topic, array $board): void
+    {
+        $this->hookRegistry->dispatch(HookName::TOPIC_DELETE, $topic, $board, $this);
+    }
+
+    public function firePostVote(int $postId, int $userId, ?string $vote): void
+    {
+        $this->hookRegistry->dispatch(HookName::POST_VOTE, $postId, $userId, $vote, $this);
+    }
+
+    /**
+     * @param array<string, mixed> $topic
+     * @param array<string, mixed> $board
+     * @return list<mixed>
+     */
+    public function collectTopicActions(array $topic, array $board): array
+    {
+        return $this->hookRegistry->collect(HookName::TOPIC_ACTIONS, $this, $topic, $board);
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     * @return list<mixed>
+     */
+    public function collectProfileForm(array $user): array
+    {
+        return $this->hookRegistry->collect(HookName::PROFILE_FORM, $this, $user);
+    }
+
+    public function applyProfileBeforeSave(ProfileSaveContext $context): ?string
+    {
+        $this->hookRegistry->dispatch(HookName::PROFILE_BEFORE_SAVE, $context);
+
+        return $context->rejectReason;
+    }
+
+    /**
      * @param array<string, mixed> $user
      */
     public function fireUserRegister(array $user): void
@@ -1760,6 +1828,7 @@ final class Application implements PluginCollectContext
             'oidc_providers' => $this->buildOidcProviderList(),
             'plugin_theme_assets' => $this->pluginCacheCoordinator->collect($this, HookName::THEME_ASSETS),
             'plugin_theme_scripts' => $this->pluginCacheCoordinator->collect($this, HookName::THEME_SCRIPTS),
+            'plugin_head_html' => $this->pluginCacheCoordinator->collect($this, HookName::LAYOUT_HEAD),
             'plugin_footer_html' => $this->pluginCacheCoordinator->collect($this, HookName::LAYOUT_FOOTER),
             'plugin_home_after_boards_html' => $this->pluginCacheCoordinator->collect($this, HookName::HOME_AFTER_BOARDS),
             'plugin_admin_menu_items' => $this->pluginCacheCoordinator->collect($this, HookName::ADMIN_MENU),

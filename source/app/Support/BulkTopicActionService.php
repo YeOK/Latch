@@ -74,6 +74,7 @@ final class BulkTopicActionService
                 $this->recordAudit($staffId, 'topic.unlock', $id);
             } else {
                 $archived = $this->app->moderationTrash()->archiveTopic($id, $staffId, $trashBatch);
+                $this->app->fireTopicDelete($topic, $board ?? []);
                 $archivedPosts += $archived;
                 $this->recordAudit($staffId, 'topic.delete', $id, [
                     'bulk' => true,

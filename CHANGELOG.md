@@ -9,6 +9,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.4.0] — 2026-07-12
+
+### Added
+
+- **Plugin hook expansion (28 hooks total)** — 11 new hooks for tier-1/2 plugins:
+  - `post.format.link`, `post.format.after` — link preview / onebox at render time
+  - `csp.frame_src`, `csp.script_src` — video embeds and analytics scripts
+  - `layout.head` — `<head>` snippets (privacy analytics)
+  - `topic.actions` — topic header share buttons (fediverse-share)
+  - `profile.form`, `profile.before_save` — avatar-url and profile extensions
+  - `post.delete`, `topic.delete`, `post.vote` — lifecycle hooks for plugin cleanup and reactions
+- **Standalone bare `https://` URLs** — auto-linked when alone on a line; `post.format.link` receives `$standalone = true`
+- **`ProfileSaveContext`** — mutable context for `profile.before_save` (mirrors `PostSaveContext`)
+- Docs: `PLUGINS.md` hook reference updated; `MARKUP.md` standalone URL note
+
 ## [0.4.3.1] — 2026-07-12
 
 ### Added
@@ -391,6 +406,7 @@ php bin/latch install --url=https://forum.example.com --name="My Forum"
 cd /var/www/latch && sudo bash scripts/update.sh
 ```
 
+[0.4.4.0]: https://github.com/YeOK/Latch/releases/tag/v0.4.4.0
 [0.4.3.1]: https://github.com/YeOK/Latch/releases/tag/v0.4.3.1
 [0.4.3.0]: https://github.com/YeOK/Latch/releases/tag/v0.4.3.0
 [0.3.0.23]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.23

@@ -116,6 +116,8 @@ final class ModController
         $staff = $this->app->auth()->user();
         $staffId = (int) ($staff['id'] ?? 0);
         $archivedPosts = $this->app->moderationTrash()->archiveTopic((int) $topic['id'], $staffId);
+        $board = $this->app->boards()->findById((int) $topic['board_id']);
+        $this->app->fireTopicDelete($topic, $board ?? []);
         $this->invalidateTopicCache($topic);
         $this->logModAction('topic.delete', 'topic', (int) $topic['id'], [
             'archived_posts' => $archivedPosts,
@@ -153,9 +155,15 @@ final class ModController
 
         $topicId = (int) ($params['id'] ?? 0);
         $trashPath = $this->app->moderationTrash()->trashBoardPath();
+        $topic = $this->app->topics()->findById($topicId);
         $result = $this->app->moderationTrash()->purgeTrashTopic($topicId);
         if ($result === null) {
             $this->finishStaffAction(false, 'Nothing to delete.', $trashPath);
+        }
+
+        if ($topic !== null) {
+            $board = $this->app->boards()->findById((int) $topic['board_id']);
+            $this->app->fireTopicDelete($topic, $board ?? []);
         }
 
         $restoreTopicIds = [];
@@ -674,6 +682,7 @@ final class ModController
                 continue;
             }
 
+            $this->app->firePostDelete($post, $postTopic);
             $trashed++;
             $boardId = (int) $postTopic['board_id'];
             $this->logModAction('post.trash', 'post', $id, [

@@ -57,6 +57,7 @@ trait ModerationTrashResponder
     {
         $app = $this->staffApp();
         $trashPath = $app->moderationTrash()->trashBoardPath();
+        $post = $app->posts()->findById($id);
         $result = $app->moderationTrash()->purgeTrashedPost($id);
         if ($result === null) {
             $this->finishStaffAction(false, 'Trashed post not found.', $trashPath);
@@ -64,6 +65,9 @@ trait ModerationTrashResponder
 
         $topicId = (int) $result['restore_topic_id'];
         $topic = $app->topics()->findById($topicId);
+        if ($post !== null && $topic !== null) {
+            $app->firePostDelete($post, $topic);
+        }
         if ($topic !== null) {
             $app->topics()->recalculateLastPostAt($topicId);
             $app->indexSearchTopic($topicId);
