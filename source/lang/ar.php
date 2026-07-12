@@ -97,6 +97,8 @@ return [
         'theme_light' => 'فاتح',
         'theme_dark' => 'داكن',
         'save_theme' => 'حفظ السمة',
+        'theme_apply_hint' => 'يُطبَّق المظهر فورًا على الموقع بالكامل.',
+        'theme_public_lead' => 'اختر كيف يظهر Latch لك على هذا الجهاز.',
         'language' => 'اللغة',
         'save_language' => 'حفظ اللغة',
         'theme_saved' => 'تم حفظ تفضيل السمة.',

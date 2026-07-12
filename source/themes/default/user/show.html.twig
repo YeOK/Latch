@@ -90,6 +90,14 @@
         </header>
     </section>
 
+    {% if is_own_profile %}
+    <section class="profile-appearance card">
+        <h2>{{ trans('profile.appearance') }}</h2>
+        <p class="muted">{{ trans('profile.theme_public_lead') }}</p>
+        {% include 'partials/theme_selector.html.twig' with { id_suffix: '-public' } %}
+    </section>
+    {% endif %}
+
     <section class="profile-activity">
         <h2>{{ trans('user.recent_posts') }}</h2>
         {% if recent_posts is empty %}

@@ -52,18 +52,8 @@
 
     <section class="form-section">
         <h2>{{ trans('profile.appearance') }}</h2>
-        <form method="post" action="/profile/theme" class="form form-wide">
-            {{ csrf_field() }}
-            <label>
-                {{ trans('profile.color_theme') }}
-                <select name="theme_mode">
-                    <option value="system"{% if theme_mode == 'system' %} selected{% endif %}>{{ trans('profile.theme_system') }}</option>
-                    <option value="light"{% if theme_mode == 'light' %} selected{% endif %}>{{ trans('profile.theme_light') }}</option>
-                    <option value="dark"{% if theme_mode == 'dark' %} selected{% endif %}>{{ trans('profile.theme_dark') }}</option>
-                </select>
-            </label>
-            <button type="submit" class="btn btn-primary">{{ trans('profile.save_theme') }}</button>
-        </form>
+        {% include 'partials/theme_selector.html.twig' %}
+        <p class="muted theme-selector-hint">{{ trans('profile.theme_apply_hint') }}</p>
         <form method="post" action="/profile/locale" class="form form-wide" style="margin-top: 1rem;">
             {{ csrf_field() }}
             <label>

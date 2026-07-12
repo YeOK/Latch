@@ -368,6 +368,25 @@
         policyCookieSettings.addEventListener('click', reopenConsentSettings);
     }
 
+    document.querySelectorAll('.theme-select').forEach(function (select) {
+        select.addEventListener('change', function () {
+            var mode = select.value;
+            if (MODES.indexOf(mode) < 0) {
+                return;
+            }
+
+            apply(mode);
+            setStored(mode);
+            persistToServer(mode);
+
+            document.querySelectorAll('.theme-select').forEach(function (other) {
+                if (other !== select) {
+                    other.value = mode;
+                }
+            });
+        });
+    });
+
     document.querySelectorAll('.locale-select').forEach(function (select) {
         select.addEventListener('change', function () {
             var code = select.value;

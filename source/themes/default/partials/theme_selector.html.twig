@@ -1,0 +1,9 @@
+{% set select_id = id_suffix|default('') %}
+<div class="theme-selector">
+    <label class="theme-selector-label" for="theme-select{{ select_id }}">{{ trans('profile.color_theme') }}</label>
+    <select id="theme-select{{ select_id }}" name="theme_mode" class="theme-select" aria-label="{{ trans('profile.color_theme') }}">
+        <option value="system"{% if theme_mode == 'system' %} selected{% endif %}>{{ trans('profile.theme_system') }}</option>
+        <option value="light"{% if theme_mode == 'light' %} selected{% endif %}>{{ trans('profile.theme_light') }}</option>
+        <option value="dark"{% if theme_mode == 'dark' %} selected{% endif %}>{{ trans('profile.theme_dark') }}</option>
+    </select>
+</div>

@@ -15,6 +15,7 @@ use Latch\Core\Application;
 use Latch\Core\Cache;
 use Latch\Core\Response;
 use Latch\Core\SeoMeta;
+use Latch\Core\ThemeMode;
 
 final class UserController
 {
@@ -67,6 +68,8 @@ final class UserController
             $canMessage = $this->app->messages()->canStartWith($viewer, $userId);
         }
 
+        $isOwnProfile = $viewer !== null && (int) $viewer['id'] === $userId;
+
         $this->app->render('user/show.html.twig', [
             'profile' => [
                 'username' => (string) $user['username'],
@@ -93,7 +96,10 @@ final class UserController
                 'reputation' => $reputation,
             ],
             'recent_posts' => $recentPosts,
-            'is_own_profile' => $viewer !== null && (int) $viewer['id'] === $userId,
+            'is_own_profile' => $isOwnProfile,
+            'theme_mode' => $isOwnProfile
+                ? ThemeMode::normalizePreference((string) ($viewer['theme_mode'] ?? ThemeMode::SYSTEM))
+                : null,
             'can_message' => $canMessage,
             'seo' => SeoMeta::forUser(
                 $this->app->siteUrl(),

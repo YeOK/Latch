@@ -702,7 +702,8 @@ body.page-admin .latch-header .header-bar {
     border: 0;
 }
 
-.locale-select {
+.locale-select,
+.theme-select {
     max-width: 7.5rem;
     padding: 0.35rem 0.5rem;
     border: 1px solid var(--border);
@@ -711,6 +712,38 @@ body.page-admin .latch-header .header-bar {
     color: var(--text);
     font: inherit;
     font-size: 0.85rem;
+}
+
+.theme-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+}
+
+.theme-selector-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.theme-selector-hint {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+}
+
+.profile-appearance {
+    margin-bottom: 1.5rem;
+}
+
+.profile-appearance h2 {
+    margin: 0 0 0.35rem;
+    font-size: 1.1rem;
+}
+
+.profile-appearance .theme-select {
+    max-width: 12rem;
+    width: 100%;
 }
 
 .locale-switcher--footer {
