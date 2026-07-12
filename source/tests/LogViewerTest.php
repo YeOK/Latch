@@ -106,6 +106,41 @@ final class LogViewerTest extends TestCase
         $viewer->parseRequestFilters(['source' => 'unknown.source']);
     }
 
+    public function testCountRecentLinesInLastUnfilteredTail(): void
+    {
+        $lines = [];
+        for ($i = 0; $i < 10; $i++) {
+            $event = $i % 3 === 0 ? 'login_fail' : 'login_success';
+            $lines[] = json_encode([
+                'ts' => '2026-07-12T10:' . str_pad((string) $i, 2, '0', STR_PAD_LEFT) . ':00+00:00',
+                'event' => $event,
+                'ip' => '1.1.1.1',
+            ], JSON_THROW_ON_ERROR);
+        }
+
+        file_put_contents($this->root . '/storage/logs/security.log', implode("\n", $lines) . "\n");
+
+        $viewer = LogViewer::fromConfig(new Config($this->configDir));
+
+        $this->assertSame(4, $viewer->countRecentLines('latch.security', 'login_fail', 10));
+        $this->assertSame(3, $viewer->countRecentLines('latch.security', 'login_fail', 7));
+    }
+
+    public function testCountRecentLinesReturnsZeroWhenLogMissing(): void
+    {
+        $viewer = LogViewer::fromConfig(new Config($this->configDir));
+
+        $this->assertSame(0, $viewer->countRecentLines('latch.security', 'login_fail', 500));
+    }
+
+    public function testCountRecentLinesRejectsNonSecuritySource(): void
+    {
+        $viewer = LogViewer::fromConfig(new Config($this->configDir));
+
+        $this->expectException(LogViewerException::class);
+        $viewer->countRecentLines('latch.restore', 'login_fail', 100);
+    }
+
     public function testFormatCliLineAppliesFilterAndRedaction(): void
     {
         $path = $this->root . '/storage/logs/security.log';

@@ -258,6 +258,42 @@ final class LogViewer
      *
      * @param array{event?: string, ip?: string, username?: string, since?: string, until?: string, q?: string} $filters
      */
+    /**
+     * Count event occurrences in the last $maxLines unfiltered lines of latch.security.
+     * Used by the admin dashboard card — not a calendar window.
+     */
+    public function countRecentLines(string $sourceId, string $event, int $maxLines = 500): int
+    {
+        if ($sourceId !== 'latch.security') {
+            throw new LogViewerException('countRecentLines supports latch.security only.');
+        }
+
+        $source = $this->registry->getSource($sourceId);
+        if ($source === null || ($source['status'] ?? '') !== 'readable') {
+            return 0;
+        }
+
+        if (($source['format'] ?? '') !== 'json_lines') {
+            return 0;
+        }
+
+        $maxLines = max(1, min(self::MAX_LINES, $maxLines));
+        $result = $this->tail($sourceId, $maxLines, null, null);
+
+        $count = 0;
+        foreach ($result['lines'] as $line) {
+            $parsed = $this->securityParser->parseLine($line);
+            if ($parsed === null || ($parsed['parse_error'] ?? false)) {
+                continue;
+            }
+            if (($parsed['event'] ?? '') === $event) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
     public function formatCliLine(string $sourceId, string $line, array $filters = []): ?string
     {
         $source = $this->registry->getSource($sourceId);

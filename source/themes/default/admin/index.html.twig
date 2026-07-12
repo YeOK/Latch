@@ -33,6 +33,13 @@
             <span class="admin-stat-value">{{ audit_log_count }}</span>
             <span class="admin-stat-label">Audit log entries</span>
         </a>
+        {% if security_log_summary is defined %}
+            <a class="admin-stat-card admin-stat-card--link{% if security_log_summary.count %} admin-stat-card--alert{% endif %}" href="{{ security_log_summary.view_url }}">
+                <span class="admin-stat-value">{{ security_log_summary.count }}</span>
+                <span class="admin-stat-label">Login failures</span>
+                <span class="admin-stat-hint muted">Last {{ security_log_summary.sample_lines }} log lines</span>
+            </a>
+        {% endif %}
         <a class="admin-stat-card admin-stat-card--link{% if pending_approval %} admin-stat-card--alert{% endif %}" href="/admin/approval">
             <span class="admin-stat-value">{{ pending_approval }}</span>
             <span class="admin-stat-label">Pending approval</span>

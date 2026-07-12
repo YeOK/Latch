@@ -3583,6 +3583,11 @@ body:not(.page-admin):not(.page-profile) :is(
     line-height: 1.1;
 }
 
+.admin-stat-hint {
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+
 .admin-system-panel {
     margin-bottom: 2rem;
     padding: 1rem 1.25rem;

@@ -68,6 +68,7 @@ final class AdminController
         $this->app->auth()->requireAdmin();
 
         $mailStatus = $this->app->mail()->status();
+        $securityLogSummary = $this->securityLogDashboardSummary();
 
         $this->app->render('admin/index.html.twig', [
             'post_count' => $this->app->posts()->countAll(),
@@ -75,6 +76,7 @@ final class AdminController
             'user_count' => $this->app->users()->countAll(),
             'board_count' => $this->app->boards()->count(),
             'audit_log_count' => $this->app->auditLog()->countAll(),
+            'security_log_summary' => $securityLogSummary,
             'pending_approval' => $this->app->posts()->countPending(),
             'open_reports' => $this->app->reports()->openCount(),
             'quarantine_count' => $this->app->posts()->countQuarantined(),
@@ -2552,6 +2554,31 @@ final class AdminController
     private function normalizeFooterAbout(string $text): string
     {
         return trim(str_replace(["\r\n", "\r"], "\n", $text));
+    }
+
+    /**
+     * @return array{event: string, count: int, sample_lines: int, status: string, view_url: string}
+     */
+    private function securityLogDashboardSummary(): array
+    {
+        $event = 'login_fail';
+        $sampleLines = 500;
+        $viewer = LogViewer::fromConfig($this->app->config());
+        $source = $viewer->registry()->getSource('latch.security');
+        $status = (string) ($source['status'] ?? 'missing');
+
+        $count = 0;
+        if ($status === 'readable') {
+            $count = $viewer->countRecentLines('latch.security', $event, $sampleLines);
+        }
+
+        return [
+            'event' => $event,
+            'count' => $count,
+            'sample_lines' => $sampleLines,
+            'status' => $status,
+            'view_url' => '/admin/logs/view?source=latch.security&event=' . rawurlencode($event),
+        ];
     }
 
     /**
