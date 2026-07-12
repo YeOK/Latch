@@ -262,8 +262,33 @@ final class Doctor
         }
 
         $checks = array_merge($checks, self::checkPluginStorageOwnership($storagePath));
+        $checks = array_merge($checks, self::checkPluginsCodePath($config));
 
         return $checks;
+    }
+
+    /**
+     * @return list<array{layer: string, name: string, ok: bool, detail: string}>
+     */
+    private static function checkPluginsCodePath(Config $config): array
+    {
+        $webUser = \Latch\Core\Plugins\PluginStoragePermissions::webUser();
+        $pluginsPath = (string) $config->get('paths.plugins');
+        if (!is_dir($pluginsPath)) {
+            return [];
+        }
+
+        $writable = is_writable($pluginsPath);
+        $detail = $writable
+            ? 'plugins/ writable by ' . $webUser . ' (catalog install OK)'
+            : 'plugins/ not writable by ' . $webUser . ' — sudo latch fix-perms';
+
+        return [[
+            'layer' => '4-perms',
+            'name' => 'plugins_code_path',
+            'ok' => $writable,
+            'detail' => $detail,
+        ]];
     }
 
     /**

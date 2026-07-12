@@ -62,7 +62,7 @@
                             </td>
                             <td>
                                 {% if row.compatible %}
-                                    <form method="post" action="/admin/plugins/catalog/install" class="inline-form" data-account-bypass>
+                                    <form method="post" action="/admin/plugins/catalog/install" class="inline-form">
                                         {{ csrf_field() }}
                                         <input type="hidden" name="slug" value="{{ row.slug }}">
                                         <button type="submit" class="btn btn-small btn-primary">Install</button>

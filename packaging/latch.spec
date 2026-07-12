@@ -138,6 +138,12 @@ chown -R apache:apache %{latch_libdir}/storage
 chmod 2770 %{latch_libdir}/storage
 chmod 2770 %{latch_libdir}/storage/database %{latch_libdir}/storage/backups %{latch_libdir}/storage/logs %{latch_libdir}/storage/cache 2>/dev/null || true
 
+# Catalog install runs as apache — plugins/ must allow mkdir for new slugs.
+if [ -d %{latch_datadir}/source/plugins ]; then
+    chown apache:apache %{latch_datadir}/source/plugins
+    chmod 2775 %{latch_datadir}/source/plugins
+fi
+
 systemctl daemon-reload >/dev/null 2>&1 || true
 systemctl enable --now latch-cron-hourly.timer latch-cron-daily.timer latch-cron-weekly.timer >/dev/null 2>&1 || true
 

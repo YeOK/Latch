@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace Latch\Core\Plugins;
 
 /**
- * Ensure storage/plugins/{slug}/ is writable by the web server after root CLI installs.
+ * Ensure plugin code (plugins/{slug}/) and storage/plugins/{slug}/ are writable by the web server.
  */
 final class PluginStoragePermissions
 {
@@ -62,16 +62,8 @@ final class PluginStoragePermissions
         ];
 
         if (is_string($pluginsPath) && $pluginsPath !== '' && is_dir($pluginsPath)) {
-            foreach (scandir($pluginsPath) ?: [] as $entry) {
-                if ($entry === '.' || $entry === '..' || $entry === '.gitkeep') {
-                    continue;
-                }
-
-                $dir = rtrim($pluginsPath, '/') . '/' . $entry;
-                if (is_dir($dir) && is_file($dir . '/plugin.json')) {
-                    $targets[] = $dir;
-                }
-            }
+            // Parent must be web-writable for admin catalog install (mkdir plugins/{slug}/).
+            $targets[] = rtrim($pluginsPath, '/');
         }
 
         $existing = array_values(array_filter($targets, static fn (string $path): bool => is_dir($path)));

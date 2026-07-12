@@ -67,7 +67,10 @@ final class PluginInstaller
             }
 
             if (!is_dir($this->pluginsPath) && !mkdir($this->pluginsPath, 0775, true) && !is_dir($this->pluginsPath)) {
-                throw new RuntimeException('Could not create plugins directory: ' . $this->pluginsPath);
+                throw new RuntimeException(
+                    'Could not create plugins directory: ' . $this->pluginsPath
+                    . ' — run sudo latch fix-perms (RPM: plugins/ must be owned by the web server)',
+                );
             }
 
             $this->copyDirectory($pluginDir, $targetDir);
@@ -242,7 +245,10 @@ final class PluginInstaller
         }
 
         if (!mkdir($destination, 0775, true) && !is_dir($destination)) {
-            throw new RuntimeException('Failed to create plugin directory: ' . $destination);
+            throw new RuntimeException(
+                'Failed to create plugin directory: ' . $destination
+                . ' — run sudo latch fix-perms so plugins/ is writable by the web server',
+            );
         }
 
         $iterator = new \RecursiveIteratorIterator(
