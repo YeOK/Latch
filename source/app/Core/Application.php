@@ -78,6 +78,7 @@ use Latch\Models\UserRepository;
 use Latch\Models\UserSessionRepository;
 use Latch\Models\UserWarningRepository;
 use Latch\Models\WebhookRepository;
+use Latch\Support\SiteMaintenance;
 use Latch\Support\VersionInfo;
 use Latch\Support\WebhookDispatcher;
 use Latch\Models\RecoveryCodeRepository;
@@ -114,6 +115,7 @@ final class Application implements PluginCollectContext
     private ReportReasons $reportReasons;
     private ReportQuarantine $reportQuarantine;
     private ThemeMode $themeMode;
+    private ThemeRegistry $themeRegistry;
     private Locale $locale;
     private ?Translator $translatorInstance = null;
     private AvatarUrl $avatarUrl;
@@ -178,8 +180,13 @@ final class Application implements PluginCollectContext
         $this->session->start($this->config, $this->request);
 
         $this->db = Database::fromConfig($this->config);
+        $this->settings = new SettingRepository($this->db);
+        $themesPath = (string) $this->config->get('paths.themes');
+        $this->themeRegistry = new ThemeRegistry($themesPath);
+        $activeTheme = $this->resolveActiveTheme();
+
         $this->csrf = new Csrf($this->session);
-        $this->view = new View($this->config, $this->csrf);
+        $this->view = new View($this->config, $this->csrf, $activeTheme);
         $this->rateLimiter = new RateLimiter($this->db);
 
         $storagePath = (string) $this->config->get('paths.storage');
@@ -191,7 +198,6 @@ final class Application implements PluginCollectContext
         $this->boards = new BoardRepository($this->db, $this->inputValidator);
         $this->posts = new PostRepository($this->db, $this->inputValidator);
         $this->topics = new TopicRepository($this->db, $this->posts, $this->inputValidator);
-        $this->settings = new SettingRepository($this->db);
         $this->siteBranding = new SiteBranding($this->settings, $storagePath);
         $this->webhooks = new WebhookRepository($this->db);
         $this->webhookDispatcher = new WebhookDispatcher($this->webhooks);
@@ -227,7 +233,7 @@ final class Application implements PluginCollectContext
         $this->tags = new TagRepository($this->db, $this->topicTags);
         $this->postFormatter = new PostFormatter();
         $this->search = new SearchRepository($this->db, $this->postFormatter, $this->tags);
-        $this->boardIcons = new BoardIconRegistry($this->config);
+        $this->boardIcons = new BoardIconRegistry($this->config, $activeTheme);
         $this->rss = new RssRepository($this->db, $this->postFormatter);
         $this->sitemap = new SitemapRepository($this->db);
         $this->spamGuard = new SpamGuard(
@@ -598,7 +604,7 @@ final class Application implements PluginCollectContext
     private function serveThemeAsset(string $relativePath): void
     {
         $themesPath = (string) $this->config->get('paths.themes');
-        $active = (string) $this->config->get('theme.active', 'default');
+        $active = $this->activeTheme();
         $defaultFile = $this->resolveThemeAssetFile($themesPath, 'default', $relativePath);
         $activeFile = $active !== 'default'
             ? $this->resolveThemeAssetFile($themesPath, $active, $relativePath)
@@ -691,7 +697,7 @@ final class Application implements PluginCollectContext
         }
 
         $themesPath = (string) $this->config->get('paths.themes');
-        $active = (string) $this->config->get('theme.active', 'default');
+        $active = $this->activeTheme();
         $paths = [
             $themesPath . '/' . $active . '/assets/css/theme.css',
             $themesPath . '/default/assets/css/theme.css',
@@ -872,6 +878,12 @@ final class Application implements PluginCollectContext
         if ($this->cacheEnabled()) {
             $this->cache->purgeAll();
         }
+    }
+
+    public function bustTwigCache(): void
+    {
+        $storagePath = (string) $this->config->get('paths.storage');
+        SiteMaintenance::clearTwigCompileCache(rtrim($storagePath, '/') . '/cache/twig');
     }
 
     /**
@@ -1658,6 +1670,30 @@ final class Application implements PluginCollectContext
     public function privacyContactEmail(): string
     {
         return trim((string) $this->settings->get('privacy_contact_email', ''));
+    }
+
+    public function themeRegistry(): ThemeRegistry
+    {
+        return $this->themeRegistry;
+    }
+
+    public function activeTheme(): string
+    {
+        return $this->resolveActiveTheme();
+    }
+
+    private function resolveActiveTheme(): string
+    {
+        static $resolved = null;
+        if ($resolved !== null) {
+            return $resolved;
+        }
+
+        $fallback = (string) $this->config->get('theme.active', 'default');
+        $fromDb = trim((string) $this->settings->get(ThemeRegistry::SETTING_ACTIVE, ''));
+        $resolved = $this->themeRegistry->resolve($fromDb, $fallback);
+
+        return $resolved;
     }
 
     public function defaultThemeMode(): string

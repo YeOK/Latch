@@ -47,10 +47,10 @@ final class BoardIconRegistry
 
     private string $packPath;
 
-    public function __construct(Config $config)
+    public function __construct(Config $config, ?string $activeTheme = null)
     {
         $themesPath = (string) $config->get('paths.themes');
-        $active = (string) $config->get('theme.active', 'default');
+        $active = $activeTheme ?? (string) $config->get('theme.active', 'default');
         $activePack = $themesPath . '/' . $active . '/assets/img/board-icons';
         $defaultPack = $themesPath . '/default/assets/img/board-icons';
 

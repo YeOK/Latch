@@ -940,6 +940,8 @@ final class AdminController
             'turnstile_configured' => (string) $this->app->config()->get('security.turnstile_site_key', '') !== ''
                 && (string) $this->app->config()->get('security.turnstile_secret_key', '') !== '',
             'post_edit_window_minutes' => $this->app->postEditWindowMinutes(),
+            'active_theme' => $this->app->activeTheme(),
+            'installed_themes' => $this->app->themeRegistry()->installed(),
             'default_theme_mode' => $this->app->defaultThemeMode(),
             'default_locale' => $this->app->defaultLocale(),
             'locale_catalog' => \Latch\Core\Locale::catalog(),
@@ -1103,6 +1105,17 @@ final class AdminController
         $privacyEmail = trim((string) $this->app->request()->input('privacy_contact_email', ''));
         if ($privacyEmail === '' || filter_var($privacyEmail, FILTER_VALIDATE_EMAIL)) {
             $this->app->settings()->set('privacy_contact_email', $privacyEmail);
+        }
+
+        $activeTheme = (string) $this->app->request()->input('active_theme', 'default');
+        if (!$this->app->themeRegistry()->isValid($activeTheme)) {
+            $this->app->session()->flash('error', 'Selected site theme is not installed.');
+            Response::redirect('/admin/settings');
+        }
+        $previousTheme = trim((string) $this->app->settings()->get(\Latch\Core\ThemeRegistry::SETTING_ACTIVE, ''));
+        $this->app->settings()->set(\Latch\Core\ThemeRegistry::SETTING_ACTIVE, $activeTheme);
+        if ($previousTheme !== $activeTheme) {
+            $this->app->bustTwigCache();
         }
 
         $defaultTheme = \Latch\Core\ThemeMode::normalizePreference(

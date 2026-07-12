@@ -191,6 +191,21 @@
         </label>
         <p class="muted">Policies are served at <a href="/privacy">/privacy</a> and <a href="/cookies">/cookies</a>.</p>
 
+        <section class="form-section" id="site-theme">
+            <h2>Site theme</h2>
+            <p class="muted">Visual theme for all visitors. Installed packs live under <code>themes/</code>; child themes such as <code>modern</code> override CSS while inheriting layouts from <code>default</code>.</p>
+            <label>
+                Active theme
+                <select name="active_theme">
+                    {% for theme in installed_themes %}
+                        <option value="{{ theme.id }}"{% if active_theme == theme.id %} selected{% endif %}>
+                            {{ theme.name }}{% if theme.version %} ({{ theme.version }}){% endif %}{% if theme.description %} — {{ theme.description }}{% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </label>
+        </section>
+
         <h2>Profiles</h2>
         <label class="checkbox">
             <input type="checkbox" name="use_gravatar" value="1"{% if use_gravatar %} checked{% endif %}>

@@ -25,10 +25,10 @@ final class View
     private PostFormatter $postFormatter;
     private ?Translator $translator = null;
 
-    public function __construct(Config $config, private readonly Csrf $csrf)
+    public function __construct(Config $config, private readonly Csrf $csrf, ?string $activeTheme = null)
     {
         $themesPath = (string) $config->get('paths.themes');
-        $active = (string) $config->get('theme.active', 'default');
+        $active = $activeTheme ?? (string) $config->get('theme.active', 'default');
         $activePath = $themesPath . '/' . $active;
         $defaultPath = $themesPath . '/default';
 
