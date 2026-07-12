@@ -36,17 +36,17 @@
                                 <td class="log-col-target">{{ entry.target_type }}{% if entry.target_id %} #{{ entry.target_id }}{% endif %}</td>
                                 <td class="log-col-ip">{{ entry.ip_address }}</td>
                             </tr>
-                            <tr class="log-code-line-row{% if not entry.has_metadata %} log-code-entry-end{% endif %}">
+                            <tr class="log-code-line-row{% if not entry.has_metadata|default(false) %} log-code-entry-end{% endif %}">
                                 <td colspan="6" class="log-code-subrow-cell">
                                     <span class="log-code-subrow-label">Record</span>
-                                    <pre class="log-code-line">{{ entry.record_line }}</pre>
+                                    <pre class="log-code-line">{{ entry.record_line|default('') }}</pre>
                                 </td>
                             </tr>
-                            {% if entry.has_metadata %}
+                            {% if entry.has_metadata|default(false) %}
                                 <tr class="log-code-details-row log-code-entry-end">
                                     <td colspan="6" class="log-code-subrow-cell">
                                         <span class="log-code-subrow-label">Details</span>
-                                        <pre class="log-code-details">{{ entry.metadata_json }}</pre>
+                                        <pre class="log-code-details">{{ entry.metadata_json|default('') }}</pre>
                                     </td>
                                 </tr>
                             {% endif %}
