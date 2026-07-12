@@ -85,7 +85,6 @@
                             <th class="log-col-event" scope="col">Event</th>
                             <th class="log-col-ip" scope="col">IP</th>
                             <th class="log-col-user" scope="col">User</th>
-                            <th class="log-col-raw" scope="col">Line</th>
                         </tr>
                     </thead>
                     <tbody id="log-viewer-lines">
@@ -97,12 +96,17 @@
                                 <td class="log-col-event">{% if row and row.parse_error %}<span class="log-parse-error">parse error</span>{% else %}{{ row.event|default('—') }}{% endif %}</td>
                                 <td class="log-col-ip">{{ row.ip|default('—') }}</td>
                                 <td class="log-col-user">{{ row.username|default('—') }}</td>
-                                <td class="log-col-raw"><pre class="log-code-line">{{ line }}</pre></td>
+                            </tr>
+                            <tr class="log-code-line-row{% if not row or row.meta is null %} log-code-entry-end{% endif %}">
+                                <td colspan="5" class="log-code-subrow-cell">
+                                    <span class="log-code-subrow-label">Line</span>
+                                    <pre class="log-code-line">{{ line }}</pre>
+                                </td>
                             </tr>
                             {% if row and row.meta is not null %}
-                                <tr class="log-code-details-row">
-                                    <td colspan="6" class="log-code-details-cell">
-                                        <span class="log-code-details-label">Details</span>
+                                <tr class="log-code-details-row log-code-entry-end">
+                                    <td colspan="5" class="log-code-subrow-cell">
+                                        <span class="log-code-subrow-label">Details</span>
                                         <pre class="log-code-details">{{ row.meta|json_encode(constant('JSON_UNESCAPED_SLASHES')) }}</pre>
                                     </td>
                                 </tr>

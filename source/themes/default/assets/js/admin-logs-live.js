@@ -50,6 +50,8 @@
             var user = escapeHtml(row && row.username ? row.username : '—');
             var raw = escapeHtml(entry.raw || '');
 
+            var entryEnd = !(row && row.meta != null);
+
             html +=
                 '<tr class="log-code-row">' +
                 '<td class="log-col-n">' + (i + 1) + '</td>' +
@@ -57,14 +59,18 @@
                 '<td class="log-col-event">' + eventCell + '</td>' +
                 '<td class="log-col-ip">' + ip + '</td>' +
                 '<td class="log-col-user">' + user + '</td>' +
-                '<td class="log-col-raw"><pre class="log-code-line">' + raw + '</pre></td>' +
-                '</tr>';
+                '</tr>' +
+                '<tr class="log-code-line-row' + (entryEnd ? ' log-code-entry-end' : '') + '">' +
+                '<td colspan="5" class="log-code-subrow-cell">' +
+                '<span class="log-code-subrow-label">Line</span>' +
+                '<pre class="log-code-line">' + raw + '</pre>' +
+                '</td></tr>';
 
             if (row && row.meta != null) {
                 html +=
-                    '<tr class="log-code-details-row">' +
-                    '<td colspan="6" class="log-code-details-cell">' +
-                    '<span class="log-code-details-label">Details</span>' +
+                    '<tr class="log-code-details-row log-code-entry-end">' +
+                    '<td colspan="5" class="log-code-subrow-cell">' +
+                    '<span class="log-code-subrow-label">Details</span>' +
                     '<pre class="log-code-details">' + escapeHtml(JSON.stringify(row.meta)) + '</pre>' +
                     '</td></tr>';
             }

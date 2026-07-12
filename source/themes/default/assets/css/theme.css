@@ -6077,9 +6077,9 @@ body.topic-mod-mode .post-actions {
 
 .log-code-table {
     width: 100%;
-    min-width: 40rem;
+    min-width: 36rem;
     border-collapse: collapse;
-    table-layout: fixed;
+    table-layout: auto;
 }
 
 .log-code-table th,
@@ -6104,7 +6104,9 @@ body.topic-mod-mode .post-actions {
 }
 
 .log-code-row:hover td,
-.log-code-row:hover + .log-code-details-row td,
+.log-code-row:hover + .log-code-line-row td,
+.log-code-row:hover + .log-code-line-row + .log-code-details-row td,
+.log-code-line-row:hover td,
 .log-code-details-row:hover td {
     background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
@@ -6138,21 +6140,27 @@ body.topic-mod-mode .post-actions {
     text-overflow: ellipsis;
 }
 
-.log-col-raw {
-    width: auto;
+.log-code-row td {
+    border-bottom: none;
+    padding-bottom: 0.2rem;
 }
 
+.log-code-line-row td,
 .log-code-details-row td {
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    border-bottom: none;
     padding-top: 0;
 }
 
-.log-code-details-cell {
-    padding-left: 3.4rem;
+.log-code-entry-end td {
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
     padding-bottom: 0.55rem;
 }
 
-.log-code-details-label {
+.log-code-subrow-cell {
+    padding-left: 3.4rem;
+}
+
+.log-code-subrow-label {
     display: block;
     margin-bottom: 0.2rem;
     color: var(--muted);
@@ -6169,19 +6177,19 @@ body.topic-mod-mode .post-actions {
     background: transparent;
     border: none;
     font: inherit;
-    white-space: pre;
+    white-space: pre-wrap;
+    word-break: break-word;
     overflow-x: auto;
+    max-width: 100%;
+}
+
+.log-code-line {
+    color: var(--text);
 }
 
 .log-code-details {
     color: var(--muted);
     font-size: 0.76rem;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-.log-col-raw .log-code-line {
-    color: var(--text);
 }
 
 .log-code-view--text {
