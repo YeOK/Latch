@@ -48,10 +48,6 @@
                 : escapeHtml(row && row.event ? row.event : '—');
             var ip = escapeHtml(row && row.ip ? row.ip : '—');
             var user = escapeHtml(row && row.username ? row.username : '—');
-            var detailsCell = '<span class="log-code-empty">—</span>';
-            if (row && row.meta != null) {
-                detailsCell = '<pre class="log-code-details">' + escapeHtml(JSON.stringify(row.meta)) + '</pre>';
-            }
             var raw = escapeHtml(entry.raw || '');
 
             html +=
@@ -61,9 +57,17 @@
                 '<td class="log-col-event">' + eventCell + '</td>' +
                 '<td class="log-col-ip">' + ip + '</td>' +
                 '<td class="log-col-user">' + user + '</td>' +
-                '<td class="log-col-details">' + detailsCell + '</td>' +
                 '<td class="log-col-raw"><pre class="log-code-line">' + raw + '</pre></td>' +
                 '</tr>';
+
+            if (row && row.meta != null) {
+                html +=
+                    '<tr class="log-code-details-row">' +
+                    '<td colspan="6" class="log-code-details-cell">' +
+                    '<span class="log-code-details-label">Details</span>' +
+                    '<pre class="log-code-details">' + escapeHtml(JSON.stringify(row.meta)) + '</pre>' +
+                    '</td></tr>';
+            }
         }
         linesMount.innerHTML = html;
     }

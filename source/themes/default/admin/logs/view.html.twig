@@ -85,7 +85,6 @@
                             <th class="log-col-event" scope="col">Event</th>
                             <th class="log-col-ip" scope="col">IP</th>
                             <th class="log-col-user" scope="col">User</th>
-                            <th class="log-col-details" scope="col">Details</th>
                             <th class="log-col-raw" scope="col">Line</th>
                         </tr>
                     </thead>
@@ -98,15 +97,16 @@
                                 <td class="log-col-event">{% if row and row.parse_error %}<span class="log-parse-error">parse error</span>{% else %}{{ row.event|default('—') }}{% endif %}</td>
                                 <td class="log-col-ip">{{ row.ip|default('—') }}</td>
                                 <td class="log-col-user">{{ row.username|default('—') }}</td>
-                                <td class="log-col-details">
-                                    {% if row and row.meta is not null %}
-                                        <pre class="log-code-details">{{ row.meta|json_encode(constant('JSON_UNESCAPED_SLASHES')) }}</pre>
-                                    {% else %}
-                                        <span class="log-code-empty">—</span>
-                                    {% endif %}
-                                </td>
                                 <td class="log-col-raw"><pre class="log-code-line">{{ line }}</pre></td>
                             </tr>
+                            {% if row and row.meta is not null %}
+                                <tr class="log-code-details-row">
+                                    <td colspan="6" class="log-code-details-cell">
+                                        <span class="log-code-details-label">Details</span>
+                                        <pre class="log-code-details">{{ row.meta|json_encode(constant('JSON_UNESCAPED_SLASHES')) }}</pre>
+                                    </td>
+                                </tr>
+                            {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>

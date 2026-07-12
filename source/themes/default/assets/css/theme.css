@@ -6077,7 +6077,7 @@ body.topic-mod-mode .post-actions {
 
 .log-code-table {
     width: 100%;
-    min-width: 52rem;
+    min-width: 40rem;
     border-collapse: collapse;
     table-layout: fixed;
 }
@@ -6103,7 +6103,9 @@ body.topic-mod-mode .post-actions {
     white-space: nowrap;
 }
 
-.log-code-row:hover td {
+.log-code-row:hover td,
+.log-code-row:hover + .log-code-details-row td,
+.log-code-details-row:hover td {
     background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
@@ -6136,12 +6138,28 @@ body.topic-mod-mode .post-actions {
     text-overflow: ellipsis;
 }
 
-.log-col-details {
-    width: 14rem;
-}
-
 .log-col-raw {
     width: auto;
+}
+
+.log-code-details-row td {
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    padding-top: 0;
+}
+
+.log-code-details-cell {
+    padding-left: 3.4rem;
+    padding-bottom: 0.55rem;
+}
+
+.log-code-details-label {
+    display: block;
+    margin-bottom: 0.2rem;
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .log-code-details,
@@ -6155,20 +6173,15 @@ body.topic-mod-mode .post-actions {
     overflow-x: auto;
 }
 
-.log-col-details .log-code-details {
-    max-height: 5.5rem;
-    overflow: auto;
+.log-code-details {
     color: var(--muted);
     font-size: 0.76rem;
-    word-break: normal;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .log-col-raw .log-code-line {
     color: var(--text);
-}
-
-.log-code-empty {
-    color: var(--muted);
 }
 
 .log-code-view--text {
