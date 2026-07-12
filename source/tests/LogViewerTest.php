@@ -106,6 +106,23 @@ final class LogViewerTest extends TestCase
         $viewer->parseRequestFilters(['source' => 'unknown.source']);
     }
 
+    public function testFormatCliLineAppliesFilterAndRedaction(): void
+    {
+        $path = $this->root . '/storage/logs/security.log';
+        file_put_contents(
+            $path,
+            "{\"ts\":\"2026-07-12T10:00:00+00:00\",\"event\":\"login_fail\",\"password\":\"secret\"}\n"
+            . "{\"ts\":\"2026-07-12T10:01:00+00:00\",\"event\":\"login_success\",\"password\":\"secret\"}\n",
+        );
+
+        $viewer = LogViewer::fromConfig(new Config($this->configDir));
+        $line = $viewer->formatCliLine('latch.security', '{"event":"login_fail","password":"secret"}', ['event' => 'login_fail']);
+
+        $this->assertNotNull($line);
+        $this->assertStringContainsString('[REDACTED]', $line);
+        $this->assertNull($viewer->formatCliLine('latch.security', '{"event":"login_success"}', ['event' => 'login_fail']));
+    }
+
     private function removeTree(string $dir): void
     {
         $items = scandir($dir);

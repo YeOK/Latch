@@ -51,6 +51,8 @@ php bin/latch help
 | `import phpbb` | Import phpBB 3.3.x bundle into empty forum (Phase 6) |
 | `post-announcements` | Post changelog replies to a forum topic |
 | `purge-users` | Delete member accounts with no posts/topics |
+| `logs list` | List configured log sources and readability status |
+| `logs tail` | Tail application or server logs (same filters as Admin → Logs) |
 
 ---
 
@@ -710,6 +712,59 @@ php bin/latch lock off
 Fixture bundles for tests: `scripts/fixtures/phpbb/minimal-bundle.json`, `edge-case-bundle.json`.
 
 Custom BBCode strategies: `config/import-phpbb-bbcodes.php`.
+
+---
+
+## logs
+
+Inspect Latch application logs and optional server logs from SSH. Uses the same reader, filters, and redaction as **Admin → Logs** (`/admin/logs`).
+
+```bash
+php bin/latch logs list
+php bin/latch logs list --json
+
+php bin/latch logs tail --source=latch.security
+php bin/latch logs tail --source=latch.security --lines=50 --follow
+php bin/latch logs tail --source=latch.security --event=login_fail --ip=203.0.113.5
+php bin/latch logs tail --source=httpd.error --q=error --lines=100
+```
+
+Built-in sources (always listed):
+
+| ID | File |
+|----|------|
+| `latch.security` | `storage/logs/security.log` (JSON lines) |
+| `latch.restore` | `storage/logs/restore.log` (plain text) |
+
+Server sources appear when `logs.server_logs_enabled` is `true` in `config/local.php` — see [SECURITY.md](SECURITY.md) and packaging docs.
+
+| Option | Purpose |
+|--------|---------|
+| `--source=ID` | Required for `tail` — source id from `logs list` |
+| `--lines=N` | Lines per page (default 200, max 500) |
+| `--follow` | Poll every 2s for new lines (Ctrl+C to stop); prints `# log rotated` on rotation |
+| `--event=TYPE` | Security log: exact event type |
+| `--ip=ADDR` | Security log: exact IP |
+| `--username=NAME` | Security log: username (case-insensitive) |
+| `--since=ISO` / `--until=ISO` | Security log time bounds |
+| `--q=TEXT` | Text logs: case-insensitive substring |
+| `--cursor=N` | Load older page (byte offset from prior tail) |
+| `--fp-size=N` / `--fp-mtime=N` | Fingerprint pair for cursor validation after rotation |
+| `--json` | Machine-readable output |
+
+| Exit (`tail`) | Meaning |
+|---------------|---------|
+| 0 | Success |
+| 1 | Unknown source, invalid filter, or validation error |
+| 2 | Source exists but is not readable (permissions / denylist) |
+
+Pagination hints (`# older content available…`, fingerprint values) are written to **stderr** so stdout stays pipe-friendly.
+
+Production tip — tail security events while debugging auth:
+
+```bash
+sudo -u apache php bin/latch logs tail --source=latch.security --event=login_fail --follow
+```
 
 ---
 

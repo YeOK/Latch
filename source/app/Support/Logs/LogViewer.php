@@ -254,6 +254,28 @@ final class LogViewer
     }
 
     /**
+     * Apply tail filters and redaction for a single line (CLI follow mode).
+     *
+     * @param array{event?: string, ip?: string, username?: string, since?: string, until?: string, q?: string} $filters
+     */
+    public function formatCliLine(string $sourceId, string $line, array $filters = []): ?string
+    {
+        $source = $this->registry->getSource($sourceId);
+        if ($source === null) {
+            return null;
+        }
+
+        if ($filters !== []) {
+            $matcher = $this->buildMatcher($source, $filters);
+            if ($matcher !== null && !$matcher($line)) {
+                return null;
+            }
+        }
+
+        return $this->redactor->redact($line);
+    }
+
+    /**
      * @param array<string, mixed>|list<string> $input
      * @return array{
      *   source: string,

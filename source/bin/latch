@@ -53,6 +53,8 @@ use Latch\Support\SiteLock;
 use Latch\Support\SiteMaintenance;
 use Latch\Support\Doctor;
 use Latch\Support\SiteMigrate;
+use Latch\Support\Logs\LogViewer;
+use Latch\Support\Logs\LogViewerException;
 use Latch\Support\SiteRestore;
 use Latch\Support\SqliteIntegrity;
 use Latch\Support\UpdateOrchestrator;
@@ -82,6 +84,7 @@ match ($command) {
     'cache-clear' => run_cache_clear(),
     'maintenance' => run_maintenance($argv),
     'lock' => run_lock($argv),
+    'logs' => run_logs($argv),
     'cron' => run_cron($argv),
     'benchmark' => run_benchmark($argv),
     'test-mail' => run_test_mail($argv),
@@ -141,6 +144,8 @@ Latch CLI
   php bin/latch cron weekly    ANALYZE, DM/topic_reads cleanup; --audit for audit_log
   php bin/latch maintenance    Run cron daily + optional --clear-cache / --vacuum
   php bin/latch lock on|off|status  Site maintenance lock (blocks web + API, no DB traffic)
+  php bin/latch logs list [--json]  List configured log sources and readability status
+  php bin/latch logs tail --source=ID [--lines=N] [--follow]  Tail a log (filters match admin viewer)
   php bin/latch benchmark      Curl timing report for key pages
   php bin/latch test-mail      Send a test email (verify msmtp/SMTP)
   php bin/latch mail process   Drain pending notification mail queue
@@ -1110,6 +1115,261 @@ function lock_usage_and_exit(string $action): void
     }
 
     fwrite(STDERR, "Usage: php bin/latch lock on|off|status [--message=\"Updating…\"] [--show-token]\n");
+    exit(1);
+}
+
+function run_logs(array $argv): void
+{
+    $sub = strtolower(trim((string) ($argv[2] ?? '')));
+    $opts = parse_cli_options($argv);
+    $config = new Config(LATCH_ROOT . '/config');
+    $viewer = LogViewer::fromConfig($config);
+
+    match ($sub) {
+        'list' => run_logs_list($viewer, $opts),
+        'tail' => run_logs_tail($viewer, $opts),
+        default => logs_usage_and_exit($sub),
+    };
+}
+
+/**
+ * @param array<string, string> $opts
+ */
+function run_logs_list(LogViewer $viewer, array $opts): void
+{
+    $sources = $viewer->listSources();
+
+    if (isset($opts['json'])) {
+        fwrite(STDOUT, json_encode(['sources' => $sources], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+        exit(0);
+    }
+
+    $groups = [];
+    foreach ($sources as $source) {
+        $group = (string) ($source['group'] ?? 'Other');
+        $groups[$group][] = $source;
+    }
+
+    ksort($groups);
+    foreach ($groups as $group => $items) {
+        fwrite(STDOUT, $group . "\n");
+        foreach ($items as $source) {
+            $size = (int) ($source['size_bytes'] ?? 0);
+            $sizeLabel = $size > 0 ? SiteRestore::formatBytes($size) : '-';
+            fwrite(STDOUT, sprintf(
+                "  %-18s  %-18s  %s  %s\n",
+                (string) ($source['id'] ?? ''),
+                (string) ($source['status'] ?? ''),
+                $sizeLabel,
+                (string) ($source['path'] ?? ''),
+            ));
+        }
+        fwrite(STDOUT, "\n");
+    }
+
+    exit(0);
+}
+
+/**
+ * @param array<string, string> $opts
+ */
+function run_logs_tail(LogViewer $viewer, array $opts): void
+{
+    try {
+        $parsed = $viewer->parseRequestFilters($opts);
+    } catch (LogViewerException $e) {
+        fwrite(STDERR, $e->getMessage() . "\n");
+        exit(logs_tail_exit_code($e));
+    }
+
+    $follow = isset($opts['follow']);
+    if ($follow && isset($opts['cursor'])) {
+        unset($parsed['cursor'], $parsed['fingerprint']);
+    }
+
+    try {
+        $result = $viewer->tail(
+            $parsed['source'],
+            $parsed['limit'],
+            $parsed['cursor'],
+            $parsed['fingerprint'],
+            $parsed['filters'],
+        );
+    } catch (LogViewerException $e) {
+        fwrite(STDERR, $e->getMessage() . "\n");
+        exit(logs_tail_exit_code($e));
+    }
+
+    if (isset($opts['json'])) {
+        fwrite(STDOUT, json_encode([
+            'source' => $parsed['source'],
+            'lines' => $result['lines'],
+            'parsed' => $result['parsed'],
+            'next_cursor' => $result['next_cursor'],
+            'fingerprint' => $result['fingerprint'],
+            'rotated' => $result['rotated'],
+            'scan_budget_exhausted' => $result['scan_budget_exhausted'],
+            'matches_exhausted' => $result['matches_exhausted'],
+            'bytes_scanned' => $result['bytes_scanned'],
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+        exit(0);
+    }
+
+    foreach ($result['lines'] as $line) {
+        fwrite(STDOUT, $line . "\n");
+    }
+
+    logs_print_tail_hints($result);
+
+    if (!$follow) {
+        exit(0);
+    }
+
+    if (($result['source']['status'] ?? '') !== 'readable') {
+        exit(0);
+    }
+
+    $path = (string) $result['source']['path'];
+    $sourceId = $parsed['source'];
+    $filters = $parsed['filters'];
+    $offset = (int) $result['fingerprint']['size'];
+    $lastMtime = (int) $result['fingerprint']['mtime'];
+    $partial = '';
+
+    if (function_exists('pcntl_signal')) {
+        pcntl_signal(SIGINT, static function (): void {
+            fwrite(STDOUT, "\n");
+            exit(0);
+        });
+    }
+
+    while (true) {
+        if (function_exists('pcntl_signal_dispatch')) {
+            pcntl_signal_dispatch();
+        }
+
+        sleep(2);
+
+        if (!is_file($path)) {
+            continue;
+        }
+
+        $stat = stat($path);
+        if ($stat === false) {
+            continue;
+        }
+
+        $size = (int) $stat['size'];
+        $mtime = (int) $stat['mtime'];
+
+        if ($size < $offset || $mtime !== $lastMtime) {
+            fwrite(STDOUT, "# log rotated\n");
+            $offset = 0;
+            $partial = '';
+            $lastMtime = $mtime;
+            if ($size === 0) {
+                continue;
+            }
+        }
+
+        if ($size <= $offset) {
+            $lastMtime = $mtime;
+            continue;
+        }
+
+        $lines = logs_read_forward_lines($path, $offset, $partial);
+        $lastMtime = $mtime;
+
+        foreach ($lines as $line) {
+            if ($line === '') {
+                continue;
+            }
+            $formatted = $viewer->formatCliLine($sourceId, $line, $filters);
+            if ($formatted === null) {
+                continue;
+            }
+            fwrite(STDOUT, $formatted . "\n");
+        }
+    }
+}
+
+/**
+ * @param array<string, mixed> $result
+ */
+function logs_print_tail_hints(array $result): void
+{
+    if ($result['rotated']) {
+        fwrite(STDERR, "# log rotated — showing latest entries\n");
+    }
+    if ($result['scan_budget_exhausted']) {
+        fwrite(STDERR, "# scan budget exhausted — older matches may exist\n");
+    }
+    if ($result['next_cursor'] !== null) {
+        fwrite(STDERR, '# older content available; use --cursor=' . (int) $result['next_cursor'] . "\n");
+        $fp = $result['fingerprint'];
+        fwrite(STDERR, '# fingerprint: --fp-size=' . (int) $fp['size'] . ' --fp-mtime=' . (int) $fp['mtime'] . "\n");
+    }
+}
+
+function logs_tail_exit_code(LogViewerException $e): int
+{
+    $message = $e->getMessage();
+    if (str_contains($message, 'not readable')) {
+        return 2;
+    }
+
+    return 1;
+}
+
+/**
+ * @return list<string>
+ */
+function logs_read_forward_lines(string $path, int &$offset, string &$partial): array
+{
+    $stat = stat($path);
+    if ($stat === false) {
+        return [];
+    }
+
+    $size = (int) $stat['size'];
+    if ($size <= $offset) {
+        return [];
+    }
+
+    $handle = fopen($path, 'rb');
+    if ($handle === false) {
+        return [];
+    }
+
+    fseek($handle, $offset);
+    $data = fread($handle, $size - $offset);
+    fclose($handle);
+
+    if (!is_string($data) || $data === '') {
+        $offset = $size;
+
+        return [];
+    }
+
+    $offset = $size;
+    $content = $partial . $data;
+    $lines = explode("\n", $content);
+    $partial = (string) array_pop($lines);
+
+    return array_map(static fn (string $line): string => rtrim($line, "\r"), $lines);
+}
+
+function logs_usage_and_exit(string $sub): void
+{
+    if ($sub !== '') {
+        fwrite(STDERR, "Unknown logs subcommand: {$sub}\n");
+    }
+
+    fwrite(STDERR, "Usage: php bin/latch logs list [--json]\n");
+    fwrite(STDERR, "       php bin/latch logs tail --source=ID [--lines=N] [--follow] \\\n");
+    fwrite(STDERR, "         [--event=TYPE] [--ip=ADDR] [--username=NAME] \\\n");
+    fwrite(STDERR, "         [--since=ISO] [--until=ISO] [--q=TEXT] \\\n");
+    fwrite(STDERR, "         [--cursor=N] [--fp-size=N] [--fp-mtime=N] [--json]\n");
     exit(1);
 }
 
