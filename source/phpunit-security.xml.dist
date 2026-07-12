@@ -26,6 +26,7 @@
             <file>tests/UserRepositoryPurgeTest.php</file>
             <file>tests/InputValidatorTest.php</file>
             <file>tests/ImageUploadPluginTest.php</file>
+            <file>tests/LinkPreviewPluginTest.php</file>
             <file>tests/WordFilterPluginTest.php</file>
             <file>tests/PluginSettingsStoreTest.php</file>
         </testsuite>

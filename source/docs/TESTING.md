@@ -96,7 +96,7 @@ Defined in `phpunit.xml.dist`:
 
 **Smoke** includes: `MigratorTest`, `SqliteIntegrityTest`, `SiteRestoreTest`, `SiteLockTest`, `PluginSystemTest`, `PostFormatterTest`, `TopicRepositoryHomeTest`, `CronMaintenanceTest`, `RssFeedTest`, `OAuthScopesTest`, `VersionInfoTest`.
 
-**Security** includes: `CsrfTest`, `SecurityRegressionTest`, `OidcServiceTest`, `BoardAclTest`, `SpamGuardTest`, `PluginAuditorTest`, `PluginAuditServiceTest`, `ThemeJsAuditorTest`, `DatabaseTest`, `OutboundUrlGuardTest`, `SecretCipherTest`, `Phase15LeftoversTest`, `PostEditGuardTest`, `UserRepositoryPurgeTest`, `InputValidatorTest`, `ImageUploadPluginTest`, `RequestHttpsTest`, `SiteLockTest`.
+**Security** includes: `CsrfTest`, `SecurityRegressionTest`, `OidcServiceTest`, `BoardAclTest`, `SpamGuardTest`, `PluginAuditorTest`, `PluginAuditServiceTest`, `ThemeJsAuditorTest`, `DatabaseTest`, `OutboundUrlGuardTest`, `LinkPreviewPluginTest`, `SecretCipherTest`, `Phase15LeftoversTest`, `PostEditGuardTest`, `UserRepositoryPurgeTest`, `InputValidatorTest`, `ImageUploadPluginTest`, `RequestHttpsTest`, `SiteLockTest`.
 
 ### JavaScript XSS coverage
 

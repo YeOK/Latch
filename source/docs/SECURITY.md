@@ -127,6 +127,18 @@ Server-side post markup is escaped in `PostFormatter` (`SecurityRegressionTest`)
 
 Details: [PLUGINS.md](PLUGINS.md), [TESTING.md](TESTING.md).
 
+## Outbound URL policy (SSRF)
+
+User-supplied and operator-configured outbound HTTPS targets are validated by `Latch\Support\OutboundUrlGuard` before any request is sent:
+
+- HTTPS only (no `http://`, `file://`, or other schemes)
+- Blocks literal private, loopback, link-local, and reserved IPs (including IPv6 literals such as `[::1]`)
+- Blocks `localhost`, `*.localhost`, `*.local`, and `metadata.google.internal`
+- Resolves hostnames via DNS and rejects targets that map to non-public addresses
+- Redirect hops are re-validated (link-preview and webhook paths do not auto-follow unsafe `Location` headers)
+
+Plugins that fetch arbitrary URLs must declare `permissions.network` and should delegate URL checks to `OutboundUrlGuard` rather than rolling a local allowlist.
+
 ## SQLite hardening
 
 - Database file outside `public/`; `doctor` fails on world-readable `latch.sqlite` (expect `660`, group `apache`).

@@ -14,8 +14,7 @@ namespace Latch\Support;
 /**
  * Blocks outbound HTTP requests to private, loopback, and link-local targets (SSRF mitigation).
  *
- * Used for operator-configured webhook delivery — URLs are trusted only after host resolution
- * passes these checks.
+ * Used for operator-configured webhook delivery and plugins that fetch user-supplied URLs.
  */
 final class OutboundUrlGuard
 {
@@ -24,6 +23,11 @@ final class OutboundUrlGuard
         'localhost.localdomain',
         'metadata.google.internal',
     ];
+
+    public static function normalizePublicHttpsUrl(string $url): ?string
+    {
+        return self::publicHttpsUrlError($url) === null ? trim($url) : null;
+    }
 
     public static function publicHttpsUrlError(string $url): ?string
     {
@@ -54,11 +58,49 @@ final class OutboundUrlGuard
             return 'URL must not target private or reserved addresses.';
         }
 
-        if (filter_var($host, FILTER_VALIDATE_IP)) {
-            return self::publicIpError($host);
+        $ipLiteral = self::stripIpv6Brackets($host);
+        if (filter_var($ipLiteral, FILTER_VALIDATE_IP)) {
+            return self::publicIpError($ipLiteral);
         }
 
         return self::resolvedHostError($host);
+    }
+
+    public static function resolveRedirectLocation(string $baseUrl, string $location): ?string
+    {
+        $location = trim($location);
+        if ($location === '') {
+            return null;
+        }
+
+        if (preg_match('/^([a-z][a-z0-9+.-]*):/i', $location, $match) === 1) {
+            $scheme = strtolower($match[1]);
+            if ($scheme !== 'http' && $scheme !== 'https') {
+                return null;
+            }
+        }
+
+        if (!preg_match('/^https?:\/\//i', $location)) {
+            $base = parse_url($baseUrl);
+            if (!is_array($base) || empty($base['scheme']) || empty($base['host'])) {
+                return null;
+            }
+
+            $origin = $base['scheme'] . '://' . $base['host']
+                . (isset($base['port']) ? ':' . $base['port'] : '');
+
+            if (str_starts_with($location, '//')) {
+                $location = $base['scheme'] . ':' . $location;
+            } elseif (str_starts_with($location, '/')) {
+                $location = $origin . $location;
+            } else {
+                $path = (string) ($base['path'] ?? '/');
+                $dir = preg_replace('#/[^/]*$#', '/', $path) ?: '/';
+                $location = $origin . $dir . $location;
+            }
+        }
+
+        return self::normalizePublicHttpsUrl($location);
     }
 
     private static function resolvedHostError(string $host): ?string
@@ -85,7 +127,7 @@ final class OutboundUrlGuard
         }
 
         if ($ips === []) {
-            return 'Could not resolve webhook hostname.';
+            return 'Could not resolve hostname.';
         }
 
         foreach ($ips as $ip) {
@@ -109,5 +151,14 @@ final class OutboundUrlGuard
         }
 
         return null;
+    }
+
+    private static function stripIpv6Brackets(string $host): string
+    {
+        if (str_starts_with($host, '[') && str_ends_with($host, ']')) {
+            return substr($host, 1, -1);
+        }
+
+        return $host;
     }
 }

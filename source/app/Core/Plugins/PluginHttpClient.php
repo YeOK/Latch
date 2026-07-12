@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace Latch\Core\Plugins;
 
+use Latch\Support\OutboundUrlGuard;
+
 /**
  * Minimal HTTP GET for plugin catalog and release downloads.
  */
@@ -35,6 +37,10 @@ final class PluginHttpClient implements PluginHttpClientInterface
      */
     public function request(string $method, string $url, ?string $body = null): ?array
     {
+        if ($method === 'GET' && OutboundUrlGuard::normalizePublicHttpsUrl($url) === null) {
+            return null;
+        }
+
         $context = stream_context_create([
             'http' => [
                 'method' => $method,
