@@ -51,6 +51,63 @@
                 Remove uploaded logo
             </label>
         {% endif %}
+
+            <h3 class="brand-settings-subhead">Dark mode logo <span class="muted">(optional)</span></h3>
+            <p class="muted">Shown in the header and footer when the site theme is dark. Falls back to the main logo if not set.</p>
+            {% if brand_has_logo_dark and brand_logo_dark_url %}
+                <p class="brand-preview">
+                    <img src="{{ brand_logo_dark_url }}" alt="" width="40" height="40" class="header-brand-mark-img">
+                    <span class="muted">Current dark logo</span>
+                </p>
+            {% endif %}
+            <label>
+                Upload dark logo (SVG or PNG, max 512 KB)
+                <input type="file" name="brand_logo_dark" accept="image/svg+xml,image/png,.svg,.png">
+            </label>
+            {% if brand_has_logo_dark %}
+                <label class="checkbox">
+                    <input type="checkbox" name="brand_logo_dark_remove" value="1">
+                    Remove dark logo
+                </label>
+            {% endif %}
+
+            <h3 class="brand-settings-subhead">Favicon</h3>
+            <p class="muted">Browser tab icon. Square SVG or PNG recommended (max 256 KB). Separate from the header logo.</p>
+            {% if brand_has_favicon and brand_favicon_url %}
+                <p class="brand-preview">
+                    <img src="{{ brand_favicon_url }}" alt="" width="32" height="32" class="header-brand-mark-img">
+                    <span class="muted">Current favicon</span>
+                </p>
+            {% endif %}
+            <label>
+                Upload favicon (SVG or PNG)
+                <input type="file" name="brand_favicon" accept="image/svg+xml,image/png,.svg,.png">
+            </label>
+            {% if brand_has_favicon %}
+                <label class="checkbox">
+                    <input type="checkbox" name="brand_favicon_remove" value="1">
+                    Remove favicon
+                </label>
+            {% endif %}
+
+            <h3 class="brand-settings-subhead">Social preview (Open Graph)</h3>
+            <p class="muted">Default image when topics and pages are shared (PNG or JPEG, 1200×630 recommended, max 1 MB).</p>
+            {% if brand_has_og and brand_og_url %}
+                <p class="brand-preview brand-preview-og">
+                    <img src="{{ brand_og_url }}" alt="" class="brand-og-preview-img">
+                    <span class="muted">Current OG image</span>
+                </p>
+            {% endif %}
+            <label>
+                Upload OG image (PNG or JPEG)
+                <input type="file" name="brand_og" accept="image/png,image/jpeg,.png,.jpg,.jpeg">
+            </label>
+            {% if brand_has_og %}
+                <label class="checkbox">
+                    <input type="checkbox" name="brand_og_remove" value="1">
+                    Remove OG image
+                </label>
+            {% endif %}
         </section>
         <label>
             Footer about text

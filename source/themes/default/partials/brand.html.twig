@@ -2,7 +2,7 @@
 {% if brand.use_latch_builtin %}
     {% include 'partials/brand_latch.html.twig' with { brand_variant: brand_variant } %}
 {% elseif brand.show_mark and brand.logo_url %}
-    {% include 'partials/brand_custom.html.twig' with { brand_variant: brand_variant, brand_logo_url: brand.logo_url } %}
+    {% include 'partials/brand_custom.html.twig' with { brand_variant: brand_variant, brand_logo_url: brand.logo_url, brand: brand } %}
 {% else %}
     {% include 'partials/brand_text.html.twig' with { brand_variant: brand_variant } %}
 {% endif %}

@@ -1,37 +1,50 @@
 # Site branding (operator logo)
 
-**Status:** v1 — locked for implementation (2026-07-12)
+**Status:** v1 shipped (0.4.4.3); v2 on `main` (2026-07-12)
 
 ## Goal
 
 Let operators customize header/footer logo without editing theme files. Works for `default`, `modern`, and future themes that use the shared `partials/brand.html.twig` contract.
 
-## v1 scope
+## v1 scope (shipped 0.4.4.3)
 
 | In | Out |
 |----|-----|
-| Admin upload SVG or PNG (max 512 KB) | Favicon/OG upload (v2) |
-| Brand modes: `latch`, `custom`, `text_only` | Per-theme logos |
-| `GET /branding/logo` (versioned, cached) | R2/CDN hosting |
-| Replace `site.name == 'latch'` hack | In-browser crop/editor |
-| Guest cache bust on change | `brand.render` hook (v2) |
+| Admin upload SVG or PNG logo (max 512 KB) | Per-theme logos |
+| Brand modes: `latch`, `custom`, `text_only` | R2/CDN hosting |
+| `GET /branding/logo` | In-browser crop/editor |
+
+## v2 scope (in progress)
+
+| In | Out |
+|----|-----|
+| Favicon upload (`/branding/favicon`) | Dark favicon variant |
+| OG image upload (`/branding/og`) — PNG/JPEG, max 1 MB | Per-page OG overrides |
+| Dark mode logo (`/branding/logo-dark`) | `brand.render` hook |
 
 ## Settings (`settings` table)
 
 | Key | Values |
 |-----|--------|
 | `brand_mode` | `latch` \| `custom` \| `text_only` |
-| `brand_logo_ext` | `svg` \| `png` (empty = no upload) |
+| `brand_logo_ext` | `svg` \| `png` |
+| `brand_logo_dark_ext` | `svg` \| `png` |
+| `brand_favicon_ext` | `svg` \| `png` |
+| `brand_og_ext` | `png` \| `jpg` |
 
 **Default inference** (when `brand_mode` unset): site name `latch` (case-insensitive) → `latch`, else `custom`.
 
 ## Storage
 
 ```
-storage/branding/logo.svg   # or logo.png
+storage/branding/
+  logo.svg | logo.png
+  logo-dark.svg | logo-dark.png
+  favicon.svg | favicon.png
+  og.png | og.jpg
 ```
 
-Served at `/branding/logo?v={mtime}` — same cache pattern as `/assets/*`.
+Served at `/branding/{logo|logo-dark|favicon|og}?v={mtime}`.
 
 ## Security
 

@@ -635,12 +635,13 @@ final class Application implements PluginCollectContext
 
     private function serveBrandingAsset(string $relativePath): void
     {
-        if ($relativePath !== 'logo') {
+        $route = explode('/', trim($relativePath, '/'), 2)[0] ?? '';
+        if ($route === '') {
             Response::notFound('Asset not found');
         }
 
-        $file = $this->siteBranding->logoPath();
-        $mime = $this->siteBranding->mimeForServe();
+        $file = $this->siteBranding->pathForRoute($route);
+        $mime = $this->siteBranding->mimeForServe($route);
         if ($file === null || $mime === null) {
             Response::notFound('Asset not found');
         }
@@ -738,7 +739,7 @@ final class Application implements PluginCollectContext
             }
         }
 
-        $html = $this->view->render($template, array_merge($this->sharedViewData(), $data));
+        $html = $this->view->render($template, $this->mergeViewData($data));
 
         if ($canCache && $cacheKey !== null) {
             $this->cache->set($cacheKey, $html, $this->cacheTtlSeconds(), $tags);
@@ -756,7 +757,7 @@ final class Application implements PluginCollectContext
     {
         $this->view->bindTranslator($this->translator());
 
-        return $this->view->render($template, array_merge($this->sharedViewData(), $data));
+        return $this->view->render($template, $this->mergeViewData($data));
     }
 
     /**
@@ -770,7 +771,7 @@ final class Application implements PluginCollectContext
         $this->view->bindTranslator($this->translator());
 
         if (!$this->canUseFragmentCache()) {
-            return $this->view->render($template, array_merge($this->sharedViewData(), $data));
+            return $this->view->render($template, $this->mergeViewData($data));
         }
 
         $key = Cache::makeFragmentKey($fragmentId, ['_locale' => $this->resolvedLocale()]);
@@ -779,7 +780,7 @@ final class Application implements PluginCollectContext
             return SecurityHeaders::rewriteHtmlNonces($cached, $this->cspNonce);
         }
 
-        $html = $this->view->render($template, array_merge($this->sharedViewData(), $data));
+        $html = $this->view->render($template, $this->mergeViewData($data));
         $this->cache->setFragment($key, $html, $this->cacheTtlSeconds(), $tags);
 
         return $html;
@@ -1792,6 +1793,20 @@ final class Application implements PluginCollectContext
     /**
      * @return array<string, mixed>
      */
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function mergeViewData(array $data): array
+    {
+        $viewData = array_merge($this->sharedViewData(), $data);
+        if (isset($viewData['seo']) && is_array($viewData['seo'])) {
+            $viewData['seo'] = $this->siteBranding->enrichSeo($viewData['seo'], $this->siteUrl());
+        }
+
+        return $viewData;
+    }
+
     private function sharedViewData(): array
     {
         $site = $this->config->get('site', []);
@@ -1864,11 +1879,16 @@ final class Application implements PluginCollectContext
             'brand' => [
                 'mode' => $this->siteBranding->mode(),
                 'logo_url' => $this->siteBranding->logoUrl(),
+                'logo_dark_url' => $this->siteBranding->logoDarkUrl(),
                 'show_mark' => $this->siteBranding->showMark(),
                 'use_latch_builtin' => $this->siteBranding->usesLatchBuiltinMark(),
                 'has_upload' => $this->siteBranding->hasUploadedLogo(),
+                'has_logo_dark' => $this->siteBranding->hasUploadedLogoDark(),
                 'favicon_url' => $this->siteBranding->faviconUrl(),
                 'favicon_mime' => $this->siteBranding->faviconMime(),
+                'has_favicon' => $this->siteBranding->hasFavicon(),
+                'og_url' => $this->siteBranding->ogUrl(),
+                'has_og' => $this->siteBranding->hasOgImage(),
             ],
         ];
     }

@@ -9,6 +9,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+### Added
+- **Branding v2** — separate favicon and Open Graph image uploads; optional dark-mode logo variant (`/branding/favicon`, `/branding/og`, `/branding/logo-dark`).
+
 ## [0.4.4.3] — 2026-07-12
 
 ### Added

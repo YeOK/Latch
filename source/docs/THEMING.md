@@ -286,8 +286,10 @@ Admins configure logo under **Admin → Settings → Branding** (not theme files
 | Mode | Header/footer |
 |------|----------------|
 | `latch` | Built-in Thread Pin SVG + site name |
-| `custom` | Uploaded SVG/PNG from `storage/branding/` (served at `/branding/logo`) or theme fallback `assets/img/latch-logo.svg` |
+| `custom` | Uploaded SVG/PNG from `storage/branding/` (`/branding/logo`; optional `/branding/logo-dark` in dark theme) or theme fallback |
 | `text_only` | Site name (+ tagline in header) |
+
+Optional uploads (Admin → Settings → Branding): **favicon** (`/branding/favicon`), **OG image** (`/branding/og` for social previews).
 
 Child themes (`modern`, etc.) should **not** hardcode logos in `layouts/base.html.twig`. Include `partials/brand.html.twig` (or inherit default layout). Twig global `brand` exposes `mode`, `logo_url`, `show_mark`, `use_latch_builtin`.
 

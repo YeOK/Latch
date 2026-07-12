@@ -4984,6 +4984,35 @@ body.account-overlay-open {
     margin: 0.5rem 0 0.75rem;
 }
 
+.brand-preview-og {
+    align-items: flex-start;
+}
+
+.brand-og-preview-img {
+    display: block;
+    max-width: min(100%, 220px);
+    height: auto;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+}
+
+.brand-settings-subhead {
+    margin: 1.25rem 0 0.35rem;
+    font-size: 0.98rem;
+}
+
+.brand-logo-img--dark {
+    display: none;
+}
+
+[data-theme="dark"] .brand-logo-img--light {
+    display: none;
+}
+
+[data-theme="dark"] .brand-logo-img--dark {
+    display: inline;
+}
+
 body.page-profile main.container > .flash:first-child {
     margin-bottom: 1rem;
 }

@@ -963,6 +963,12 @@ final class AdminController
             'brand_mode' => $this->app->siteBranding()->mode(),
             'brand_has_logo' => $this->app->siteBranding()->hasUploadedLogo(),
             'brand_logo_url' => $this->app->siteBranding()->logoUrl(),
+            'brand_has_logo_dark' => $this->app->siteBranding()->hasUploadedLogoDark(),
+            'brand_logo_dark_url' => $this->app->siteBranding()->logoDarkUrl(),
+            'brand_has_favicon' => $this->app->siteBranding()->hasFavicon(),
+            'brand_favicon_url' => $this->app->siteBranding()->faviconUrl(),
+            'brand_has_og' => $this->app->siteBranding()->hasOgImage(),
+            'brand_og_url' => $this->app->siteBranding()->ogUrl(),
         ]);
     }
 
@@ -1012,17 +1018,10 @@ final class AdminController
             Response::redirect('/admin/settings');
         }
 
-        if ($this->app->request()->input('brand_logo_remove') === '1') {
-            $this->app->siteBranding()->removeLogo();
-        }
-
-        $logoUpload = $_FILES['brand_logo'] ?? null;
-        if (is_array($logoUpload)) {
-            $logoError = $this->app->siteBranding()->saveUpload($logoUpload);
-            if ($logoError !== null) {
-                $this->app->session()->flash('error', $logoError);
-                Response::redirect('/admin/settings');
-            }
+        $brandError = $this->saveBrandingUploads();
+        if ($brandError !== null) {
+            $this->app->session()->flash('error', $brandError);
+            Response::redirect('/admin/settings');
         }
 
         $wasMembersOnly = $this->app->membersOnly();
@@ -2333,6 +2332,46 @@ final class AdminController
             $enabled ? 'Webhook enabled.' : 'Webhook disabled.',
             '/admin/webhooks',
         );
+    }
+
+    private function saveBrandingUploads(): ?string
+    {
+        $branding = $this->app->siteBranding();
+
+        if ($this->app->request()->input('brand_logo_remove') === '1') {
+            $branding->removeLogo();
+        }
+        if ($this->app->request()->input('brand_logo_dark_remove') === '1') {
+            $branding->removeAsset('logo_dark');
+        }
+        if ($this->app->request()->input('brand_favicon_remove') === '1') {
+            $branding->removeAsset('favicon');
+        }
+        if ($this->app->request()->input('brand_og_remove') === '1') {
+            $branding->removeAsset('og');
+        }
+
+        /** @var array<string, string> $fields */
+        $fields = [
+            'brand_logo' => 'logo',
+            'brand_logo_dark' => 'logo_dark',
+            'brand_favicon' => 'favicon',
+            'brand_og' => 'og',
+        ];
+
+        foreach ($fields as $field => $asset) {
+            $upload = $_FILES[$field] ?? null;
+            if (!is_array($upload)) {
+                continue;
+            }
+
+            $error = $branding->saveAssetUpload($asset, $upload);
+            if ($error !== null) {
+                return $error;
+            }
+        }
+
+        return null;
     }
 
     private function normalizeFooterAbout(string $text): string

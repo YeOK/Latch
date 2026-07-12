@@ -81,8 +81,51 @@ final class SiteBrandingTest extends TestCase
         $this->assertNull($error);
         $this->assertTrue($branding->hasUploadedLogo());
         $this->assertStringStartsWith('/branding/logo?v=', (string) $branding->logoUrl());
-        $this->assertSame('image/svg+xml', $branding->mimeForServe());
-        $this->assertNotNull($branding->faviconUrl());
+        $this->assertNull($branding->faviconUrl());
+    }
+
+    public function testPersistFaviconSeparately(): void
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16"/></svg>';
+        $branding = $this->branding();
+
+        $this->assertNull($branding->persistAsset('favicon', $svg, 'svg'));
+        $this->assertTrue($branding->hasFavicon());
+        $this->assertStringStartsWith('/branding/favicon?v=', (string) $branding->faviconUrl());
+    }
+
+    public function testPersistDarkLogo(): void
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>';
+        $branding = $this->branding();
+        $this->settings->set('brand_mode', SiteBranding::MODE_CUSTOM);
+
+        $this->assertNull($branding->persistAsset('logo_dark', $svg, 'svg'));
+        $this->assertTrue($branding->hasUploadedLogoDark());
+        $this->assertStringStartsWith('/branding/logo-dark?v=', (string) $branding->logoDarkUrl());
+    }
+
+    public function testEnrichSeoWithOgImage(): void
+    {
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            true,
+        );
+        $this->assertNotFalse($png);
+
+        $branding = $this->branding();
+        $this->assertNull($branding->persistAsset('og', $png, 'png'));
+
+        $seo = $branding->enrichSeo([
+            'image' => 'https://forum.example.com/assets/img/og-image.png',
+            'image_width' => 1200,
+            'image_height' => 630,
+            'image_type' => 'image/png',
+        ], 'https://forum.example.com');
+
+        $this->assertStringStartsWith('https://forum.example.com/branding/og?v=', (string) $seo['image']);
+        $this->assertSame(1, $seo['image_width']);
+        $this->assertSame(1, $seo['image_height']);
     }
 
     public function testRejectSvgWithScript(): void
@@ -114,6 +157,17 @@ final class SiteBrandingTest extends TestCase
     {
         $branding = $this->branding();
         $this->assertNotNull($branding->setMode('hacked'));
+    }
+
+    public function testServeRoutes(): void
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>';
+        $branding = $this->branding();
+        $branding->persistAsset('favicon', $svg, 'svg');
+
+        $this->assertNotNull($branding->pathForRoute('favicon'));
+        $this->assertSame('image/svg+xml', $branding->mimeForServe('favicon'));
+        $this->assertNull($branding->pathForRoute('missing'));
     }
 
     private function branding(): SiteBranding
