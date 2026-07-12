@@ -279,6 +279,22 @@ Links are **https only**. Style these classes in `theme.css`:
 
 ---
 
+## Operator branding (site logo)
+
+Admins configure logo under **Admin → Settings → Branding** (not theme files):
+
+| Mode | Header/footer |
+|------|----------------|
+| `latch` | Built-in Thread Pin SVG + site name |
+| `custom` | Uploaded SVG/PNG from `storage/branding/` (served at `/branding/logo`) or theme fallback `assets/img/latch-logo.svg` |
+| `text_only` | Site name (+ tagline in header) |
+
+Child themes (`modern`, etc.) should **not** hardcode logos in `layouts/base.html.twig`. Include `partials/brand.html.twig` (or inherit default layout). Twig global `brand` exposes `mode`, `logo_url`, `show_mark`, `use_latch_builtin`.
+
+Full design: [design/site-branding.md](design/site-branding.md).
+
+---
+
 ## Board icons
 
 Built-in board tiles live in `assets/img/board-icons/*.svg`. `BoardIconRegistry` maps slug/name to an icon key; admins can set `boards.icon_key` via the visual picker on `/admin/boards` (migration `009`).

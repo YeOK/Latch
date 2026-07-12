@@ -32,6 +32,7 @@ use Latch\Core\Plugins\PluginSettingsValidator;
 use Latch\Core\ReportReasons;
 use Latch\Core\ReputationService;
 use Latch\Core\Response;
+use Latch\Core\SiteBranding;
 use Latch\Core\Webhooks\WebhookEvent;
 use Latch\Support\ModerationTrashResponder;
 use Latch\Support\OutboundUrlGuard;
@@ -959,6 +960,9 @@ final class AdminController
             'reputation_weights' => $this->app->reputation()->configuredWeights(),
             'reputation_thresholds' => $this->app->reputation()->configuredThresholds(),
             'reputation_rank_labels' => ReputationService::RANK_LABELS,
+            'brand_mode' => $this->app->siteBranding()->mode(),
+            'brand_has_logo' => $this->app->siteBranding()->hasUploadedLogo(),
+            'brand_logo_url' => $this->app->siteBranding()->logoUrl(),
         ]);
     }
 
@@ -999,6 +1003,28 @@ final class AdminController
         }
 
         $this->app->settings()->set('footer_about', $this->normalizeFooterAbout($footerAbout));
+
+        $brandModeError = $this->app->siteBranding()->setMode(
+            (string) $this->app->request()->input('brand_mode', SiteBranding::MODE_CUSTOM),
+        );
+        if ($brandModeError !== null) {
+            $this->app->session()->flash('error', $brandModeError);
+            Response::redirect('/admin/settings');
+        }
+
+        if ($this->app->request()->input('brand_logo_remove') === '1') {
+            $this->app->siteBranding()->removeLogo();
+        }
+
+        $logoUpload = $_FILES['brand_logo'] ?? null;
+        if (is_array($logoUpload)) {
+            $logoError = $this->app->siteBranding()->saveUpload($logoUpload);
+            if ($logoError !== null) {
+                $this->app->session()->flash('error', $logoError);
+                Response::redirect('/admin/settings');
+            }
+        }
+
         $wasMembersOnly = $this->app->membersOnly();
         $this->app->settings()->setBool('members_only', $this->app->request()->input('members_only') === '1');
         $this->app->settings()->setBool('allow_registration', $this->app->request()->input('allow_registration') === '1');

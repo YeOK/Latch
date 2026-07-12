@@ -9,6 +9,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+### Added
+- **Operator site branding** — Admin → Settings → Branding: upload SVG/PNG logo, choose Latch built-in mark / custom image / text-only; served at `/branding/logo`; works across default and modern themes via shared `partials/brand.html.twig`.
+
 ## [0.4.4.2] — 2026-07-12
 
 ### Added

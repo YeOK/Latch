@@ -143,7 +143,7 @@ final class SiteLock
             return true;
         }
 
-        if (str_starts_with($path, '/assets/')) {
+        if (str_starts_with($path, '/assets/') || str_starts_with($path, '/branding/')) {
             return true;
         }
 

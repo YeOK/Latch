@@ -153,6 +153,7 @@ final class Application implements PluginCollectContext
     private PluginCacheCoordinator $pluginCacheCoordinator;
     private WebhookRepository $webhooks;
     private WebhookDispatcher $webhookDispatcher;
+    private SiteBranding $siteBranding;
     private string $cspNonce;
 
     public function __construct()
@@ -191,6 +192,7 @@ final class Application implements PluginCollectContext
         $this->posts = new PostRepository($this->db, $this->inputValidator);
         $this->topics = new TopicRepository($this->db, $this->posts, $this->inputValidator);
         $this->settings = new SettingRepository($this->db);
+        $this->siteBranding = new SiteBranding($this->settings, $storagePath);
         $this->webhooks = new WebhookRepository($this->db);
         $this->webhookDispatcher = new WebhookDispatcher($this->webhooks);
         $this->passwordResets = new PasswordResetRepository($this->db);
@@ -367,6 +369,11 @@ final class Application implements PluginCollectContext
 
         if (str_starts_with($path, '/assets/')) {
             $this->serveThemeAsset(substr($path, 8));
+            return;
+        }
+
+        if (str_starts_with($path, '/branding/')) {
+            $this->serveBrandingAsset(substr($path, 10));
             return;
         }
 
@@ -622,6 +629,21 @@ final class Application implements PluginCollectContext
             'woff2' => 'font/woff2',
             default => 'application/octet-stream',
         };
+
+        $this->emitThemeAsset($mime, (string) file_get_contents($file), $file . '|' . filemtime($file));
+    }
+
+    private function serveBrandingAsset(string $relativePath): void
+    {
+        if ($relativePath !== 'logo') {
+            Response::notFound('Asset not found');
+        }
+
+        $file = $this->siteBranding->logoPath();
+        $mime = $this->siteBranding->mimeForServe();
+        if ($file === null || $mime === null) {
+            Response::notFound('Asset not found');
+        }
 
         $this->emitThemeAsset($mime, (string) file_get_contents($file), $file . '|' . filemtime($file));
     }
@@ -1371,6 +1393,11 @@ final class Application implements PluginCollectContext
         return $this->settings;
     }
 
+    public function siteBranding(): SiteBranding
+    {
+        return $this->siteBranding;
+    }
+
     public function passwordResets(): PasswordResetRepository
     {
         return $this->passwordResets;
@@ -1834,6 +1861,15 @@ final class Application implements PluginCollectContext
             'plugin_admin_menu_items' => $this->pluginCacheCoordinator->collect($this, HookName::ADMIN_MENU),
             'plugin_composer_toolbar' => $this->pluginCacheCoordinator->collect($this, HookName::EDITOR_COMPOSE),
             'plugin_client_loader' => $this->pluginCacheCoordinator->hasClientModePlugins(),
+            'brand' => [
+                'mode' => $this->siteBranding->mode(),
+                'logo_url' => $this->siteBranding->logoUrl(),
+                'show_mark' => $this->siteBranding->showMark(),
+                'use_latch_builtin' => $this->siteBranding->usesLatchBuiltinMark(),
+                'has_upload' => $this->siteBranding->hasUploadedLogo(),
+                'favicon_url' => $this->siteBranding->faviconUrl(),
+                'favicon_mime' => $this->siteBranding->faviconMime(),
+            ],
         ];
     }
 

@@ -29,11 +29,7 @@
     {% include 'partials/members_only_banner.html.twig' %}
     <header class="site-header latch-header">
         <div class="header-bar">
-            {% if site.name|lower == 'latch' %}
-                {% include 'partials/brand_latch.html.twig' %}
-            {% else %}
-                {% include 'partials/brand_custom.html.twig' %}
-            {% endif %}
+            {% include 'partials/brand.html.twig' %}
             <div class="header-search" id="sub-header-panel">
                 {% include 'partials/site_search.html.twig' %}
             </div>

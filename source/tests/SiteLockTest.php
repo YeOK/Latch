@@ -56,6 +56,7 @@ final class SiteLockTest extends TestCase
         $this->assertTrue(SiteLock::isExemptWebPath('/maintenance/unlock'));
         $this->assertTrue(SiteLock::isExemptWebPath('/admin/site-lock/enabled'));
         $this->assertTrue(SiteLock::isExemptWebPath('/assets/css/theme.css'));
+        $this->assertTrue(SiteLock::isExemptWebPath('/branding/logo'));
         $this->assertFalse(SiteLock::isExemptWebPath('/api/v1/boards'));
         $this->assertFalse(SiteLock::isExemptWebPath('/health'));
     }

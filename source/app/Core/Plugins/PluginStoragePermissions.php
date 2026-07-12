@@ -27,6 +27,7 @@ final class PluginStoragePermissions
         'logs',
         'uploads',
         'backups',
+        'branding',
         'plugins',
     ];
 

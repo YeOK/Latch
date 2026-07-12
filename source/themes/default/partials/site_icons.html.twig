@@ -1,5 +1,10 @@
+{% if brand.favicon_url %}
+<link rel="icon" href="{{ brand.favicon_url }}" type="{{ brand.favicon_mime|default('image/svg+xml') }}" sizes="any">
+<link rel="apple-touch-icon" href="{{ brand.favicon_url }}">
+{% else %}
 <link rel="icon" href="/assets/img/latch-mark.svg?v={{ asset_version }}" type="image/svg+xml" sizes="any">
 <link rel="icon" href="/assets/img/latch-mark-dark.svg?v={{ asset_version }}" type="image/svg+xml" media="(prefers-color-scheme: dark)">
 <link rel="apple-touch-icon" href="/assets/img/latch-apple-touch-icon.svg?v={{ asset_version }}">
+{% endif %}
 <meta name="theme-color" content="#2f6fed" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a212b" media="(prefers-color-scheme: dark)">

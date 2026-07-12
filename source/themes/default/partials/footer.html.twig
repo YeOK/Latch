@@ -2,11 +2,7 @@
     <div class="container footer-inner">
         <div class="footer-grid">
             <section class="footer-about">
-                {% if site.name|lower == 'latch' %}
-                    {% include 'partials/brand_latch.html.twig' with { brand_variant: 'footer' } %}
-                {% else %}
-                    {% include 'partials/brand_custom.html.twig' with { brand_variant: 'footer' } %}
-                {% endif %}
+                {% include 'partials/brand.html.twig' with { brand_variant: 'footer' } %}
                 {% set footer_about_text = footer_about|default('')|trim|replace({"\r\n": "\n", "\r": "\n"}) %}
                 {% if footer_about_text %}
                     {% for paragraph in footer_about_text|split("\n\n") %}
