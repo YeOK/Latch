@@ -71,6 +71,7 @@ final class PluginInstaller
             }
 
             $this->copyDirectory($pluginDir, $targetDir);
+            PluginStoragePermissions::ensureWritable($targetDir);
 
             return PluginManifest::fromDirectory($targetDir);
         } catch (\Throwable $e) {
@@ -99,6 +100,12 @@ final class PluginInstaller
         }
 
         $this->deleteDirectory($targetDir);
+        if (is_dir($targetDir)) {
+            $hint = function_exists('posix_geteuid') && posix_geteuid() !== 0
+                ? ' Files may be root-owned — run: sudo latch plugin remove ' . $slug . ' --confirm'
+                : '';
+            throw new RuntimeException("Could not delete plugins/{$slug}/{$hint}");
+        }
 
         if ($purgeStorage) {
             $storageDir = rtrim($this->storagePath, '/') . '/plugins/' . $slug;

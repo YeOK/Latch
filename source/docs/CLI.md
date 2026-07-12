@@ -309,6 +309,8 @@ Customize Latch **without editing core** — see `docs/PLUGINS.md`. Installed pl
 | `plugin install <dir\|zip>` | Copy into `plugins/{slug}/`, audit gate, disabled by default |
 | `plugin remove <slug> --confirm` | Disable and delete `plugins/{slug}/` |
 | `plugin remove <slug> --confirm --purge-storage` | Also delete `storage/plugins/{slug}/` |
+
+On RPM installs, use **`sudo latch plugin remove`** (not `sudo -u apache php …`) so root can delete plugin code under `/usr/share/latch/source/plugins/` when a prior install left root-owned files. If remove fails, run `sudo latch fix-perms` then retry, or `sudo rm -rf /usr/share/latch/source/plugins/{slug}/`.
 | `plugin audit <path\|slug>` | Run security scan (same as `plugin-audit`; updates cache) |
 | `plugin enable <slug>` | Enable after fresh audit pass |
 | `plugin enable <slug> --force` | Override failed audit (logged to `audit_log`) |

@@ -18,6 +18,20 @@ if [[ "$(id -un)" == "${WEB_USER}" ]]; then
     exec php "${CLI}" "$@"
 fi
 
+# chown/delete under /usr/share/latch/... — stay root when invoked via sudo latch
+if [[ "$(id -un)" == "root" ]]; then
+    case "${1:-}" in
+        fix-perms)
+            exec php "${CLI}" "$@"
+            ;;
+        plugin)
+            if [[ "${2:-}" == "remove" ]]; then
+                exec php "${CLI}" "$@"
+            fi
+            ;;
+    esac
+fi
+
 if id "${WEB_USER}" >/dev/null 2>&1; then
     exec sudo -u "${WEB_USER}" php "${CLI}" "$@"
 fi

@@ -53,13 +53,26 @@ final class PluginStoragePermissions
      *
      * @return array{ok: bool, fixed: list<string>, message: string}
      */
-    public static function fixPluginStorage(string $storagePath): array
+    public static function fixPluginStorage(string $storagePath, ?string $pluginsPath = null): array
     {
         $storagePath = rtrim($storagePath, '/');
         $targets = [
             $storagePath . '/plugins',
             $storagePath . '/cache/plugin-audits',
         ];
+
+        if (is_string($pluginsPath) && $pluginsPath !== '' && is_dir($pluginsPath)) {
+            foreach (scandir($pluginsPath) ?: [] as $entry) {
+                if ($entry === '.' || $entry === '..' || $entry === '.gitkeep') {
+                    continue;
+                }
+
+                $dir = rtrim($pluginsPath, '/') . '/' . $entry;
+                if (is_dir($dir) && is_file($dir . '/plugin.json')) {
+                    $targets[] = $dir;
+                }
+            }
+        }
 
         $existing = array_values(array_filter($targets, static fn (string $path): bool => is_dir($path)));
         if ($existing === []) {
