@@ -38,6 +38,7 @@ php bin/latch help
 | `lock on\|off\|status` | Site maintenance lock — blocks web + API (no DB traffic) |
 | `search-reindex` | Rebuild FTS5 search index |
 | `security-bootstrap` | Set `encryption_key` and re-wrap TOTP secrets |
+| `totp reset <username> --confirm` | Clear 2FA enrolment (user re-setups on next login if required) |
 | `api-client` | Create, list, or revoke OAuth API clients |
 | `benchmark` | Curl timing report for key pages |
 | `test-mail` | Send a test email (verify SMTP/msmtp) |
@@ -446,6 +447,52 @@ Generates `encryption_key` in `config/local.php` (if missing) and re-encrypts st
 ```bash
 php bin/latch security-bootstrap
 ```
+
+Do **not** run this on a site that already has admins enrolled in 2FA unless you are deliberately rotating keys and can decrypt existing secrets (see **totp** below).
+
+---
+
+## totp
+
+Operator recovery when two-factor authentication stops working.
+
+### Symptom
+
+Admin (or any user with 2FA enabled) passes password login but every authenticator or recovery code is rejected — often after `encryption_key` in `config/local.php` was replaced, copied from another server, or `security-bootstrap` ran without successfully re-wrapping secrets.
+
+### Recovery order
+
+1. **Recovery code** — user enters a one-time code from enrolment (login → “Use a recovery code”).
+2. **`bin/totp-recover.php`** — re-wraps secrets that were encrypted with the legacy derived key but not yet migrated to `encryption_key`:
+
+   ```bash
+   sudo -u apache php bin/totp-recover.php   # RPM: same user as the web server
+   ```
+
+   On success, the user’s existing authenticator app should work again.
+
+3. **`totp reset`** — last resort when secrets cannot be decrypted (wrong or unknown `encryption_key`). Clears stored TOTP data and recovery codes; the user must enrol again on next sign-in (mandatory for admin/mod roles):
+
+   ```bash
+   php bin/latch totp reset admin --confirm
+   ```
+
+   Fedora/RPM:
+
+   ```bash
+   sudo latch totp reset admin --confirm
+   ```
+
+   Requires `--confirm`. Does not change the password or role. After reset, sign in with password only → complete **2FA setup** (admins cannot skip).
+
+### When to use `totp reset`
+
+| Situation | Tool |
+|-----------|------|
+| User lost phone, has recovery codes | Recovery code at `/login/2fa` |
+| `security-bootstrap` wrote a new key; `totp-recover.php` can still decrypt | `bin/totp-recover.php` |
+| `encryption_key` changed; authenticator codes always fail; recover script exits with decrypt error | `totp reset … --confirm` |
+| Fresh dev/staging copy of production DB with a different `local.php` | `totp reset … --confirm`, then re-enrol |
 
 ---
 

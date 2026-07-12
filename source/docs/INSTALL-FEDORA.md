@@ -51,7 +51,7 @@ sudo systemctl reload httpd
 
 Symlinks wire `source/config/local.php` → `/etc/latch/local.php` and `source/storage` → `/var/lib/latch/storage`.
 
-`latch-setup` creates `/etc/latch/local.php` with a random `security.encryption_key` before `bin/latch install`. Fresh tarball installs do the same via `install`; if you copied an old `local.php` without a key, run `sudo -u apache latch security-bootstrap`.
+`latch-setup` creates `/etc/latch/local.php` with a random `security.encryption_key` before `bin/latch install`. Fresh tarball installs do the same via `install`; if you copied an old `local.php` without a key, run `sudo -u apache latch security-bootstrap`. If enrolled 2FA stops accepting codes after a key mismatch, see [CLI.md — totp](CLI.md#totp) (`sudo latch totp reset admin --confirm` as last resort).
 
 ## Upgrades
 

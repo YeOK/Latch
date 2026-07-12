@@ -164,7 +164,7 @@ Plugin state (`storage/plugins/{slug}/settings.json`, `plugin.sqlite`) and audit
 ## After install
 
 1. Sign in as admin at `/login`
-2. Enable **two-factor authentication** on your admin account (Profile → Security) — requires `security.encryption_key` in `config/local.php` (set automatically by `install`; existing sites: `php bin/latch security-bootstrap`)
+2. Enable **two-factor authentication** on your admin account (Profile → Security) — requires `security.encryption_key` in `config/local.php` (set automatically by `install`; existing sites: `php bin/latch security-bootstrap`). If 2FA codes stop working after a key or config change, see [CLI.md — totp](CLI.md#totp).
 3. Open `/admin` to manage users, boards, and settings
 4. Post in your first board
 5. Run `php bin/latch doctor` and `php bin/latch audit` before going live

@@ -9,6 +9,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.3.0] — 2026-07-12
+
+### Added
+- **Admin catalog plugin install** — **Admin → Plugins** lists the [Latch-plugins](https://github.com/YeOK/Latch-plugins) catalog and installs release zips with the same audit gate as `plugin install` (plugin stays disabled until you enable it).
+- **`php bin/latch totp reset <username> --confirm`** — operator recovery when 2FA codes fail after an `encryption_key` mismatch (documented in `CLI.md`, `SECURITY.md`, `INSTALL.md`).
+- **`PluginCatalog` / `PluginReleaseDownloader`** — fetches `catalog.json`, caches it, downloads GitHub release assets (API fallback when the direct zip URL 404s).
+
+### Fixed
+- **Admin SPA plugin actions** — error flashes from catalog install are no longer wiped by an immediate in-panel reload; catalog install uses a full-page POST (`data-account-bypass`).
+- **Staff JSON errors** — failed admin AJAX actions now also set session flash so messages survive navigation.
+
 ## [0.4.2.0] — 2026-07-11
 
 ### Added

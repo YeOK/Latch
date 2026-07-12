@@ -181,7 +181,7 @@
             if (json.message) {
                 setStatus(json.message, isError);
             }
-            if (!maintenance) {
+            if (!maintenance && !isError) {
                 loadUrl(redirect, false);
             }
             return true;
@@ -191,7 +191,7 @@
             if (json.message) {
                 showAdminFlash(json.message, isError);
             }
-            if (!maintenance) {
+            if (!maintenance && !isError) {
                 loadInPlaceAdmin(redirect, false);
             }
             return true;

@@ -38,16 +38,16 @@ trait StaffActionResponder
      */
     private function finishStaffAction(bool $success, string $message, string $redirectUrl, array $jsonData = []): void
     {
+        if (!$success) {
+            $this->staffApp()->session()->flash('error', $message);
+        }
+
         if ($this->wantsJson()) {
             Response::json(array_merge([
                 'ok' => $success,
                 'message' => $message,
                 'redirect' => $redirectUrl,
             ], $jsonData), $success ? 200 : 400);
-        }
-
-        if (!$success) {
-            $this->staffApp()->session()->flash('error', $message);
         }
 
         Response::redirect($redirectUrl);

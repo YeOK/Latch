@@ -6,137 +6,206 @@
     <section class="page-header">
         <h1>Plugins</h1>
         <p class="muted">
-            Installed extensions under <code>plugins/</code>. Install catalog plugins via CLI
+            Installed extensions under <code>plugins/</code>. Install catalog plugins below or via CLI
             (<code>plugin install</code> from <a href="https://github.com/YeOK/Latch-plugins" rel="noopener">Latch-plugins</a>).
             Each plugin must pass <code>plugin-audit</code> before enable. Latch {{ latch_version }}.
         </p>
     </section>
 
-    {% if plugins is empty %}
-        <p class="empty">No plugins found. Add a directory with <code>plugin.json</code> under <code>plugins/</code>.</p>
-    {% else %}
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Plugin</th>
-                    <th>Version</th>
-                    <th>Status</th>
-                    <th>Audit</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in plugins %}
-                    {% set manifest = row.manifest %}
-                    {% set audit = row.audit %}
+    <section class="admin-panel">
+        <h2>Catalog</h2>
+        {% if catalog_error %}
+            <p class="muted">{{ catalog_error }}</p>
+        {% elseif catalog_plugins is empty %}
+            <p class="muted">
+                {% if catalog_release %}
+                    Catalog {{ catalog_release }} — all listed plugins are already installed.
+                {% else %}
+                    No catalog plugins available to install.
+                {% endif %}
+            </p>
+        {% else %}
+            <p class="muted">
+                Official plugins from
+                <a href="https://github.com/YeOK/Latch-plugins" rel="noopener">Latch-plugins</a>
+                {% if catalog_release %} (release {{ catalog_release }}){% endif %}.
+                Installs are disabled until you enable them.
+            </p>
+            <table class="data-table">
+                <thead>
                     <tr>
-                        <td>
-                            <strong>{{ manifest.name }}</strong>
-                            <div class="muted"><code>{{ manifest.slug }}</code></div>
-                            {% if manifest.description %}
-                                <p class="muted">{{ manifest.description }}</p>
-                            {% endif %}
-                            <p class="muted">Hooks: {{ manifest.hooks|join(', ') }}</p>
-                        </td>
-                        <td>
-                            {{ manifest.version }}
-                            {% if not row.compatible %}
-                                <div><span class="badge badge-quarantine">Needs Latch ≥ {{ manifest.min_latch_version }}</span></div>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if row.enabled %}
-                                <span class="badge">Enabled</span>
-                            {% else %}
-                                <span class="badge badge-muted">Disabled</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if audit.scanned_at %}
-                                {% set audit_scan_hint = 'Scanned ' ~ (audit.scanned_at|format_datetime) ~ (audit.from_cache ? ' (cached)' : '') %}
-                            {% else %}
-                                {% set audit_scan_hint = '' %}
-                            {% endif %}
-                            {% if audit.passed %}
-                                {% if audit.enable_allowed %}
-                                    <span class="plugin-audit-status plugin-audit-status--pass"{% if audit_scan_hint %} title="{{ audit_scan_hint }}"{% endif %} aria-label="Audit passed{% if audit_scan_hint %}. {{ audit_scan_hint }}{% endif %}">
-                                        {% include 'partials/icon.twig' with { name: 'check', size: 16 } %}
-                                        <span class="visually-hidden">Pass</span>
-                                    </span>
+                        <th>Plugin</th>
+                        <th>Version</th>
+                        <th>Requires</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in catalog_plugins %}
+                        <tr>
+                            <td>
+                                <strong>{{ row.name }}</strong>
+                                <div class="muted"><code>{{ row.slug }}</code></div>
+                                {% if row.summary %}
+                                    <p class="muted">{{ row.summary }}</p>
+                                {% endif %}
+                                {% if row.hooks is not empty %}
+                                    <p class="muted">Hooks: {{ row.hooks|join(', ') }}</p>
+                                {% endif %}
+                            </td>
+                            <td>{{ row.version }}</td>
+                            <td>
+                                Latch ≥ {{ row.min_latch_version }}
+                                {% if not row.compatible %}
+                                    <div><span class="badge badge-quarantine">Incompatible</span></div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.compatible %}
+                                    <form method="post" action="/admin/plugins/catalog/install" class="inline-form" data-account-bypass>
+                                        {{ csrf_field() }}
+                                        <input type="hidden" name="slug" value="{{ row.slug }}">
+                                        <button type="submit" class="btn btn-small btn-primary">Install</button>
+                                    </form>
                                 {% else %}
-                                    <span class="plugin-audit-status plugin-audit-status--blocked"{% if audit_scan_hint %} title="{{ audit_scan_hint }}"{% endif %} aria-label="Audit blocked{% if audit_scan_hint %}. {{ audit_scan_hint }}{% endif %}">
-                                        {% include 'partials/icon.twig' with { name: 'shield', size: 16 } %}
-                                        <span class="visually-hidden">Blocked</span>
+                                    <span class="muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </section>
+
+    <section class="admin-panel">
+        <h2>Installed</h2>
+        {% if plugins is empty %}
+            <p class="empty">No plugins installed yet. Install from the catalog above or add a directory with <code>plugin.json</code> under <code>plugins/</code>.</p>
+        {% else %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Plugin</th>
+                        <th>Version</th>
+                        <th>Status</th>
+                        <th>Audit</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in plugins %}
+                        {% set manifest = row.manifest %}
+                        {% set audit = row.audit %}
+                        <tr>
+                            <td>
+                                <strong>{{ manifest.name }}</strong>
+                                <div class="muted"><code>{{ manifest.slug }}</code></div>
+                                {% if manifest.description %}
+                                    <p class="muted">{{ manifest.description }}</p>
+                                {% endif %}
+                                <p class="muted">Hooks: {{ manifest.hooks|join(', ') }}</p>
+                            </td>
+                            <td>
+                                {{ manifest.version }}
+                                {% if not row.compatible %}
+                                    <div><span class="badge badge-quarantine">Needs Latch ≥ {{ manifest.min_latch_version }}</span></div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.enabled %}
+                                    <span class="badge">Enabled</span>
+                                {% else %}
+                                    <span class="badge badge-muted">Disabled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if audit.scanned_at %}
+                                    {% set audit_scan_hint = 'Scanned ' ~ (audit.scanned_at|format_datetime) ~ (audit.from_cache ? ' (cached)' : '') %}
+                                {% else %}
+                                    {% set audit_scan_hint = '' %}
+                                {% endif %}
+                                {% if audit.passed %}
+                                    {% if audit.enable_allowed %}
+                                        <span class="plugin-audit-status plugin-audit-status--pass"{% if audit_scan_hint %} title="{{ audit_scan_hint }}"{% endif %} aria-label="Audit passed{% if audit_scan_hint %}. {{ audit_scan_hint }}{% endif %}">
+                                            {% include 'partials/icon.twig' with { name: 'check', size: 16 } %}
+                                            <span class="visually-hidden">Pass</span>
+                                        </span>
+                                    {% else %}
+                                        <span class="plugin-audit-status plugin-audit-status--blocked"{% if audit_scan_hint %} title="{{ audit_scan_hint }}"{% endif %} aria-label="Audit blocked{% if audit_scan_hint %}. {{ audit_scan_hint }}{% endif %}">
+                                            {% include 'partials/icon.twig' with { name: 'shield', size: 16 } %}
+                                            <span class="visually-hidden">Blocked</span>
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="plugin-audit-status plugin-audit-status--failed"{% if audit_scan_hint %} title="{{ audit_scan_hint }}"{% endif %} aria-label="Audit failed{% if audit_scan_hint %}. {{ audit_scan_hint }}{% endif %}">
+                                        {% include 'partials/icon.twig' with { name: 'dismiss', size: 16 } %}
+                                        <span class="visually-hidden">Failed</span>
                                     </span>
                                 {% endif %}
-                            {% else %}
-                                <span class="plugin-audit-status plugin-audit-status--failed"{% if audit_scan_hint %} title="{{ audit_scan_hint }}"{% endif %} aria-label="Audit failed{% if audit_scan_hint %}. {{ audit_scan_hint }}{% endif %}">
-                                    {% include 'partials/icon.twig' with { name: 'dismiss', size: 16 } %}
-                                    <span class="visually-hidden">Failed</span>
-                                </span>
-                            {% endif %}
-                            {% if audit.critical_count > 0 %}
-                                <div class="muted">{{ audit.critical_count }} critical</div>
-                            {% endif %}
-                            {% if audit.warn_count > 0 %}
-                                <div class="muted">{{ audit.warn_count }} warning{{ audit.warn_count == 1 ? '' : 's' }}</div>
-                            {% endif %}
-                            {% if audit.critical_findings is not empty or audit.warn_findings is not empty %}
-                                <details class="plugin-audit-details">
-                                    <summary class="muted">Findings</summary>
-                                    {% if audit.critical_findings is not empty %}
-                                        <p class="muted"><strong>Critical</strong></p>
-                                        <ul class="plugin-audit-list">
-                                            {% for finding in audit.critical_findings %}
-                                                <li>
-                                                    <code>{{ finding.code }}</code>
-                                                    {% if finding.file %}
-                                                        — <code>{{ finding.file }}{% if finding.line %}:{{ finding.line }}{% endif %}</code>
-                                                    {% endif %}
-                                                    <span class="muted">{{ finding.message }}</span>
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-                                    {% endif %}
-                                    {% if audit.warn_findings is not empty %}
-                                        <p class="muted"><strong>Warnings</strong></p>
-                                        <ul class="plugin-audit-list">
-                                            {% for finding in audit.warn_findings %}
-                                                <li>
-                                                    <code>{{ finding.code }}</code>
-                                                    {% if finding.file %}
-                                                        — <code>{{ finding.file }}{% if finding.line %}:{{ finding.line }}{% endif %}</code>
-                                                    {% endif %}
-                                                    <span class="muted">{{ finding.message }}</span>
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-                                    {% endif %}
-                                </details>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if row.has_settings %}
-                                <a class="btn btn-small" href="/admin/plugins/{{ manifest.slug }}/settings">Settings</a>
-                            {% endif %}
-                            {% if row.enabled %}
-                                <form method="post" action="/admin/plugins/{{ manifest.slug }}/disable" class="inline-form">
-                                    {{ csrf_field() }}
-                                    <button type="submit" class="btn btn-small">Disable</button>
-                                </form>
-                            {% elseif row.compatible and audit.enable_allowed %}
-                                <form method="post" action="/admin/plugins/{{ manifest.slug }}/enable" class="inline-form">
-                                    {{ csrf_field() }}
-                                    <button type="submit" class="btn btn-small btn-primary">Enable</button>
-                                </form>
-                            {% elseif not row.has_settings %}
-                                <span class="muted">—</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <p class="muted">CLI: <code>php bin/latch plugin-audit example</code> · ignore unused: <code>php bin/latch plugin ignore &lt;slug&gt;</code> · force enable: <code>php bin/latch plugin enable example --force</code></p>
-    {% endif %}
+                                {% if audit.critical_count > 0 %}
+                                    <div class="muted">{{ audit.critical_count }} critical</div>
+                                {% endif %}
+                                {% if audit.warn_count > 0 %}
+                                    <div class="muted">{{ audit.warn_count }} warning{{ audit.warn_count == 1 ? '' : 's' }}</div>
+                                {% endif %}
+                                {% if audit.critical_findings is not empty or audit.warn_findings is not empty %}
+                                    <details class="plugin-audit-details">
+                                        <summary class="muted">Findings</summary>
+                                        {% if audit.critical_findings is not empty %}
+                                            <p class="muted"><strong>Critical</strong></p>
+                                            <ul class="plugin-audit-list">
+                                                {% for finding in audit.critical_findings %}
+                                                    <li>
+                                                        <code>{{ finding.code }}</code>
+                                                        {% if finding.file %}
+                                                            — <code>{{ finding.file }}{% if finding.line %}:{{ finding.line }}{% endif %}</code>
+                                                        {% endif %}
+                                                        <span class="muted">{{ finding.message }}</span>
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endif %}
+                                        {% if audit.warn_findings is not empty %}
+                                            <p class="muted"><strong>Warnings</strong></p>
+                                            <ul class="plugin-audit-list">
+                                                {% for finding in audit.warn_findings %}
+                                                    <li>
+                                                        <code>{{ finding.code }}</code>
+                                                        {% if finding.file %}
+                                                            — <code>{{ finding.file }}{% if finding.line %}:{{ finding.line }}{% endif %}</code>
+                                                        {% endif %}
+                                                        <span class="muted">{{ finding.message }}</span>
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endif %}
+                                    </details>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.has_settings %}
+                                    <a class="btn btn-small" href="/admin/plugins/{{ manifest.slug }}/settings">Settings</a>
+                                {% endif %}
+                                {% if row.enabled %}
+                                    <form method="post" action="/admin/plugins/{{ manifest.slug }}/disable" class="inline-form">
+                                        {{ csrf_field() }}
+                                        <button type="submit" class="btn btn-small">Disable</button>
+                                    </form>
+                                {% elseif row.compatible and audit.enable_allowed %}
+                                    <form method="post" action="/admin/plugins/{{ manifest.slug }}/enable" class="inline-form">
+                                        {{ csrf_field() }}
+                                        <button type="submit" class="btn btn-small btn-primary">Enable</button>
+                                    </form>
+                                {% elseif not row.has_settings %}
+                                    <span class="muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p class="muted">CLI: <code>php bin/latch plugin-audit example</code> · ignore unused: <code>php bin/latch plugin ignore &lt;slug&gt;</code> · force enable: <code>php bin/latch plugin enable example --force</code></p>
+        {% endif %}
+    </section>
 {% endblock %}

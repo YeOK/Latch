@@ -19,7 +19,13 @@ use Latch\Core\Plugins\PluginAuditReport;
 use Latch\Core\Plugins\PluginAuditService;
 use Latch\Core\Plugins\PluginAuditor;
 use Latch\Core\Plugins\PluginAuditCache;
+use Latch\Core\Plugins\PluginCatalog;
+use Latch\Core\Plugins\PluginCatalogInstaller;
+use Latch\Core\Plugins\PluginCatalogEntry;
+use Latch\Core\Plugins\PluginInstaller;
 use Latch\Core\Plugins\PluginManifest;
+use Latch\Core\Plugins\PluginReleaseDownloader;
+
 use Latch\Core\Plugins\PluginSettingsForm;
 use Latch\Core\Plugins\PluginSettingsStore;
 use Latch\Core\Plugins\PluginSettingsValidator;
@@ -1670,10 +1676,113 @@ final class AdminController
             ];
         }
 
+        $installedSlugs = array_map(
+            static fn (array $row): string => $row['manifest']->slug,
+            $rows,
+        );
+        $catalog = $this->pluginCatalog();
+        $catalogData = $catalog->load();
+        $catalogRows = [];
+        $catalogError = null;
+
+        if ($catalogData === null) {
+            $catalogError = 'Could not load the plugin catalog. Check server outbound HTTPS or install via CLI.';
+        } else {
+            foreach ($catalog->availableEntries($installedSlugs) as $entry) {
+                $catalogRows[] = [
+                    'slug' => $entry->slug,
+                    'name' => $entry->name,
+                    'version' => $entry->version,
+                    'min_latch_version' => $entry->minLatchVersion,
+                    'summary' => $entry->summary,
+                    'hooks' => $entry->hooks,
+                    'compatible' => $entry->isCompatibleWith($latchVersion),
+                ];
+            }
+        }
+
         $this->app->render('admin/plugins.html.twig', [
             'plugins' => $rows,
             'latch_version' => $latchVersion,
+            'catalog_release' => $catalogData['release'] ?? null,
+            'catalog_plugins' => $catalogRows,
+            'catalog_error' => $catalogError,
         ]);
+    }
+
+    public function installCatalogPlugin(array $params = []): void
+    {
+        $this->app->auth()->requireAdmin();
+        $this->validateStaffCsrf();
+
+        $slug = trim((string) ($this->app->request()->input('slug') ?? ''));
+        if ($slug === '' || !preg_match('/^[a-z0-9][a-z0-9_-]*$/', $slug)) {
+            $this->finishStaffAction(false, 'Invalid plugin slug.', '/admin/plugins');
+        }
+
+        if ($this->findPluginManifest($slug) !== null) {
+            $this->finishStaffAction(false, 'Plugin is already installed.', '/admin/plugins');
+        }
+
+        $catalog = $this->pluginCatalog();
+        $catalogData = $catalog->load(true);
+        if ($catalogData === null) {
+            $this->finishStaffAction(false, 'Could not load the plugin catalog.', '/admin/plugins');
+        }
+
+        $entry = $this->findCatalogEntry($catalogData['entries'], $slug);
+        if ($entry === null) {
+            $this->finishStaffAction(false, 'Plugin not found in catalog.', '/admin/plugins');
+        }
+
+        $latchVersion = $this->app->latchVersion();
+        if (!$entry->isCompatibleWith($latchVersion)) {
+            $this->finishStaffAction(
+                false,
+                "Plugin requires Latch >= {$entry->minLatchVersion}.",
+                '/admin/plugins',
+            );
+        }
+
+        if (version_compare($latchVersion, $catalogData['latch_min_version'], '<')) {
+            $this->finishStaffAction(
+                false,
+                "Catalog requires Latch >= {$catalogData['latch_min_version']}.",
+                '/admin/plugins',
+            );
+        }
+
+        try {
+            $manifest = $this->pluginCatalogInstaller()->install($entry, $catalogData['release']);
+        } catch (\Throwable $e) {
+            $message = trim($e->getMessage());
+            if ($message === '') {
+                $message = 'Plugin install failed.';
+            }
+
+            $this->finishStaffAction(false, $message, '/admin/plugins');
+        }
+
+        $actor = $this->app->auth()->user();
+        $this->app->auditLog()->record(
+            (int) ($actor['id'] ?? 0),
+            'plugin.install',
+            'plugin',
+            null,
+            $this->app->request()->ip(),
+            [
+                'slug' => $manifest->slug,
+                'version' => $manifest->version,
+                'source' => 'catalog',
+                'release' => $catalogData['release'],
+            ],
+        );
+
+        $this->finishStaffAction(
+            true,
+            "Installed {$manifest->name} v{$manifest->version} (disabled). Enable it when ready.",
+            '/admin/plugins',
+        );
     }
 
     public function pluginSettings(array $params): void
@@ -1856,6 +1965,49 @@ final class AdminController
             $this->pluginAuditor(),
             new PluginAuditCache($storagePath . '/cache/plugin-audits'),
         );
+    }
+
+    private function pluginCatalog(): PluginCatalog
+    {
+        $config = $this->app->config();
+        $storagePath = (string) $config->get('paths.storage');
+
+        return new PluginCatalog(
+            $storagePath . '/cache/plugin-catalog.json',
+            (string) ($config->get('plugin_catalog.catalog_url') ?? PluginCatalog::DEFAULT_CATALOG_URL),
+            (string) ($config->get('plugin_catalog.release_repo') ?? PluginCatalog::DEFAULT_RELEASE_REPO),
+            (int) ($config->get('plugin_catalog.cache_ttl_seconds') ?? 3600),
+        );
+    }
+
+    private function pluginCatalogInstaller(): PluginCatalogInstaller
+    {
+        $config = $this->app->config();
+        $storagePath = (string) $config->get('paths.storage');
+        $pluginsPath = (string) $config->get('paths.plugins');
+        $catalog = $this->pluginCatalog();
+
+        return new PluginCatalogInstaller(
+            new PluginInstaller($pluginsPath, $storagePath),
+            $this->pluginAuditService(),
+            $this->app->plugins(),
+            new PluginReleaseDownloader($catalog->releaseRepo()),
+            $storagePath,
+        );
+    }
+
+    /**
+     * @param list<PluginCatalogEntry> $entries
+     */
+    private function findCatalogEntry(array $entries, string $slug): ?PluginCatalogEntry
+    {
+        foreach ($entries as $entry) {
+            if ($entry->slug === $slug) {
+                return $entry;
+            }
+        }
+
+        return null;
     }
 
     private function findPluginManifest(string $slug): ?PluginManifest

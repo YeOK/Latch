@@ -31,6 +31,7 @@ Applied on every response via `Latch\Core\SecurityHeaders`:
 - **TOTP two-factor authentication** (RFC 6238) — optional for members/mods; **mandatory for admins**
 - Login flow: password → 6-digit TOTP challenge (or one-time recovery code)
 - TOTP secrets encrypted at rest (`security.encryption_key` in `config/local.php`)
+- **2FA lockout recovery** (operators): recovery codes → `bin/totp-recover.php` → `php bin/latch totp reset <username> --confirm` — see [CLI.md — totp](CLI.md#totp)
 - Session list + revoke from profile; all sessions invalidated on password reset
 - **Authorized applications** on profile — list OAuth apps you approved and revoke their access tokens (logged to `security.log` as `oauth_app_revoke`)
 

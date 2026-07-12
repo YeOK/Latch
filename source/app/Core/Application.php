@@ -523,6 +523,7 @@ final class Application implements PluginCollectContext
         $this->router->post('/admin/webhooks/:id/toggle', $this->bind($admin, 'toggleWebhook'));
         $this->router->get('/admin/plugins/:slug/settings', $this->bind($admin, 'pluginSettings'));
         $this->router->post('/admin/plugins/:slug/settings', $this->bind($admin, 'savePluginSettings'));
+        $this->router->post('/admin/plugins/catalog/install', $this->bind($admin, 'installCatalogPlugin'));
         $this->router->post('/admin/plugins/:slug/enable', $this->bind($admin, 'enablePlugin'));
         $this->router->post('/admin/plugins/:slug/disable', $this->bind($admin, 'disablePlugin'));
         $this->router->get('/admin/reports/feed', $this->bind($admin, 'reportQueueFeed'));

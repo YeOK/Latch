@@ -15,7 +15,7 @@ declare(strict_types=1);
  */
 return [
     'app' => [
-        'version' => '0.4.2.0',
+        'version' => '0.4.3.0',
     ],
     'site' => [
         'name' => 'Latch',
@@ -88,6 +88,11 @@ return [
             'client_id' => '',
             'client_secret' => '',
         ],
+    ],
+    'plugin_catalog' => [
+        'catalog_url' => 'https://raw.githubusercontent.com/YeOK/Latch-plugins/main/catalog.json',
+        'release_repo' => 'YeOK/Latch-plugins',
+        'cache_ttl_seconds' => 3600,
     ],
     'paths' => [
         'storage' => dirname(__DIR__) . '/storage',

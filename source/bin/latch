@@ -35,6 +35,7 @@ use Latch\Models\OAuthTokenRepository;
 use Latch\Models\EmailChangeRepository;
 use Latch\Models\EmailVerificationRepository;
 use Latch\Models\PasswordResetRepository;
+use Latch\Models\RecoveryCodeRepository;
 use Latch\Models\PostRepository;
 use Latch\Models\SettingRepository;
 use Latch\Core\PostFormatter;
@@ -86,6 +87,7 @@ match ($command) {
     'test-mail' => run_test_mail($argv),
     'mail' => run_mail($argv),
     'security-bootstrap' => run_security_bootstrap(),
+    'totp' => run_totp($argv),
     'search-reindex' => run_search_reindex(),
     'test-rss' => run_test_rss(),
     'test-profiles' => run_test_profiles(),
@@ -142,6 +144,7 @@ Latch CLI
   php bin/latch test-mail      Send a test email (verify msmtp/SMTP)
   php bin/latch mail process   Drain pending notification mail queue
   php bin/latch security-bootstrap  Set encryption_key + re-wrap TOTP secrets (server ops)
+  php bin/latch totp reset <username> --confirm  Clear 2FA enrolment (re-setup on next admin login)
   php bin/latch search-reindex Rebuild FTS5 search index (topics, posts, tags)
   php bin/latch reputation-recompute [--user=ID]  Recompute member ranks (all or one user)
   php bin/latch test-rss       Run RSS unit tests + validate live feed XML
@@ -2445,6 +2448,57 @@ function build_search_repository(Database $db): SearchRepository
     $topicTags = new TopicTags();
 
     return new SearchRepository($db, new PostFormatter(), new TagRepository($db, $topicTags));
+}
+
+function run_totp(array $argv): void
+{
+    $action = $argv[2] ?? '';
+    if ($action === 'reset') {
+        run_totp_reset($argv);
+
+        return;
+    }
+
+    fwrite(STDERR, "Usage: php bin/latch totp reset <username> --confirm\n");
+    exit(1);
+}
+
+function run_totp_reset(array $argv): void
+{
+    require_pdo();
+
+    $opts = parse_cli_options($argv);
+    if (!isset($opts['confirm'])) {
+        fwrite(STDERR, "Refusing to reset 2FA without --confirm\n");
+        exit(1);
+    }
+
+    $username = trim((string) ($argv[3] ?? ''));
+    if ($username === '') {
+        fwrite(STDERR, "Usage: php bin/latch totp reset <username> --confirm\n");
+        exit(1);
+    }
+
+    $config = new Config(LATCH_ROOT . '/config');
+    $db = latch_cli_database($config);
+    $users = new UserRepository($db);
+    $user = $users->findByUsername($username);
+    if ($user === null) {
+        fwrite(STDERR, "User not found: {$username}\n");
+        exit(1);
+    }
+
+    $userId = (int) $user['id'];
+    if (($user['totp_enabled_at'] ?? null) === null && ($user['totp_secret_enc'] ?? null) === null) {
+        fwrite(STDOUT, "User {$username} does not have 2FA enabled — nothing to reset.\n");
+        exit(0);
+    }
+
+    $users->disableTotp($userId);
+    (new RecoveryCodeRepository($db))->deleteForUser($userId);
+
+    fwrite(STDOUT, "Reset 2FA for {$username} (user #{$userId}).\n");
+    fwrite(STDOUT, "They must sign in and complete 2FA setup again if their role requires it.\n");
 }
 
 function run_security_bootstrap(): void
