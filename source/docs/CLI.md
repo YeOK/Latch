@@ -291,7 +291,8 @@ Unlock without sudo: POST the token at `/maintenance/unlock` (no database requir
 **Permission note:** locks enabled from the admin UI are created by the web server user (`apache`). Removing the lock file requires write access on `storage/` — same as `migrate`:
 
 ```bash
-sudo -u apache php bin/latch lock off
+sudo latch lock off                    # Fedora/RPM (/usr/bin/latch wrapper)
+sudo -u apache php bin/latch lock off  # tarball / git dev tree
 ```
 
 If your login user is in the `apache` group and `storage/` is group-writable (`chmod 2770`), plain `php bin/latch lock off` works without sudo.

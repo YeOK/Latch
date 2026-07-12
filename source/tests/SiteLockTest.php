@@ -60,4 +60,13 @@ final class SiteLockTest extends TestCase
         $this->assertFalse(SiteLock::isExemptWebPath('/api/v1/boards'));
         $this->assertFalse(SiteLock::isExemptWebPath('/health'));
     }
+
+    public function testCliUnlockHintTarballLayout(): void
+    {
+        if (is_file('/usr/bin/latch')) {
+            $this->markTestSkipped('/usr/bin/latch present — RPM hint tested separately.');
+        }
+
+        $this->assertSame('sudo -u apache php bin/latch lock off', SiteLock::cliUnlockHint());
+    }
 }

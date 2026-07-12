@@ -100,6 +100,7 @@ final class AdminController
 
         $this->app->render('admin/maintenance.html.twig', [
             'site_lock' => SiteLock::read($storagePath),
+            'site_lock_cli_hint' => SiteLock::cliUnlockHint(),
             'mod_trash_count' => $this->app->posts()->countTrashed(),
             'mod_trash_board_path' => $trashBoard !== null
                 ? '/board/' . (string) $trashBoard['slug']

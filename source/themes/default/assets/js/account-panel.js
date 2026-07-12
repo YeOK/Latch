@@ -108,7 +108,7 @@
 
     function renderSiteLockConfirmation(json) {
         var token = json.unlock_token || '';
-        var hint = json.cli_hint || 'sudo -u apache php bin/latch lock off';
+        var hint = json.cli_hint || 'sudo latch lock off';
         var unlockPath = json.unlock_path || '/maintenance/unlock';
         return ''
             + '<section class="page-header"><h1>Maintenance mode enabled</h1>'

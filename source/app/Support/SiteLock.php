@@ -132,9 +132,19 @@ final class SiteLock
 
     public static function cliUnlockHint(): string
     {
+        return self::cliHint('lock', 'off');
+    }
+
+    public static function cliHint(string ...$args): string
+    {
+        $command = implode(' ', $args);
+        if (is_file('/usr/bin/latch')) {
+            return 'sudo latch ' . $command;
+        }
+
         $user = getenv('LATCH_WEB_USER') ?: getenv('WEB_USER') ?: 'apache';
 
-        return 'sudo -u ' . $user . ' php bin/latch lock off';
+        return 'sudo -u ' . $user . ' php bin/latch ' . $command;
     }
 
     public static function isExemptWebPath(string $path): bool
