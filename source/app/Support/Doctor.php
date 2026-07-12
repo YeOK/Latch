@@ -16,6 +16,7 @@ use Latch\Core\Database;
 use Latch\Core\Migrator;
 use Latch\Core\SecretCipher;
 use Latch\Models\SettingRepository;
+use Latch\Support\Logs\LogViewer;
 
 /**
  * Four-layer install preflight (host, vendor, instance, permissions).
@@ -263,8 +264,79 @@ final class Doctor
 
         $checks = array_merge($checks, self::checkPluginStorageOwnership($storagePath));
         $checks = array_merge($checks, self::checkPluginsCodePath($config));
+        $checks = array_merge($checks, self::checkLogSources($config));
 
         return $checks;
+    }
+
+    /**
+     * Unreadable configured server log sources when logs.server_logs_enabled is on.
+     *
+     * @return list<array{layer: string, name: string, ok: bool, detail: string}>
+     */
+    public static function checkLogSources(Config $config): array
+    {
+        if (!(bool) $config->get('logs.server_logs_enabled', false)) {
+            return [];
+        }
+
+        $viewer = LogViewer::fromConfig($config);
+        $webUser = \Latch\Core\Plugins\PluginStoragePermissions::webUser();
+        $failures = [];
+
+        foreach ($viewer->listSources() as $source) {
+            if (($source['built_in'] ?? false) === true) {
+                continue;
+            }
+
+            $status = (string) ($source['status'] ?? '');
+            if (!in_array($status, ['permission_denied', 'denied'], true)) {
+                continue;
+            }
+
+            $id = (string) ($source['id'] ?? '');
+            $path = (string) ($source['path'] ?? '');
+            $detail = match ($status) {
+                'permission_denied' => "{$id}: not readable by PHP ({$path}) — sudo setfacl -m u:{$webUser}:r {$path}",
+                'denied' => "{$id}: path denied by logs registry ({$path}) — fix logs.sources in local.php",
+                default => "{$id}: {$status} ({$path})",
+            };
+
+            $failures[] = [
+                'layer' => '4-perms',
+                'name' => 'logs_source_' . str_replace(['.', '-'], '_', $id),
+                'ok' => false,
+                'detail' => $detail,
+            ];
+        }
+
+        if ($failures !== []) {
+            return $failures;
+        }
+
+        return [[
+            'layer' => '4-perms',
+            'name' => 'logs_server_sources',
+            'ok' => true,
+            'detail' => 'configured server log sources readable',
+        ]];
+    }
+
+    /**
+     * Layer-4 log source failures for `bin/latch audit` / install-upgrade gates.
+     *
+     * @return list<string>
+     */
+    public static function logSourceIssuesForAudit(Config $config): array
+    {
+        $issues = [];
+        foreach (self::checkLogSources($config) as $check) {
+            if (!$check['ok']) {
+                $issues[] = $check['detail'];
+            }
+        }
+
+        return $issues;
     }
 
     /**
@@ -331,6 +403,15 @@ final class Doctor
 
         if (str_contains($joined, 'fail2ban')) {
             $hints[] = '  Install the latch RPM or copy deploy/server/fail2ban-latch-login.conf';
+        }
+
+        if (str_contains($joined, 'not readable by php') || str_contains($joined, 'setfacl')) {
+            $hints[] = '  sudo setfacl -m u:' . $webUser . ':r /var/log/httpd/latch-access.log';
+            $hints[] = '  See docs/INSTALL-FEDORA.md (Server logs) and packaging/README.md';
+        }
+
+        if (str_contains($joined, 'path denied by logs registry')) {
+            $hints[] = '  Fix logs.sources paths in config/local.php — see docs/SECURITY.md (Admin log viewer)';
         }
 
         if (count($hints) === 2) {

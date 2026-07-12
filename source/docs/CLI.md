@@ -110,7 +110,7 @@ php bin/latch doctor
 php bin/latch doctor --json
 ```
 
-Checks PHP version (≥ 8.2), required extensions (`pdo_sqlite`, `mbstring`, `sodium`, …), `vendor/` presence, database install state, pending migrations, and `storage/` / SQLite file permissions. Warns when `php-xml` is missing (needed for `bin/latch test`).
+Checks PHP version (≥ 8.2), required extensions (`pdo_sqlite`, `mbstring`, `sodium`, …), `vendor/` presence, database install state, pending migrations, and `storage/` / SQLite file permissions. When `logs.server_logs_enabled` is true, warns if configured server log paths are not readable by PHP (with `setfacl` hints). Warns when `php-xml` is missing (needed for `bin/latch test`).
 
 ---
 

@@ -191,7 +191,7 @@ sudo latch logs list
 sudo latch logs tail --source=httpd.access --lines=5
 ```
 
-Unreadable sources show a **permission denied** badge in the admin UI. Phase 5 adds `bin/latch doctor` warnings for misconfigured paths.
+Unreadable sources show a **permission denied** badge in the admin UI and fail `sudo latch doctor` / `sudo latch audit` when `server_logs_enabled` is on.
 
 **Debugging login abuse** — filter `latch.security` for `login_fail`, then correlate timestamps with `httpd.access` (`POST /login`). Same access log path fail2ban uses.
 

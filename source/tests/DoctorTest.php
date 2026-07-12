@@ -139,6 +139,143 @@ final class DoctorTest extends TestCase
         $this->assertStringContainsString('storage/ is world-accessible', $issues[0]);
     }
 
+    public function testLogSourceCheckSkippedWhenServerLogsDisabled(): void
+    {
+        $root = sys_get_temp_dir() . '/latch-doctor-' . bin2hex(random_bytes(4));
+        $configDir = $root . '/config';
+        mkdir($configDir, 0777, true);
+
+        file_put_contents($configDir . '/default.php', '<?php return [
+            "paths" => ["storage" => ' . var_export($root . '/storage', true) . '],
+            "logs" => ["server_logs_enabled" => false],
+        ];');
+
+        $report = Doctor::run(new Config($configDir));
+
+        $this->assertNull($this->findCheckOrNull($report['checks'], 'logs_server_sources'));
+        $this->assertSame([], Doctor::logSourceIssuesForAudit(new Config($configDir)));
+    }
+
+    public function testLogSourceCheckPassesWhenReadable(): void
+    {
+        $root = sys_get_temp_dir() . '/latch-doctor-' . bin2hex(random_bytes(4));
+        $configDir = $root . '/config';
+        $storageDir = $root . '/storage/logs';
+        $logPath = $storageDir . '/access.log';
+        mkdir($configDir, 0777, true);
+        mkdir($storageDir, 0755, true);
+        file_put_contents($logPath, "ok\n");
+
+        file_put_contents($configDir . '/default.php', '<?php return [
+            "paths" => ["storage" => ' . var_export($root . '/storage', true) . '],
+        ];');
+        file_put_contents($configDir . '/local.php', '<?php return [
+            "logs" => [
+                "server_logs_enabled" => true,
+                "sources" => [[
+                    "id" => "httpd.access",
+                    "label" => "Apache access",
+                    "group" => "Web server",
+                    "path" => ' . var_export($logPath, true) . ',
+                    "format" => "text",
+                ]],
+            ],
+        ];');
+
+        $report = Doctor::run(new Config($configDir));
+        $check = $this->findCheck($report['checks'], 'logs_server_sources');
+
+        $this->assertTrue($check['ok']);
+        $this->assertSame([], Doctor::logSourceIssuesForAudit(new Config($configDir)));
+    }
+
+    public function testLogSourceCheckFailsOnPermissionDenied(): void
+    {
+        $root = sys_get_temp_dir() . '/latch-doctor-' . bin2hex(random_bytes(4));
+        $configDir = $root . '/config';
+        $storageDir = $root . '/storage/logs';
+        $logPath = $storageDir . '/error.log';
+        mkdir($configDir, 0777, true);
+        mkdir($storageDir, 0750, true);
+        chmod($root . '/storage', 0750);
+        file_put_contents($logPath, "secret\n");
+        chmod($logPath, 0000);
+
+        file_put_contents($configDir . '/default.php', '<?php return [
+            "paths" => ["storage" => ' . var_export($root . '/storage', true) . '],
+        ];');
+        file_put_contents($configDir . '/local.php', '<?php return [
+            "logs" => [
+                "server_logs_enabled" => true,
+                "sources" => [[
+                    "id" => "httpd.error",
+                    "label" => "Apache error",
+                    "group" => "Web server",
+                    "path" => ' . var_export($logPath, true) . ',
+                    "format" => "text",
+                ]],
+            ],
+        ];');
+
+        $config = new Config($configDir);
+        $report = Doctor::run($config);
+        $check = $this->findCheck($report['checks'], 'logs_source_httpd_error');
+
+        $this->assertFalse($check['ok']);
+        $this->assertStringContainsString('not readable by PHP', $check['detail']);
+        $this->assertStringContainsString('setfacl', $check['detail']);
+
+        $issues = Doctor::permissionIssuesForAudit($config);
+        $logIssues = array_values(array_filter(
+            $issues,
+            static fn (string $issue): bool => str_contains($issue, 'httpd.error'),
+        ));
+        $this->assertCount(1, $logIssues);
+        $this->assertStringContainsString('not readable by PHP', $logIssues[0]);
+
+        chmod($logPath, 0644);
+    }
+
+    public function testLogSourceCheckFailsOnDeniedPath(): void
+    {
+        $root = sys_get_temp_dir() . '/latch-doctor-' . bin2hex(random_bytes(4));
+        $configDir = $root . '/config';
+        mkdir($configDir, 0777, true);
+        file_put_contents($configDir . '/local.php', '<?php return [];');
+
+        $deniedPath = $configDir . '/local.php';
+
+        file_put_contents($configDir . '/default.php', '<?php return [
+            "paths" => ["storage" => ' . var_export($root . '/storage', true) . '],
+        ];');
+        file_put_contents($configDir . '/local.php', '<?php return [
+            "logs" => [
+                "server_logs_enabled" => true,
+                "sources" => [[
+                    "id" => "secrets.leak",
+                    "label" => "Secrets",
+                    "group" => "Other",
+                    "path" => ' . var_export($deniedPath, true) . ',
+                    "format" => "text",
+                ]],
+            ],
+        ];');
+
+        $report = Doctor::run(new Config($configDir));
+        $check = $this->findCheck($report['checks'], 'logs_source_secrets_leak');
+
+        $this->assertFalse($check['ok']);
+        $this->assertStringContainsString('path denied by logs registry', $check['detail']);
+    }
+
+    public function testAuditFixHintsIncludesSetfaclForUnreadableLogSources(): void
+    {
+        $hints = Doctor::auditFixHints(['httpd.error: not readable by PHP (/var/log/httpd/latch-error.log) — sudo setfacl -m u:apache:r …']);
+
+        $this->assertStringContainsString('setfacl', $hints);
+        $this->assertStringContainsString('INSTALL-FEDORA.md', $hints);
+    }
+
     public function testCronDailyCheckFailsWhenNeverRun(): void
     {
         $root = sys_get_temp_dir() . '/latch-doctor-' . bin2hex(random_bytes(4));
@@ -175,12 +312,26 @@ final class DoctorTest extends TestCase
      */
     private function findCheck(array $checks, string $name): array
     {
+        $check = $this->findCheckOrNull($checks, $name);
+        if ($check === null) {
+            $this->fail('Check not found: ' . $name);
+        }
+
+        return $check;
+    }
+
+    /**
+     * @param list<array{layer: string, name: string, ok: bool, detail: string}> $checks
+     * @return ?array{layer: string, name: string, ok: bool, detail: string}
+     */
+    private function findCheckOrNull(array $checks, string $name): ?array
+    {
         foreach ($checks as $check) {
             if ($check['name'] === $name) {
                 return $check;
             }
         }
 
-        $this->fail('Check not found: ' . $name);
+        return null;
     }
 }
