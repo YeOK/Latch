@@ -186,4 +186,28 @@ final class PostFormatterTest extends TestCase
         $this->assertStringContainsString('Refusing restore', $html);
         $this->assertStringNotContainsString('```', $html);
     }
+
+    public function testComposerPreviewSkipsImagesAndPluginLinkCards(): void
+    {
+        $formatter = new PostFormatter();
+        $formatter->setImageHostChecker(static fn (string $host): bool => $host === 'cdn.example.com');
+        $formatter->setLinkFormatter(
+            static fn (string $html, string $url, string $label, bool $standalone): string => $standalone
+                ? '<div class="plugin-card">card</div>'
+                : $html,
+        );
+
+        $imageHtml = $formatter->format('![screenshot](https://cdn.example.com/a.png)', true);
+        $this->assertStringContainsString('composer-preview-placeholder', $imageHtml);
+        $this->assertStringContainsString('[image: screenshot]', $imageHtml);
+        $this->assertStringNotContainsString('<img ', $imageHtml);
+
+        $linkHtml = $formatter->format('https://example.test/watch?v=abc', true);
+        $this->assertStringContainsString('<a href="https://example.test/watch?v=abc"', $linkHtml);
+        $this->assertStringNotContainsString('plugin-card', $linkHtml);
+
+        $smileyHtml = $formatter->format('Hello :smile:', true);
+        $this->assertStringContainsString('class="smiley"', $smileyHtml);
+        $this->assertStringContainsString('😊', $smileyHtml);
+    }
 }

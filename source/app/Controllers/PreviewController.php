@@ -46,6 +46,6 @@ final class PreviewController
             Response::json(['html' => '']);
         }
 
-        Response::json(['html' => $this->app->postFormatter()->format($body)]);
+        Response::json(['html' => $this->app->postFormatter()->format($body, true)]);
     }
 }

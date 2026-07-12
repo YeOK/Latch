@@ -9,6 +9,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+### Fixed
+- **Composer live preview** — skips plugin link cards (link-preview) and inline images (image-upload); markdown images show a compact `[image]` placeholder; smileys, spoilers, code, and other markup still render.
+
 ## [0.4.4.0] — 2026-07-12
 
 ### Added

@@ -16,6 +16,7 @@ use Latch\Core\Plugins\PluginManifest;
 use Latch\Core\Plugins\PostSaveContext;
 use Latch\Plugins\ImageUpload\BodyGuard;
 use Latch\Plugins\ImageUpload\PluginConfig;
+use Latch\Plugins\ImageUpload\PostImageFormatter;
 use Latch\Plugins\ImageUpload\R2Presigner;
 use Latch\Plugins\ImageUpload\Settings;
 use PHPUnit\Framework\TestCase;
@@ -208,6 +209,29 @@ final class ImageUploadPluginTest extends TestCase
 
         $this->assertTrue($config->isAllowedContentType('image/jpeg'));
         $this->assertFalse($config->isAllowedContentType('image/png'));
+    }
+
+    public function testPostImageFormatterWrapsConfiguredHostImages(): void
+    {
+        $config = $this->sampleConfig();
+        $formatter = new PostImageFormatter($config);
+        $input = '<p>Hi</p><img src="https://images.forum.example.com/forum/1/abc.png" alt="shot" class="post-image" loading="lazy" decoding="async">';
+
+        $html = $formatter->format($input);
+
+        $this->assertStringContainsString('post-image-figure', $html);
+        $this->assertStringContainsString('post-image-open', $html);
+        $this->assertStringContainsString('data-full-src="https://images.forum.example.com/forum/1/abc.png"', $html);
+        $this->assertStringContainsString('post-image--preview', $html);
+    }
+
+    public function testPostImageFormatterIgnoresForeignHosts(): void
+    {
+        $config = $this->sampleConfig();
+        $formatter = new PostImageFormatter($config);
+        $input = '<img src="https://evil.example/x.png" alt="x" class="post-image" loading="lazy" decoding="async">';
+
+        $this->assertSame($input, $formatter->format($input));
     }
 
     private function deleteTree(string $dir): void

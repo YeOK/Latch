@@ -27,6 +27,8 @@ final class PostFormatter
     /** @var (callable(string, string): string)|null */
     private $formatAfterFilter = null;
 
+    private bool $composerPreview = false;
+
     /** @var array<string, string> Most-used first — picker order matches this list. */
     private const SMILEYS = [
         ':smile:' => '😊',
@@ -102,36 +104,43 @@ final class PostFormatter
         return $text;
     }
 
-    public function format(string $raw): string
+    public function format(string $raw, bool $composerPreview = false): string
     {
-        $raw = str_replace(["\r\n", "\r"], "\n", $raw);
-        $mdImport = false;
-        if (str_starts_with($raw, '<!-- latch-md-import -->')) {
-            $mdImport = true;
-            $raw = (string) preg_replace('/^<!-- latch-md-import -->\s*/', '', $raw);
-        }
-        $raw = preg_replace('/^<!-- latch-announcement:[a-z0-9-]+ -->\s*/', '', $raw) ?? $raw;
-        if ($raw === '') {
-            return '';
-        }
+        $previousPreview = $this->composerPreview;
+        $this->composerPreview = $composerPreview;
 
-        $blocks = $this->splitBlocks($raw);
-        $html = '';
+        try {
+            $raw = str_replace(["\r\n", "\r"], "\n", $raw);
+            $mdImport = false;
+            if (str_starts_with($raw, '<!-- latch-md-import -->')) {
+                $mdImport = true;
+                $raw = (string) preg_replace('/^<!-- latch-md-import -->\s*/', '', $raw);
+            }
+            $raw = preg_replace('/^<!-- latch-announcement:[a-z0-9-]+ -->\s*/', '', $raw) ?? $raw;
+            if ($raw === '') {
+                return '';
+            }
 
-        foreach ($blocks as $block) {
-            $html .= match ($block['type']) {
-                'code' => $this->renderCodeBlock($block['lang'], $block['content']),
-                'quote' => $this->renderQuote($block['author'], $block['content']),
-                'text' => $this->formatTextBlock($block['content']),
-                default => '',
-            };
+            $blocks = $this->splitBlocks($raw);
+            $html = '';
+
+            foreach ($blocks as $block) {
+                $html .= match ($block['type']) {
+                    'code' => $this->renderCodeBlock($block['lang'], $block['content']),
+                    'quote' => $this->renderQuote($block['author'], $block['content']),
+                    'text' => $this->formatTextBlock($block['content']),
+                    default => '',
+                };
+            }
+
+            if ($this->formatAfterFilter !== null) {
+                $html = ($this->formatAfterFilter)($html, $raw);
+            }
+
+            return $mdImport ? '<div class="post-md-import">' . $html . '</div>' : $html;
+        } finally {
+            $this->composerPreview = $previousPreview;
         }
-
-        if ($this->formatAfterFilter !== null) {
-            $html = ($this->formatAfterFilter)($html, $raw);
-        }
-
-        return $mdImport ? '<div class="post-md-import">' . $html . '</div>' : $html;
     }
 
     /**
@@ -466,8 +475,17 @@ final class PostFormatter
             return '<span class="blocked-image muted">[image blocked]</span>';
         }
 
-        $safeUrl = htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $safeAlt = htmlspecialchars($alt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        if ($this->composerPreview) {
+            $label = $safeAlt !== '' && $safeAlt !== 'image'
+                ? '[image: ' . $safeAlt . ']'
+                : '[image]';
+
+            return '<span class="composer-preview-placeholder muted">' . $label . '</span>';
+        }
+
+        $safeUrl = htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         return '<img src="' . $safeUrl . '" alt="' . $safeAlt . '" class="post-image" loading="lazy" decoding="async">';
     }
@@ -482,7 +500,7 @@ final class PostFormatter
             $safeUrl = htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             $html = '<a href="' . $safeUrl . '" rel="nofollow ugc" target="_blank">' . $safeLabel . '</a>';
 
-            if ($this->linkFormatter !== null) {
+            if ($this->linkFormatter !== null && !$this->composerPreview) {
                 $html = ($this->linkFormatter)($html, $url, $label, $standalone);
             }
 
@@ -493,7 +511,7 @@ final class PostFormatter
             $safeUrl = htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             $html = '<a href="' . $safeUrl . '">' . $safeLabel . '</a>';
 
-            if ($this->linkFormatter !== null) {
+            if ($this->linkFormatter !== null && !$this->composerPreview) {
                 $html = ($this->linkFormatter)($html, $url, $label, $standalone);
             }
 

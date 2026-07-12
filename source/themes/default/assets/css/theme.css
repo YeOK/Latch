@@ -2560,6 +2560,12 @@ body:not(.page-admin):not(.page-profile) :is(
     margin: 0.5rem 0;
 }
 
+.composer-preview .composer-preview-placeholder {
+    display: inline;
+    font-style: italic;
+    font-size: 0.9em;
+}
+
 .board-icon-picker {
     border: none;
     margin: 0;
