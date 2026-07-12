@@ -3231,6 +3231,19 @@ body:not(.page-admin):not(.page-profile) :is(
     margin: 0;
 }
 
+.radio {
+    display: flex !important;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-weight: 500 !important;
+}
+
+.radio input {
+    width: auto;
+    margin: 0.2rem 0 0;
+    flex-shrink: 0;
+}
+
 .btn {
     display: inline-block;
     border: none;
@@ -4940,6 +4953,35 @@ body.account-overlay-open {
 
 .admin-spa-flash {
     margin-bottom: 1rem;
+}
+
+.brand-settings {
+    margin: 1.25rem 0 1.5rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-raised);
+}
+
+.brand-settings h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+}
+
+.brand-mode-fieldset {
+    margin: 0.75rem 0 1rem;
+    padding: 0;
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.brand-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin: 0.5rem 0 0.75rem;
 }
 
 body.page-profile main.container > .flash:first-child {

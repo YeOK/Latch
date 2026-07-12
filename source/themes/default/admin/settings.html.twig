@@ -7,7 +7,7 @@
         <h1>Site settings</h1>
     </section>
 
-    <form method="post" action="/admin/settings" class="form form-wide" enctype="multipart/form-data">
+    <form method="post" action="/admin/settings" class="form form-wide" enctype="multipart/form-data" data-account-bypass>
         {{ csrf_field() }}
         <label>
             Site name
@@ -17,9 +17,10 @@
             Tagline
             <input type="text" name="site_tagline" value="{{ site_tagline }}" maxlength="{{ input_limits.site_tagline_max }}">
         </label>
-        <h2>Branding</h2>
-        <p class="muted">Logo appears in the header and footer for all themes (default, modern, and child packs that use the shared brand partial).</p>
-        <fieldset class="brand-mode-fieldset">
+        <section class="form-section brand-settings" id="branding">
+            <h2>Branding</h2>
+            <p class="muted">Logo appears in the header and footer for all themes (default, modern, and child packs that use the shared brand partial).</p>
+            <fieldset class="brand-mode-fieldset">
             <legend class="sr-only">Brand display</legend>
             <label class="radio">
                 <input type="radio" name="brand_mode" value="latch"{% if brand_mode == 'latch' %} checked{% endif %}>
@@ -50,6 +51,7 @@
                 Remove uploaded logo
             </label>
         {% endif %}
+        </section>
         <label>
             Footer about text
             <textarea name="footer_about" rows="5" maxlength="{{ input_limits.footer_about_max }}" placeholder="Short description shown in the site footer (below the logo).">{{ footer_about }}</textarea>
