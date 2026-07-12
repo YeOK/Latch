@@ -45,6 +45,17 @@ final class PluginCacheCoordinator
         return false;
     }
 
+    public function hasClientModePlugins(): bool
+    {
+        foreach ($this->manifestsBySlug as $manifest) {
+            if ($manifest->cacheConfig->isClient()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @return list<string>
      */

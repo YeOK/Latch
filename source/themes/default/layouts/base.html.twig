@@ -78,6 +78,9 @@
     {% for script in plugin_theme_scripts|default([]) %}
         <script src="{{ script }}" defer></script>
     {% endfor %}
+    {% if plugin_client_loader|default(false) %}
+        <script src="/assets/js/plugin-clients.js?v={{ asset_version }}" defer></script>
+    {% endif %}
     {% block scripts %}{% endblock %}
 </body>
 </html>

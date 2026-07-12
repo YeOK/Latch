@@ -51,6 +51,19 @@ final class PluginCacheCoordinatorTest extends TestCase
         $this->assertFalse($coordinator->disablesGuestPageCache());
     }
 
+    public function testHasClientModePlugins(): void
+    {
+        $coordinator = $this->coordinatorFor([
+            $this->manifest('git-release', new PluginCacheConfig(
+                guestPage: PluginCacheConfig::GUEST_PAGE_CLIENT,
+                invalidateOn: ['plugin'],
+                clientRoute: '/plugin/git-release/widget.json',
+            )),
+        ]);
+
+        $this->assertTrue($coordinator->hasClientModePlugins());
+    }
+
     public function testInvalidationTagsIncludePluginSlugWhenConfigured(): void
     {
         $coordinator = $this->coordinatorFor([

@@ -48,6 +48,18 @@ final class PluginAuditorTest extends TestCase
         $this->assertSame(0, $report->warnCount());
     }
 
+    public function testGitReleasePluginPassesAudit(): void
+    {
+        $root = CatalogPath::root();
+        if (!is_dir($root . '/git-release')) {
+            $this->markTestSkipped('git-release plugin not present in Latch-plugins');
+        }
+
+        $report = $this->auditor->auditPath($root . '/git-release');
+
+        $this->assertTrue($report->passed(), $report->toHuman());
+    }
+
     public function testFragmentCacheWithoutHookIsCritical(): void
     {
         $dir = $this->makeTempPlugin('cache-frag-missing', '<?php', [

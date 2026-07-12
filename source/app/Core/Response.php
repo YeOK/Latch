@@ -38,11 +38,16 @@ final class Response
         echo $body;
     }
 
-    public static function json(array $data, int $status = 200): void
+    public static function json(array $data, int $status = 200, ?int $publicMaxAge = null): void
     {
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
-        header('Cache-Control: no-store');
+        if ($publicMaxAge !== null && $publicMaxAge > 0) {
+            header('Cache-Control: public, max-age=' . $publicMaxAge);
+        } else {
+            header('Cache-Control: no-store');
+        }
+
         echo json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
         exit;
     }

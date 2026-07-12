@@ -3250,6 +3250,15 @@ body:not(.page-admin):not(.page-profile) :is(
     background: var(--btn-bg-hover, var(--accent-hover));
 }
 
+.plugin-client-slot.is-error,
+.plugin-client-slot.is-empty {
+    display: none;
+}
+
+.plugin-client-slot:not(.is-loaded) {
+    min-height: 0;
+}
+
 /* git-release plugin + filled .btn links — dark accent is too light for white label (WCAG 4.5:1) */
 [data-theme="dark"] .latch-git-release-actions .btn {
     background: var(--btn-bg);

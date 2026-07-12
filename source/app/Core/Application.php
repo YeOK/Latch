@@ -1833,6 +1833,7 @@ final class Application implements PluginCollectContext
             'plugin_home_after_boards_html' => $this->pluginCacheCoordinator->collect($this, HookName::HOME_AFTER_BOARDS),
             'plugin_admin_menu_items' => $this->pluginCacheCoordinator->collect($this, HookName::ADMIN_MENU),
             'plugin_composer_toolbar' => $this->pluginCacheCoordinator->collect($this, HookName::EDITOR_COMPOSE),
+            'plugin_client_loader' => $this->pluginCacheCoordinator->hasClientModePlugins(),
         ];
     }
 

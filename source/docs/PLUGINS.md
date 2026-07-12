@@ -131,14 +131,27 @@ Collect hooks (`theme.assets`, `layout.footer`, `home.after_boards`, etc.) can d
 
 **Audit:** `plugin-audit` flags `fragment` without `cache.fragment`, `client` without `cache.client`, `cache.client` paths that are not same-origin (must start with `/`), or a `cache.fragment` hook not listed in `hooks`.
 
-**Example (forum-stats):**
+**Example (forum-stats — fragment cache):**
 
 ```json
 "cache": {
-  "guest_page": "bake",
-  "invalidate_on": ["site"]
+  "guest_page": "fragment",
+  "fragment": "home.after_boards",
+  "invalidate_on": ["site", "plugin"]
 }
 ```
+
+**Example (git-release — client hydrate):**
+
+```json
+"cache": {
+  "guest_page": "client",
+  "invalidate_on": ["plugin"],
+  "client": "/plugin/git-release/widget.json"
+}
+```
+
+Core loads `/assets/js/plugin-clients.js` when any enabled plugin uses `guest_page: client`. The script fetches `data-src` and injects the JSON `html` field into `.plugin-client-slot` placeholders.
 
 Omit `cache` entirely to use the same defaults (`bake` + `invalidate_on: ["site"]`).
 
@@ -393,7 +406,11 @@ Fresh sites run migration `028_plugins.sql` (`INSERT OR IGNORE` → empty array)
 
 ### `forum-stats`
 
-Home page totals — posts, topics, registered members via `home.after_boards`. Catalog plugin; `cache.guest_page: bake`, `invalidate_on: ["site"]`.
+Home page totals — posts, topics, registered members via `home.after_boards`. Catalog plugin; `guest_page: fragment` on `home.after_boards`, `invalidate_on: ["site", "plugin"]`.
+
+### `git-release` (operator — not in catalog)
+
+Latest GitHub release card on the home page. Install from [Latch-plugins/git-release](https://github.com/YeOK/Latch-plugins/tree/main/git-release). Uses `guest_page: client` + `/plugin/git-release/widget.json`; see plugin README.
 
 ### `image-upload` (R2 / CDN post images)
 

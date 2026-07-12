@@ -92,8 +92,9 @@ final class PluginCacheConfigTest extends TestCase
     {
         $manifest = PluginManifest::fromDirectory(CatalogPath::plugin('forum-stats'));
 
-        $this->assertSame(PluginCacheConfig::GUEST_PAGE_BAKE, $manifest->cacheConfig->guestPage);
-        $this->assertSame(['site'], $manifest->cacheConfig->invalidateOn);
+        $this->assertSame(PluginCacheConfig::GUEST_PAGE_FRAGMENT, $manifest->cacheConfig->guestPage);
+        $this->assertSame('home.after_boards', $manifest->cacheConfig->fragmentHook);
+        $this->assertSame(['site', 'plugin'], $manifest->cacheConfig->invalidateOn);
         $this->assertFalse($manifest->cacheConfig->isBypass());
     }
 
