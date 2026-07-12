@@ -9,6 +9,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.3.1] — 2026-07-12
+
+### Added
+- **Admin plugins UI** — **Installed** / **Catalog** tabs with icon actions (install, enable, disable, settings, remove); SPA-friendly `?tab=` navigation.
+- **`fix-perms` overhaul** — repairs all runtime paths (`storage/`, `plugins/` code, SQLite sidecars, `local.php`); `--web-user` / `WEB_USER` override (default `apache`).
+- **`docs/RELEASE.md`** — full release checklist (VERSION, RPM, tarball, git tag, COPR); `scripts/check-versions.sh` gate in `build-release.sh`.
+
+### Fixed
+- **GitHub release zip download** — follow HTTP 302 redirect chain (GitHub → `release-assets.githubusercontent.com`).
+- **Catalog install permissions** — `plugins/` parent writable by web server; RPM `%post` sets `apache:apache` on `plugins/`.
+- **`sudo latch fix-perms` / `plugin remove`** — wrapper stays root for chown and code deletion under `/usr/share/latch/`.
+- **Admin plugins 500** — tab query uses `Request::input()` (not missing `query()` method).
+
+### Changed
+- **Remove control** — trash icon beside plugin title; catalog install stays in-panel AJAX (no full-page bypass).
+
 ## [0.4.3.0] — 2026-07-12
 
 ### Added
@@ -375,6 +391,8 @@ php bin/latch install --url=https://forum.example.com --name="My Forum"
 cd /var/www/latch && sudo bash scripts/update.sh
 ```
 
+[0.4.3.1]: https://github.com/YeOK/Latch/releases/tag/v0.4.3.1
+[0.4.3.0]: https://github.com/YeOK/Latch/releases/tag/v0.4.3.0
 [0.3.0.23]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.23
 [0.3.0.22]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.22
 [0.3.0.21]: https://github.com/YeOK/Latch/releases/tag/v0.3.0.21
