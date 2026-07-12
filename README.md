@@ -63,7 +63,7 @@ Tier-1 catalog plugins (install separately): **image-upload** (R2/CDN), **link-p
 
 ```bash
 # Replace VERSION with the latest from GitHub Releases
-VERSION=0.4.4.2
+VERSION=0.4.4.3
 tar -xzf latch-${VERSION}.tar.gz && cd latch-${VERSION}-stage
 bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 ```

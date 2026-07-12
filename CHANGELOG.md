@@ -9,8 +9,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.4.3] — 2026-07-12
+
 ### Added
-- **Operator site branding** — Admin → Settings → Branding: upload SVG/PNG logo, choose Latch built-in mark / custom image / text-only; served at `/branding/logo`; works across default and modern themes via shared `partials/brand.html.twig`.
+- **Operator site branding** — Admin → Settings → Branding: upload SVG/PNG logo (max 512 KB), choose Latch built-in mark / custom image / text-only; served at `/branding/logo`; shared `partials/brand.html.twig` for default and modern themes.
+
+### Changed
+- **Admin settings** — Branding section in a highlighted panel; Settings opens full page for reliable logo upload.
 
 ## [0.4.4.2] — 2026-07-12
 
@@ -429,6 +434,7 @@ php bin/latch install --url=https://forum.example.com --name="My Forum"
 cd /var/www/latch && sudo bash scripts/update.sh
 ```
 
+[0.4.4.3]: https://github.com/YeOK/Latch/releases/tag/v0.4.4.3
 [0.4.4.2]: https://github.com/YeOK/Latch/releases/tag/v0.4.4.2
 [0.4.4.1]: https://github.com/YeOK/Latch/releases/tag/v0.4.4.1
 [0.4.4.0]: https://github.com/YeOK/Latch/releases/tag/v0.4.4.0
