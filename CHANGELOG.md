@@ -9,6 +9,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.5.1] — 2026-07-12
+
+### Fixed
+- **Admin log viewer** — code-style monospace panel; `Details` and raw `Line` on full-width sub-rows below Time/Event/IP/User (no truncated inline JSON).
+- **fail2ban `latch-login`** — jail watches `security.log` for `login_fail` (real client IPs behind Cloudflare/local proxy); fixed Apache combined `failregex`; ship `latch-remoteip.conf` for optional access-log client IPs.
+
+### Changed
+- **Documentation** — fail2ban troubleshooting and server log viewer setup in `INSTALL-FEDORA.md` and `SECURITY.md`.
+
 ## [0.4.5.0] — 2026-07-12
 
 ### Added
