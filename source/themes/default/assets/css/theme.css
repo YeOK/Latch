@@ -1770,6 +1770,23 @@ body:not(.page-admin):not(.page-profile) :is(
     display: none !important;
 }
 
+.plugin-title-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.plugin-title-row .plugin-remove-form {
+    margin: 0;
+}
+
+.plugin-title-row .btn-icon {
+    min-width: 1.75rem;
+    min-height: 1.75rem;
+    padding: 0.25rem;
+}
+
 .plugin-actions {
     display: flex;
     flex-wrap: wrap;
