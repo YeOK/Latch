@@ -89,6 +89,8 @@ Phase 4 plugins may register extra assets via hooks. Until then, add scripts exp
 
 Extend `base.html.twig`; do not duplicate the shell. Admin pages use `layouts/admin.html.twig`, which extends base and adds the sidebar.
 
+The `<main>` element must include the `container` class (you may add theme-specific classes too, e.g. `class="container sc-main"`). The account overlay and in-page profile AJAX loader locate content via `main.container`.
+
 ### Shared template variables
 
 Available in every view (from `Application::sharedViewData()`):

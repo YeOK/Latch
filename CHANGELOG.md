@@ -9,6 +9,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+### Fixed
+- **Showcase + account overlay** — restore `container` on `<main>` so profile/admin AJAX panels load; account-panel.js also matches `main.sc-main`.
+
 ## [0.4.4.4] — 2026-07-12
 
 ### Added

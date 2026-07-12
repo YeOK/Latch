@@ -57,7 +57,7 @@
             </div>
         </header>
 
-        <main class="sc-main{% block main_class %}{% endblock %}">
+        <main class="container sc-main{% block main_class %}{% endblock %}">
             <div class="sc-main-inner">
                 {% if not (current_path starts with '/admin') %}
                     {% include 'partials/flash.html.twig' %}

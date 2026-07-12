@@ -212,7 +212,7 @@
             }
         }
 
-        var main = doc.querySelector('main.container');
+        var main = doc.querySelector('main.container, main.sc-main');
         if (main) {
             return {
                 html: main.innerHTML,
@@ -555,14 +555,14 @@
         if (document.body.classList.contains('page-admin') && form.closest('.admin-main')) {
             return true;
         }
-        if (document.body.classList.contains('page-profile') && form.closest('main.container')) {
+        if (document.body.classList.contains('page-profile') && form.closest('main.container, main.sc-main')) {
             return true;
         }
         return false;
     }
 
     function loadInPlaceProfile(url) {
-        var pageMain = document.querySelector('body.page-profile main.container');
+        var pageMain = document.querySelector('body.page-profile main.container, body.page-profile main.sc-main');
         if (!pageMain) {
             window.location.href = url;
             return;
@@ -574,7 +574,7 @@
         fetchPage(url)
             .then(function (html) {
                 var doc = new DOMParser().parseFromString(html, 'text/html');
-                var main = doc.querySelector('main.container');
+                var main = doc.querySelector('main.container, main.sc-main');
                 if (!main) {
                     throw new Error('Missing profile content');
                 }
@@ -745,7 +745,7 @@
     }
 
     if (document.body.classList.contains('page-profile')) {
-        var main = document.querySelector('main.container');
+        var main = document.querySelector('main.container, main.sc-main');
         if (main) {
             wirePanelLinks(main);
             bindConfirmForms(main);
