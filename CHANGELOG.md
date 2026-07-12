@@ -9,11 +9,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.5.0] — 2026-07-12
+
+### Added
+- **Admin log viewer** — `/admin/logs` source index and tail viewer for `security.log` and `restore.log`; optional Apache/PHP-FPM sources via `logs.server_logs_enabled` in `local.php`.
+- **Log engine** — bounded reverse tail, byte cursors, rotation detection, security JSON filters (`event`, `ip`, `username`, time range), text `q` search, and secret redaction on all output.
+- **Live tail** — `?live=1` polls `/admin/logs/feed` every 30s with rate limit and debounced `logs.feed` audit.
+- **CLI** — `php bin/latch logs list|tail` with full filter parity and `--follow`.
+- **Doctor** — warns when configured server log paths are unreadable (with `setfacl` hints).
+- **Dashboard** — login failure count from the last 500 `security.log` lines (links to filtered viewer).
+
 ### Security
-- **Outbound URL guard** — central SSRF checks now cover IPv6 literals, `.local` hosts, redirect targets, and plugin catalog GETs; link-preview delegates to core `OutboundUrlGuard` and re-validates each redirect hop.
+- **Outbound URL guard** — central SSRF checks cover IPv6 literals, `.local` hosts, redirect targets, and plugin catalog GETs; link-preview delegates to core `OutboundUrlGuard` and re-validates each redirect hop.
 
 ### Fixed
 - **Showcase + account overlay** — restore `container` on `<main>` so profile/admin AJAX panels load; account-panel.js also matches `main.sc-main`.
+
+### Documentation
+- **Server logs** — `SECURITY.md`, `INSTALL.md`, `INSTALL-FEDORA.md`, `CLI.md`, and `packaging/README.md` updated for admin viewer setup and COPR log paths.
 
 ## [0.4.4.4] — 2026-07-12
 

@@ -11,7 +11,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.4.4.4
+Version:        0.4.5.0
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -199,6 +199,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sun Jul 12 2026 YeOK <yeokky@gmail.com> - 0.4.5.0-1
+- Admin log viewer (UI, CLI, doctor warnings, dashboard login_fail card); outbound URL SSRF hardening
+
 * Sun Jul 12 2026 YeOK <yeokky@gmail.com> - 0.4.4.4-1
 - Branding v2 (favicon, OG, dark logo); admin site theme selector; Showcase theme pack; dark-mode logo fix
 

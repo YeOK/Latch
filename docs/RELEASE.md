@@ -6,14 +6,14 @@ Every public release must bump **all** version surfaces together. Partial bumps 
 
 | Surface | File / artifact | Example |
 |---------|-----------------|---------|
-| Tree version | `VERSION` | `0.4.4.4` |
-| Config fallback | `source/config/default.php` → `app.version` | `0.4.4.4` |
-| RPM spec | `packaging/latch.spec` → `Version:` | `0.4.4.4` |
-| Changelog | `CHANGELOG.md` → `## [0.4.4.4]` | dated section, `[Unreleased]` empty |
+| Tree version | `VERSION` | `0.4.5.0` |
+| Config fallback | `source/config/default.php` → `app.version` | `0.4.5.0` |
+| RPM spec | `packaging/latch.spec` → `Version:` | `0.4.5.0` |
+| Changelog | `CHANGELOG.md` → `## [0.4.5.0]` | dated section, `[Unreleased]` empty |
 | Security policy | `SECURITY.md` supported-versions table | latest = current |
-| Git tag | `v0.4.4.4` | matches `VERSION` |
+| Git tag | `v0.4.5.0` | matches `VERSION` |
 | GitHub Release | tag + notes + assets | tarball + `SHA256SUMS` |
-| Release tarball | `dist/latch-0.4.4.4.tar.gz` | from `build-release.sh` |
+| Release tarball | `dist/latch-0.4.5.0.tar.gz` | from `build-release.sh` |
 | COPR / RPM | `dnf upgrade latch` | built from tag via `packaging/latch.spec` |
 
 Preflight (must pass before `build-release.sh`):
