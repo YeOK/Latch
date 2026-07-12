@@ -38,6 +38,9 @@ VERSION="$(tr -d '[:space:]' < "${REPO_ROOT}/VERSION")"
 STAGE="${DIST}/latch-${VERSION}-stage"
 ARCHIVE="${DIST}/latch-${VERSION}.tar.gz"
 
+echo "==> Check version sync (VERSION, app.version, latch.spec)"
+"${SCRIPT_DIR}/check-versions.sh"
+
 if [[ -f "${REPO_ROOT}/CHANGELOG.md" ]]; then
     UNRELEASED_BULLETS="$(awk '
         /^## \[Unreleased\]/ { in_unreleased=1; next }

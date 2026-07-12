@@ -15,4 +15,4 @@
 
 **COPR builds:** enable **Use internet** on the COPR project; `%build` runs `composer install --no-dev` (`BuildRequires: composer`). `source/vendor/` is gitignored — only `composer.lock` is committed.
 
-**Release checklist:** bump `VERSION`, `source/config/default.php` (`app.version`), and `packaging/latch.spec` (`Version:`); update `SECURITY.md` supported versions; move live `CHANGELOG.md` bullets out of `[Unreleased]` into that version; `review-git-tree.sh` must show `[Unreleased] is empty`; run `scripts/build-release.sh` (runs Composer, stages `vendor/` into the tarball); tag, COPR, GitHub release.
+**Release checklist:** see [docs/RELEASE.md](../docs/RELEASE.md). Bump **all** version surfaces together (`VERSION`, `app.version`, `latch.spec` `Version:`, `SECURITY.md`, RPM `%changelog`); run `./scripts/check-versions.sh` then `scripts/build-release.sh`; tag `v{version}`, GitHub release (tarball + `SHA256SUMS`), COPR/RPM.

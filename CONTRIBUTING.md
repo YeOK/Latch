@@ -48,7 +48,9 @@ php bin/latch test --smoke --url=https://your-staging-forum
 
 ## Releases
 
-Releases are built from this repo with `scripts/build-release.sh` after folding `[Unreleased]` into a version section and bumping `VERSION`. Fresh installs use:
+Full maintainer checklist: [docs/RELEASE.md](docs/RELEASE.md). Bump **all** version surfaces in one commit (`VERSION`, `source/config/default.php` `app.version`, `packaging/latch.spec` `Version:`, `SECURITY.md`, RPM `%changelog`), run `./scripts/check-versions.sh`, then `scripts/build-release.sh`. Publish git tag, GitHub release tarball, and COPR RPM together.
+
+Fresh installs use:
 
 ```bash
 bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
