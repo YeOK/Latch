@@ -6190,6 +6190,13 @@ body.topic-mod-mode .post-actions {
     text-overflow: ellipsis;
 }
 
+.log-col-target {
+    max-width: 14rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .log-code-row td {
     border-bottom: none;
     padding-bottom: 0.2rem;

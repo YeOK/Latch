@@ -3,30 +3,57 @@
 {% block title %}Audit log — Admin{% endblock %}
 
 {% block admin_content %}
-    <section class="page-header">
-        <h1>Audit log</h1>
+    <section class="page-header log-view-header">
+        <div>
+            <h1>Audit log</h1>
+            <p class="muted">Staff actions and settings changes (latest 200 entries).</p>
+        </div>
     </section>
 
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Time</th>
-                <th>Actor</th>
-                <th>Action</th>
-                <th>Target</th>
-                <th>IP</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for entry in entries %}
-                <tr>
-                    <td>{{ entry.created_at|format_datetime }}</td>
-                    <td>{{ entry.actor_username ?? '—' }}</td>
-                    <td>{{ entry.action }}</td>
-                    <td>{{ entry.target_type }}{% if entry.target_id %} #{{ entry.target_id }}{% endif %}</td>
-                    <td>{{ entry.ip_address }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="log-viewer-output">
+        {% if entries is empty %}
+            <p class="muted">No audit entries yet.</p>
+        {% else %}
+            <div class="log-code-view">
+                <table class="log-code-table">
+                    <thead>
+                        <tr>
+                            <th class="log-col-n" scope="col">#</th>
+                            <th class="log-col-ts" scope="col">Time</th>
+                            <th class="log-col-user" scope="col">Actor</th>
+                            <th class="log-col-event" scope="col">Action</th>
+                            <th class="log-col-target" scope="col">Target</th>
+                            <th class="log-col-ip" scope="col">IP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in entries %}
+                            <tr class="log-code-row">
+                                <td class="log-col-n">{{ loop.index }}</td>
+                                <td class="log-col-ts">{{ entry.created_at|format_datetime }}</td>
+                                <td class="log-col-user">{{ entry.actor_username ?? '—' }}</td>
+                                <td class="log-col-event">{{ entry.action }}</td>
+                                <td class="log-col-target">{{ entry.target_type }}{% if entry.target_id %} #{{ entry.target_id }}{% endif %}</td>
+                                <td class="log-col-ip">{{ entry.ip_address }}</td>
+                            </tr>
+                            <tr class="log-code-line-row{% if not entry.has_metadata %} log-code-entry-end{% endif %}">
+                                <td colspan="6" class="log-code-subrow-cell">
+                                    <span class="log-code-subrow-label">Record</span>
+                                    <pre class="log-code-line">{{ entry.record_line }}</pre>
+                                </td>
+                            </tr>
+                            {% if entry.has_metadata %}
+                                <tr class="log-code-details-row log-code-entry-end">
+                                    <td colspan="6" class="log-code-subrow-cell">
+                                        <span class="log-code-subrow-label">Details</span>
+                                        <pre class="log-code-details">{{ entry.metadata_json }}</pre>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
 {% endblock %}

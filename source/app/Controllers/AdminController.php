@@ -1520,7 +1520,7 @@ final class AdminController
         $this->app->auth()->requireAdmin();
 
         $this->app->render('admin/audit.html.twig', [
-            'entries' => $this->app->auditLog()->recent(200),
+            'entries' => $this->auditLogEntriesForTemplate($this->app->auditLog()->recent(200)),
         ]);
     }
 
@@ -2323,6 +2323,41 @@ final class AdminController
         }
 
         return $manifest;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $entries
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function auditLogEntriesForTemplate(array $entries): array
+    {
+        return array_map(static function (array $entry): array {
+            $metadataRaw = (string) ($entry['metadata'] ?? '{}');
+            $metadata = json_decode($metadataRaw, true);
+            if (!is_array($metadata)) {
+                $metadata = [];
+            }
+
+            $record = [
+                'id' => (int) $entry['id'],
+                'created_at' => (string) $entry['created_at'],
+                'actor_id' => $entry['actor_id'] !== null ? (int) $entry['actor_id'] : null,
+                'actor_username' => $entry['actor_username'] ?? null,
+                'action' => (string) $entry['action'],
+                'target_type' => (string) $entry['target_type'],
+                'target_id' => $entry['target_id'] !== null ? (int) $entry['target_id'] : null,
+                'ip_address' => (string) $entry['ip_address'],
+            ];
+
+            $entry['record_line'] = json_encode($record, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $entry['has_metadata'] = $metadata !== [];
+            $entry['metadata_json'] = $entry['has_metadata']
+                ? json_encode($metadata, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+                : '';
+
+            return $entry;
+        }, $entries);
     }
 
     /**
