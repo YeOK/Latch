@@ -9,12 +9,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.4.2] — 2026-07-12
+
 ### Added
 - **Plugin client loader** — `plugin-clients.js` hydrates `guest_page: client` placeholders; loaded when any enabled plugin uses client cache mode.
-- **git-release operator plugin** (Latch-plugins) — reference implementation for client-mode guest cache + GitHub release widget.
 
 ### Changed
-- **forum-stats** — `guest_page: fragment` on `home.after_boards` with `tagPlugin` + `tagSite` invalidation (catalog 1.0.1).
+- **New topic form** — removed markup hint text below the compose title.
+
+### Documentation
+- **Release** — catalog publish checklist references Latch-plugins `check-release.sh` gate.
 
 ## [0.4.4.1] — 2026-07-12
 
@@ -422,6 +426,8 @@ php bin/latch install --url=https://forum.example.com --name="My Forum"
 cd /var/www/latch && sudo bash scripts/update.sh
 ```
 
+[0.4.4.2]: https://github.com/YeOK/Latch/releases/tag/v0.4.4.2
+[0.4.4.1]: https://github.com/YeOK/Latch/releases/tag/v0.4.4.1
 [0.4.4.0]: https://github.com/YeOK/Latch/releases/tag/v0.4.4.0
 [0.4.3.1]: https://github.com/YeOK/Latch/releases/tag/v0.4.3.1
 [0.4.3.0]: https://github.com/YeOK/Latch/releases/tag/v0.4.3.0

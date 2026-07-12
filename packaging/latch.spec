@@ -11,7 +11,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.4.4.1
+Version:        0.4.4.2
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -199,6 +199,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sun Jul 12 2026 YeOK <yeokky@gmail.com> - 0.4.4.2-1
+- PR-P6 client loader; new-topic markup hint removed; catalog release verification docs
+
 * Sun Jul 12 2026 YeOK <yeokky@gmail.com> - 0.4.4.1-1
 - Composer live preview skips plugin images and link cards; polished grouped toolbar; doc refresh
 
