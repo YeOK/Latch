@@ -280,7 +280,7 @@ Until admin browser install lands, use `plugin install` with a local path or zip
 
 Enable/disable (CLI and admin) invalidates `tagPlugin:{slug}` and clears guest page / Twig cache automatically.
 
-**Admin UI:** `/admin/plugins` lists discovered plugins, audit status, and enable/disable (CSRF-protected). Enable is blocked until `plugin-audit` passes. Audit results are **cached** on disk (`storage/cache/plugin-audits/`); the admin page reuses the cache when plugin files are unchanged, otherwise scans once and refreshes the cache.
+**Admin UI:** `/admin/plugins` has **Installed** and **Catalog** tabs (SPA-friendly). Icon actions: enable, disable, settings, remove, and catalog install. Enable is blocked until `plugin-audit` passes. Remove deletes `plugins/{slug}/` only — add `--purge-storage` on CLI to drop `storage/plugins/{slug}/`. Audit results are **cached** on disk (`storage/cache/plugin-audits/`); the admin page reuses the cache when plugin files are unchanged, otherwise scans once and refreshes the cache.
 
 **Audit schedule:** `cron daily` re-scans all non-ignored plugins and updates the cache. Manual `plugin-audit` always forces a fresh scan.
 

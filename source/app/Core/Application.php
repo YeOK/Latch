@@ -526,6 +526,7 @@ final class Application implements PluginCollectContext
         $this->router->post('/admin/plugins/catalog/install', $this->bind($admin, 'installCatalogPlugin'));
         $this->router->post('/admin/plugins/:slug/enable', $this->bind($admin, 'enablePlugin'));
         $this->router->post('/admin/plugins/:slug/disable', $this->bind($admin, 'disablePlugin'));
+        $this->router->post('/admin/plugins/:slug/remove', $this->bind($admin, 'removePlugin'));
         $this->router->get('/admin/reports/feed', $this->bind($admin, 'reportQueueFeed'));
         $this->router->get('/admin/reports', $this->bind($admin, 'reports'));
         $this->router->post('/admin/reports/:id/triage', $this->bind($admin, 'triageReport'));

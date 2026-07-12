@@ -240,6 +240,56 @@
             'account-overlay-status ' + (isError ? 'flash flash-error' : 'flash flash-success');
     }
 
+    function bindAdminTabs(root) {
+        var tabRoot = root.querySelector('[data-admin-tabs]');
+        if (!tabRoot) {
+            return;
+        }
+
+        var tabs = tabRoot.querySelectorAll('[data-admin-tab]');
+        var panels = tabRoot.querySelectorAll('[data-admin-tab-panel]');
+
+        function activateTab(name) {
+            tabs.forEach(function (tab) {
+                var active = tab.getAttribute('data-admin-tab') === name;
+                tab.classList.toggle('is-active', active);
+                tab.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            panels.forEach(function (panel) {
+                var active = panel.getAttribute('data-admin-tab-panel') === name;
+                panel.hidden = !active;
+            });
+        }
+
+        tabs.forEach(function (tab) {
+            if (tab.dataset.adminTabWired === '1') {
+                return;
+            }
+            tab.dataset.adminTabWired = '1';
+            tab.addEventListener('click', function () {
+                var name = tab.getAttribute('data-admin-tab');
+                if (!name) {
+                    return;
+                }
+                activateTab(name);
+                var url = new URL(window.location.href);
+                url.searchParams.set('tab', name);
+                var next = url.pathname + url.search;
+                if (document.body.classList.contains('page-admin')) {
+                    history.replaceState(
+                        Object.assign({}, history.state || {}, { adminSpa: next }),
+                        '',
+                        next,
+                    );
+                    return;
+                }
+                history.replaceState(history.state, '', next);
+            });
+        });
+
+        activateTab(tabRoot.getAttribute('data-active-tab') || 'installed');
+    }
+
     function bindConfirmForms(root) {
         root.querySelectorAll('form[data-confirm]').forEach(function (form) {
             if (form.dataset.confirmBound === '1') {
@@ -283,6 +333,7 @@
         }
 
         bindConfirmForms(body);
+        bindAdminTabs(body);
         wirePanelLinks(body);
     }
 
@@ -424,6 +475,7 @@
                 }
 
                 bindConfirmForms(adminMain);
+                bindAdminTabs(adminMain);
                 wirePanelLinks(adminMain);
 
                 if (pushHistory) {
@@ -528,6 +580,7 @@
                 }
                 pageMain.innerHTML = main.innerHTML;
                 bindConfirmForms(pageMain);
+                bindAdminTabs(pageMain);
                 wirePanelLinks(pageMain);
 
                 var flash = extractFlash(doc);
@@ -685,7 +738,9 @@
         var adminShell = document.querySelector('.admin-shell');
         if (adminShell) {
             wirePanelLinks(adminShell);
-            bindConfirmForms(document.querySelector('.admin-main') || document);
+            var adminMain = document.querySelector('.admin-main') || document;
+            bindConfirmForms(adminMain);
+            bindAdminTabs(adminMain);
         }
     }
 

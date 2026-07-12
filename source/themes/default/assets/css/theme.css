@@ -1711,6 +1711,72 @@ body:not(.page-admin):not(.page-profile) :is(
     color: var(--muted);
 }
 
+.admin-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.35rem;
+}
+
+.admin-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.85rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm, 6px);
+    background: transparent;
+    color: var(--text-muted, var(--muted));
+    font: inherit;
+    font-size: 0.92rem;
+    cursor: pointer;
+}
+
+.admin-tab:hover,
+.admin-tab:focus-visible {
+    color: var(--text);
+    background: var(--surface-raised);
+}
+
+.admin-tab.is-active {
+    color: var(--text);
+    background: var(--surface-raised);
+    border-color: var(--border);
+    font-weight: 600;
+}
+
+.admin-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.admin-tab-meta {
+    font-size: 0.78rem;
+    font-weight: 400;
+}
+
+.admin-tab-panel[hidden] {
+    display: none !important;
+}
+
+.plugin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+
 .plugin-audit-status {
     display: inline-flex;
     align-items: center;

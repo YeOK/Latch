@@ -1701,13 +1701,26 @@ final class AdminController
             }
         }
 
+        $activeTab = trim((string) ($this->app->request()->query('tab') ?? 'installed'));
+        if (!in_array($activeTab, ['catalog', 'installed'], true)) {
+            $activeTab = 'installed';
+        }
+
         $this->app->render('admin/plugins.html.twig', [
             'plugins' => $rows,
             'latch_version' => $latchVersion,
             'catalog_release' => $catalogData['release'] ?? null,
             'catalog_plugins' => $catalogRows,
             'catalog_error' => $catalogError,
+            'active_tab' => $activeTab,
+            'installed_count' => count($rows),
+            'catalog_count' => count($catalogRows),
         ]);
+    }
+
+    private function pluginsAdminUrl(string $tab = 'installed'): string
+    {
+        return '/admin/plugins?tab=' . $tab;
     }
 
     public function installCatalogPlugin(array $params = []): void
@@ -1717,22 +1730,22 @@ final class AdminController
 
         $slug = trim((string) ($this->app->request()->input('slug') ?? ''));
         if ($slug === '' || !preg_match('/^[a-z0-9][a-z0-9_-]*$/', $slug)) {
-            $this->finishStaffAction(false, 'Invalid plugin slug.', '/admin/plugins');
+            $this->finishStaffAction(false, 'Invalid plugin slug.', $this->pluginsAdminUrl('catalog'));
         }
 
         if ($this->findPluginManifest($slug) !== null) {
-            $this->finishStaffAction(false, 'Plugin is already installed.', '/admin/plugins');
+            $this->finishStaffAction(false, 'Plugin is already installed.', $this->pluginsAdminUrl('catalog'));
         }
 
         $catalog = $this->pluginCatalog();
         $catalogData = $catalog->load(true);
         if ($catalogData === null) {
-            $this->finishStaffAction(false, 'Could not load the plugin catalog.', '/admin/plugins');
+            $this->finishStaffAction(false, 'Could not load the plugin catalog.', $this->pluginsAdminUrl('catalog'));
         }
 
         $entry = $this->findCatalogEntry($catalogData['entries'], $slug);
         if ($entry === null) {
-            $this->finishStaffAction(false, 'Plugin not found in catalog.', '/admin/plugins');
+            $this->finishStaffAction(false, 'Plugin not found in catalog.', $this->pluginsAdminUrl('catalog'));
         }
 
         $latchVersion = $this->app->latchVersion();
@@ -1740,7 +1753,7 @@ final class AdminController
             $this->finishStaffAction(
                 false,
                 "Plugin requires Latch >= {$entry->minLatchVersion}.",
-                '/admin/plugins',
+                $this->pluginsAdminUrl('catalog'),
             );
         }
 
@@ -1748,7 +1761,7 @@ final class AdminController
             $this->finishStaffAction(
                 false,
                 "Catalog requires Latch >= {$catalogData['latch_min_version']}.",
-                '/admin/plugins',
+                $this->pluginsAdminUrl('catalog'),
             );
         }
 
@@ -1760,7 +1773,7 @@ final class AdminController
                 $message = 'Plugin install failed.';
             }
 
-            $this->finishStaffAction(false, $message, '/admin/plugins');
+            $this->finishStaffAction(false, $message, $this->pluginsAdminUrl('catalog'));
         }
 
         $actor = $this->app->auth()->user();
@@ -1781,7 +1794,7 @@ final class AdminController
         $this->finishStaffAction(
             true,
             "Installed {$manifest->name} v{$manifest->version} (disabled). Enable it when ready.",
-            '/admin/plugins',
+            $this->pluginsAdminUrl('installed'),
         );
     }
 
@@ -1852,14 +1865,14 @@ final class AdminController
         $slug = trim((string) ($params['slug'] ?? ''));
         $manifest = $this->findPluginManifest($slug);
         if ($manifest === null) {
-            $this->finishStaffAction(false, 'Plugin not found.', '/admin/plugins');
+            $this->finishStaffAction(false, 'Plugin not found.', $this->pluginsAdminUrl('installed'));
         }
 
         if (!$manifest->isCompatibleWith($this->app->latchVersion())) {
             $this->finishStaffAction(
                 false,
                 "Plugin requires Latch >= {$manifest->minLatchVersion}.",
-                '/admin/plugins',
+                $this->pluginsAdminUrl('installed'),
             );
         }
 
@@ -1869,7 +1882,7 @@ final class AdminController
             $this->finishStaffAction(
                 false,
                 $this->auditFailureMessage($report),
-                '/admin/plugins',
+                $this->pluginsAdminUrl('installed'),
             );
         }
 
@@ -1880,7 +1893,7 @@ final class AdminController
             $this->finishStaffAction(
                 false,
                 'Plugin database migration failed. Check server logs for details.',
-                '/admin/plugins',
+                $this->pluginsAdminUrl('installed'),
             );
         }
 
@@ -1906,7 +1919,7 @@ final class AdminController
         $storagePath = (string) $this->app->config()->get('paths.storage');
         SiteMaintenance::clearCaches($this->app->cache(), $storagePath);
 
-        $this->finishStaffAction(true, "Enabled plugin: {$manifest->name}.", '/admin/plugins');
+        $this->finishStaffAction(true, "Enabled plugin: {$manifest->name}.", $this->pluginsAdminUrl('installed'));
     }
 
     public function disablePlugin(array $params): void
@@ -1917,7 +1930,7 @@ final class AdminController
         $slug = trim((string) ($params['slug'] ?? ''));
         $manifest = $this->findPluginManifest($slug);
         if ($manifest === null) {
-            $this->finishStaffAction(false, 'Plugin not found.', '/admin/plugins');
+            $this->finishStaffAction(false, 'Plugin not found.', $this->pluginsAdminUrl('installed'));
         }
 
         $registry = $this->app->plugins();
@@ -1942,7 +1955,73 @@ final class AdminController
         $storagePath = (string) $this->app->config()->get('paths.storage');
         SiteMaintenance::clearCaches($this->app->cache(), $storagePath);
 
-        $this->finishStaffAction(true, "Disabled plugin: {$manifest->name}.", '/admin/plugins');
+        $this->finishStaffAction(true, "Disabled plugin: {$manifest->name}.", $this->pluginsAdminUrl('installed'));
+    }
+
+    public function removePlugin(array $params): void
+    {
+        $this->app->auth()->requireAdmin();
+        $this->validateStaffCsrf();
+
+        $slug = trim((string) ($params['slug'] ?? ''));
+        $manifest = $this->findPluginManifest($slug);
+        if ($manifest === null) {
+            $this->finishStaffAction(false, 'Plugin not found.', $this->pluginsAdminUrl('installed'));
+        }
+
+        $config = $this->app->config();
+        $installer = new PluginInstaller(
+            (string) $config->get('paths.plugins'),
+            (string) $config->get('paths.storage'),
+        );
+
+        try {
+            $purgeStorage = filter_var(
+                $this->app->request()->input('purge_storage'),
+                FILTER_VALIDATE_BOOL,
+            );
+            $installer->removeInstalled($slug, $purgeStorage);
+        } catch (\Throwable $e) {
+            $message = trim($e->getMessage());
+            $this->finishStaffAction(
+                false,
+                $message !== '' ? $message : 'Could not remove plugin.',
+                $this->pluginsAdminUrl('installed'),
+            );
+        }
+
+        $registry = $this->app->plugins();
+        $registry->disable($slug);
+        $this->pluginAuditService()->forget($slug);
+
+        $actor = $this->app->auth()->user();
+        $this->app->auditLog()->record(
+            (int) ($actor['id'] ?? 0),
+            'plugin.remove',
+            'plugin',
+            null,
+            $this->app->request()->ip(),
+            [
+                'slug' => $slug,
+                'version' => $manifest->version,
+                'purge_storage' => filter_var(
+                    $this->app->request()->input('purge_storage'),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
+        );
+
+        $this->app->invalidatePluginCache($slug);
+
+        $storagePath = (string) $config->get('paths.storage');
+        SiteMaintenance::clearCaches($this->app->cache(), $storagePath);
+
+        $message = "Removed plugin: {$manifest->name}.";
+        if (filter_var($this->app->request()->input('purge_storage'), FILTER_VALIDATE_BOOL)) {
+            $message .= ' Plugin storage purged.';
+        }
+
+        $this->finishStaffAction(true, $message, $this->pluginsAdminUrl('catalog'));
     }
 
     private function pluginAuditor(): PluginAuditor
