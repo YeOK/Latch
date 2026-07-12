@@ -1701,7 +1701,7 @@ final class AdminController
             }
         }
 
-        $activeTab = trim((string) ($this->app->request()->query('tab') ?? 'installed'));
+        $activeTab = trim((string) ($this->app->request()->input('tab', 'installed')));
         if (!in_array($activeTab, ['catalog', 'installed'], true)) {
             $activeTab = 'installed';
         }
