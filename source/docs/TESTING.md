@@ -103,7 +103,7 @@ Defined in `phpunit.xml.dist`:
 | Layer | Scope | Gate |
 |-------|-------|------|
 | **GitHub CodeQL** (`js/xss`, `js/xss-through-dom`) | All tracked JS on `main` | CI on push + weekly |
-| **`ThemeJsAuditor`** (`test --security`) | `themes/default/assets/js/*.js` (excludes `*.min.js`) | **Critical** patterns fail PHPUnit; `innerHTML` etc. warn only |
+| **`ThemeJsAuditor`** (`test --security`) | `themes/*/assets/js/*.js` (excludes `*.min.js`) | **Critical** patterns fail PHPUnit; `innerHTML` etc. warn only |
 | **`PluginAuditor`** | Third-party plugins only | Critical blocks enable; markup/JS warns; production cache via `PluginAuditService` |
 
 PHPUnit cannot execute browser DOM — server-side `SecurityRegressionTest` covers PHP/Twig escaping only. The theme JS scanner catches regressions like unsanitized `userId` in `href`/`innerHTML` (the class of bug CodeQL flagged in `staff-actions.js`). Broader `innerHTML` use is warned for review; prefer `textContent`, `replaceChildren()`, or DOM APIs.

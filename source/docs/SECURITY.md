@@ -114,7 +114,7 @@ Cached HTML is only served to unauthenticated visitors on public boards when `me
 |-------|-------|----------------|
 | **`bin/latch audit`** | File permissions, `local.php` readability, encryption key | Smoke/security gates, `update` |
 | **`PluginAuditor`** | Third-party plugins under `plugins/` | Enable gate, `plugin-audit`, cached admin/cron scans |
-| **`ThemeJsAuditor`** | First-party `themes/default/assets/js/` | `test --security` PHPUnit gate |
+| **`ThemeJsAuditor`** | First-party `themes/*/assets/js/` (default + child packs) | `test --security` PHPUnit gate |
 | **GitHub CodeQL** | All tracked JS on `main` | CI on push + weekly schedule |
 
 Server-side post markup is escaped in `PostFormatter` (`SecurityRegressionTest`). DOM XSS in theme JS is caught by CodeQL and `ThemeJsAuditor` — prefer `textContent` / DOM APIs over `innerHTML` with user data.

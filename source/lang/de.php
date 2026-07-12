@@ -98,7 +98,6 @@ return [
         'theme_dark' => 'Dunkel',
         'save_theme' => 'Schema speichern',
         'theme_apply_hint' => 'Das Schema wird sofort auf der gesamten Website angewendet.',
-        'theme_public_lead' => 'Wählen Sie, wie Latch auf diesem Gerät für Sie aussieht.',
         'language' => 'Sprache',
         'save_language' => 'Sprache speichern',
         'theme_saved' => 'Farbschema gespeichert.',

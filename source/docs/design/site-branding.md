@@ -1,6 +1,6 @@
 # Site branding (operator logo)
 
-**Status:** v1 shipped (0.4.4.3); v2 on `main` (2026-07-12)
+**Status:** v1 shipped (0.4.4.3); v2 shipped (0.4.4.4)
 
 ## Goal
 
@@ -14,7 +14,7 @@ Let operators customize header/footer logo without editing theme files. Works fo
 | Brand modes: `latch`, `custom`, `text_only` | R2/CDN hosting |
 | `GET /branding/logo` | In-browser crop/editor |
 
-## v2 scope (in progress)
+## v2 scope (shipped 0.4.4.4)
 
 | In | Out |
 |----|-----|

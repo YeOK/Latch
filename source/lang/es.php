@@ -98,7 +98,6 @@ return [
         'theme_dark' => 'Oscuro',
         'save_theme' => 'Guardar tema',
         'theme_apply_hint' => 'El tema se aplica de inmediato en todo el sitio.',
-        'theme_public_lead' => 'Elige cómo se ve Latch para ti en este dispositivo.',
         'language' => 'Idioma',
         'save_language' => 'Guardar idioma',
         'theme_saved' => 'Preferencia de tema guardada.',

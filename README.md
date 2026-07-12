@@ -43,7 +43,7 @@ Try it in minutes — download a release tarball, run `php bin/latch install`, p
 |------|------------|
 | **Posting** | Markdown-style markup, fenced code blocks with highlight.js, live AJAX preview while composing, @mentions, reactions, spoilers |
 | **Plugins** | 28 hooks (`post.format.link`, `post.format.after`, CSP, layout, lifecycle, …); static audit before enable; **[Latch-plugins](https://github.com/YeOK/Latch-plugins)** catalog |
-| **Admin** | Dashboard, mod tools, board ACLs, **Plugins → Installed / Catalog** tabs with in-browser install from GitHub releases |
+| **Admin** | Dashboard, mod tools, board ACLs, **site branding** (logo/favicon/OG), **site theme** selector, **Plugins → Installed / Catalog** tabs with in-browser install from GitHub releases |
 | **API** | OAuth 2.0 + PKCE, read/write REST API, webhooks |
 | **Ops** | `bin/latch` CLI — install, migrate, backup, restore, `db-check`, `audit`, `fix-perms`, cron timers (RPM) |
 
@@ -63,7 +63,7 @@ Tier-1 catalog plugins (install separately): **image-upload** (R2/CDN), **link-p
 
 ```bash
 # Replace VERSION with the latest from GitHub Releases
-VERSION=0.4.4.3
+VERSION=0.4.4.4
 tar -xzf latch-${VERSION}.tar.gz && cd latch-${VERSION}-stage
 bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 ```

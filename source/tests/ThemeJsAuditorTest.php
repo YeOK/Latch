@@ -28,8 +28,26 @@ final class ThemeJsAuditorTest extends TestCase
 
     public function testDefaultThemeJsHasNoCriticalFindings(): void
     {
-        $findings = $this->auditor->audit();
+        $this->assertNoCriticalFindings($this->auditor->audit(), 'default');
+    }
 
+    public function testBundledThemePackJsHasNoCriticalFindings(): void
+    {
+        foreach (glob($this->root . '/themes/*/assets/js', GLOB_ONLYDIR) ?: [] as $jsDir) {
+            if ($jsDir === $this->root . '/themes/default/assets/js') {
+                continue;
+            }
+
+            $pack = basename(dirname(dirname($jsDir)));
+            $this->assertNoCriticalFindings((new ThemeJsAuditor($jsDir))->audit(), $pack);
+        }
+    }
+
+    /**
+     * @param list<PluginAuditFinding> $findings
+     */
+    private function assertNoCriticalFindings(array $findings, string $pack): void
+    {
         $critical = array_values(array_filter(
             $findings,
             static fn (PluginAuditFinding $finding): bool => $finding->severity === PluginAuditFinding::SEVERITY_CRITICAL,
@@ -38,7 +56,7 @@ final class ThemeJsAuditorTest extends TestCase
         $this->assertSame(
             [],
             $critical,
-            $this->formatFindings($critical),
+            $pack . ': ' . $this->formatFindings($critical),
         );
     }
 

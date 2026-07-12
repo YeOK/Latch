@@ -98,7 +98,6 @@ return [
         'theme_dark' => 'Sombre',
         'save_theme' => 'Enregistrer le thème',
         'theme_apply_hint' => 'Le thème s’applique immédiatement sur tout le site.',
-        'theme_public_lead' => 'Choisissez l’apparence de Latch pour vous sur cet appareil.',
         'language' => 'Langue',
         'save_language' => 'Enregistrer la langue',
         'theme_saved' => 'Préférence de thème enregistrée.',

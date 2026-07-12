@@ -9,8 +9,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.4.4] — 2026-07-12
+
 ### Added
-- **Branding v2** — separate favicon and Open Graph image uploads; optional dark-mode logo variant (`/branding/favicon`, `/branding/og`, `/branding/logo-dark`).
+- **Branding v2** — favicon, Open Graph image, and optional dark-mode logo uploads (`/branding/favicon`, `/branding/og`, `/branding/logo-dark`).
+- **Admin site theme** — choose the active visual theme pack from installed directories under `themes/` (`default`, `modern`, `showcase`, …); stored as `active_theme` with `config` fallback.
+- **Showcase theme pack** — reference implementation with custom layout shell, home/board/topic templates, partials, CSS, and `showcase.js` (beyond token-only packs like `modern`).
+- **Profile color theme** — instant-apply selector on the profile Appearance section (light / dark / system).
+
+### Fixed
+- **Custom logo in dark mode** — single uploaded logo stays visible when no dark variant is configured.
 
 ## [0.4.4.3] — 2026-07-12
 

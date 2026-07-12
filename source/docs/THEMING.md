@@ -25,7 +25,9 @@ themes/
 
 ### Activation
 
-Set the active theme in `config/default.php` (or override in `config/local.php`):
+**Admin UI (recommended):** **Admin → Settings → Site theme** lists every pack under `themes/` (from each `theme.json`). The choice is stored as `active_theme` in the settings table.
+
+**Config fallback:** when no `active_theme` is saved, Latch uses `config/default.php` (or `config/local.php`):
 
 ```php
 'theme' => [
@@ -36,7 +38,13 @@ Set the active theme in `config/default.php` (or override in `config/local.php`)
 
 Twig resolves templates from `themes/{active}/` first, then falls back to `themes/default/`.
 
-Static assets are served from `/assets/…` (mapped to `themes/{active}/assets/`). Do not reference files outside the theme `assets/` directory.
+Static assets are served from `/assets/…` (mapped to `themes/{active}/assets/`). Child packs that ship `css/theme.css` have it **appended** after default CSS; other assets override when present. Do not reference files outside the theme `assets/` directory.
+
+| Pack | Type | What it overrides |
+|------|------|-------------------|
+| `default` | Reference | Full layouts, partials, CSS, JS |
+| `modern` | Token child | CSS tokens only (layouts from default) |
+| `showcase` | Full demo | Layout shell, home/board/topic templates, partials, CSS, `showcase.js` |
 
 ### `theme.json`
 

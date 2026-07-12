@@ -11,7 +11,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.4.4.3
+Version:        0.4.4.4
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -199,6 +199,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sun Jul 12 2026 YeOK <yeokky@gmail.com> - 0.4.4.4-1
+- Branding v2 (favicon, OG, dark logo); admin site theme selector; Showcase theme pack; dark-mode logo fix
+
 * Sun Jul 12 2026 YeOK <yeokky@gmail.com> - 0.4.4.3-1
 - Operator site branding: admin logo upload, brand modes, /branding/logo serve path
 

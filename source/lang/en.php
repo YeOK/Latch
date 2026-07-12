@@ -102,7 +102,6 @@ return [
         'theme_dark' => 'Dark',
         'save_theme' => 'Save theme',
         'theme_apply_hint' => 'Theme changes apply immediately across the site.',
-        'theme_public_lead' => 'Choose how Latch looks for you on this device.',
         'language' => 'Language',
         'save_language' => 'Save language',
         'theme_saved' => 'Theme preference saved.',
