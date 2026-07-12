@@ -6,7 +6,7 @@
 {% set logo_dark_src = brand.logo_dark_url|default(null) %}
 <a href="/" class="{% if is_footer %}footer-brand-link footer-brand-link-custom{% else %}header-brand header-brand-custom{% endif %}">
     <span class="{% if is_footer %}footer-brand-mark{% else %}header-brand-mark{% endif %}" aria-hidden="true">
-        <img class="{% if is_footer %}footer-brand-mark-img{% else %}header-brand-mark-img{% endif %} brand-logo-img--light" src="{{ logo_src }}" width="{{ mark_w }}" height="{{ mark_h }}" alt="">
+        <img class="{% if is_footer %}footer-brand-mark-img{% else %}header-brand-mark-img{% endif %}{% if logo_dark_src %} brand-logo-img--light{% endif %}" src="{{ logo_src }}" width="{{ mark_w }}" height="{{ mark_h }}" alt="">
         {% if logo_dark_src %}
             <img class="{% if is_footer %}footer-brand-mark-img{% else %}header-brand-mark-img{% endif %} brand-logo-img--dark" src="{{ logo_dark_src }}" width="{{ mark_w }}" height="{{ mark_h }}" alt="">
         {% endif %}

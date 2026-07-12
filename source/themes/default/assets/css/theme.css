@@ -264,6 +264,8 @@ body.page-admin .latch-header .header-bar {
     flex-shrink: 0;
     width: 2.5rem;
     height: 2.5rem;
+    object-fit: contain;
+    display: block;
     color: var(--brand-fg, var(--accent));
 }
 
@@ -792,6 +794,8 @@ main.container {
     flex-shrink: 0;
     width: 1.75rem;
     height: 1.75rem;
+    object-fit: contain;
+    display: block;
     color: var(--brand-fg, var(--accent));
 }
 
@@ -5005,12 +5009,13 @@ body.account-overlay-open {
     display: none;
 }
 
-[data-theme="dark"] .brand-logo-img--light {
+[data-theme="dark"] .header-brand-mark:has(.brand-logo-img--dark) .brand-logo-img--light,
+[data-theme="dark"] .footer-brand-mark:has(.brand-logo-img--dark) .brand-logo-img--light {
     display: none;
 }
 
 [data-theme="dark"] .brand-logo-img--dark {
-    display: inline;
+    display: block;
 }
 
 body.page-profile main.container > .flash:first-child {
