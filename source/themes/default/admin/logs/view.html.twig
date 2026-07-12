@@ -33,41 +33,45 @@
         <input type="hidden" name="source" value="{{ source.id }}">
         {% if live %}<input type="hidden" name="live" value="1">{% endif %}
 
-        {% if source.format == 'json_lines' %}
-            <label>
-                Event
-                <select name="event">
-                    <option value="">All events</option>
-                    {% for event in security_event_types %}
-                        <option value="{{ event }}"{% if filters.event|default('') == event %} selected{% endif %}>{{ event }}</option>
-                    {% endfor %}
-                </select>
-            </label>
-            <label>
-                IP
-                <input type="text" name="ip" value="{{ filters.ip|default('') }}" maxlength="45" placeholder="203.0.113.5">
-            </label>
-            <label>
-                Username
-                <input type="text" name="username" value="{{ filters.username|default('') }}" maxlength="32">
-            </label>
-            <label>
-                Since (ISO)
-                <input type="text" name="since" value="{{ filters.since|default('') }}" placeholder="2026-07-12T00:00:00Z">
-            </label>
-            <label>
-                Until (ISO)
-                <input type="text" name="until" value="{{ filters.until|default('') }}" placeholder="2026-07-12T23:59:59Z">
-            </label>
-        {% else %}
-            <label class="log-filter-wide">
-                Search
-                <input type="search" name="q" value="{{ filters.q|default('') }}" maxlength="200" placeholder="Substring filter">
-            </label>
-        {% endif %}
+        <div class="log-filter-grid{% if source.format == 'json_lines' %} log-filter-grid--json{% endif %}">
+            {% if source.format == 'json_lines' %}
+                <label class="log-filter-field log-filter-field--event">
+                    <span class="log-filter-label">Event</span>
+                    <select name="event">
+                        <option value="">All events</option>
+                        {% for event in security_event_types %}
+                            <option value="{{ event }}"{% if filters.event|default('') == event %} selected{% endif %}>{{ event }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="log-filter-field log-filter-field--ip">
+                    <span class="log-filter-label">IP</span>
+                    <input type="text" name="ip" value="{{ filters.ip|default('') }}" maxlength="45" placeholder="203.0.113.5">
+                </label>
+                <label class="log-filter-field log-filter-field--user">
+                    <span class="log-filter-label">Username</span>
+                    <input type="text" name="username" value="{{ filters.username|default('') }}" maxlength="32">
+                </label>
+                <label class="log-filter-field log-filter-field--time">
+                    <span class="log-filter-label" title="ISO-8601 UTC">Since</span>
+                    <input type="text" name="since" value="{{ filters.since|default('') }}" placeholder="2026-07-12T00:00:00Z" spellcheck="false">
+                </label>
+                <label class="log-filter-field log-filter-field--time">
+                    <span class="log-filter-label" title="ISO-8601 UTC">Until</span>
+                    <input type="text" name="until" value="{{ filters.until|default('') }}" placeholder="2026-07-12T23:59:59Z" spellcheck="false">
+                </label>
+            {% else %}
+                <label class="log-filter-field log-filter-field--search">
+                    <span class="log-filter-label">Search</span>
+                    <input type="search" name="q" value="{{ filters.q|default('') }}" maxlength="200" placeholder="Substring filter">
+                </label>
+            {% endif %}
+        </div>
 
-        <button type="submit" class="btn btn-small btn-primary">Apply filters</button>
-        <a class="btn btn-small" href="/admin/logs/view?source={{ source.id|url_encode }}{% if live %}&amp;live=1{% endif %}">Clear</a>
+        <div class="log-filter-actions">
+            <button type="submit" class="btn btn-small btn-primary">Apply filters</button>
+            <a class="btn btn-small" href="/admin/logs/view?source={{ source.id|url_encode }}{% if live %}&amp;live=1{% endif %}">Clear</a>
+        </div>
     </form>
 
     <div id="log-viewer-output" class="log-viewer-output" data-format="{{ source.format }}">
