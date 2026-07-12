@@ -1,0 +1,121 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}{{ source.label }} — Logs — Admin{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header log-view-header">
+        <div>
+            <h1>{{ source.label }}</h1>
+            <p class="muted"><code title="{{ source.path }}">{{ source.path_short }}</code></p>
+        </div>
+        <div class="log-view-actions">
+            <a class="btn btn-small" href="/admin/logs">All sources</a>
+            <a class="btn btn-small" href="{{ refresh_url }}">Refresh</a>
+            {% if live %}
+                <a class="btn btn-small" href="{{ live_stop_url }}">Stop live</a>
+            {% else %}
+                <a class="btn btn-small" href="{{ live_start_url }}">Live · 30s</a>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if rotated %}
+        <p class="admin-hint admin-hint--info">Log rotated — showing latest entries.</p>
+    {% endif %}
+    {% if scan_budget_exhausted %}
+        <p class="admin-hint admin-hint--info">Showing matches within the scan window; older matches may exist — use Load older.</p>
+    {% endif %}
+    {% if matches_exhausted and filters is not empty %}
+        <p class="admin-hint admin-hint--info">All matching entries in the scanned range are shown.</p>
+    {% endif %}
+
+    <form class="log-filter-form" method="get" action="/admin/logs/view">
+        <input type="hidden" name="source" value="{{ source.id }}">
+        {% if live %}<input type="hidden" name="live" value="1">{% endif %}
+
+        {% if source.format == 'json_lines' %}
+            <label>
+                Event
+                <select name="event">
+                    <option value="">All events</option>
+                    {% for event in security_event_types %}
+                        <option value="{{ event }}"{% if filters.event|default('') == event %} selected{% endif %}>{{ event }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                IP
+                <input type="text" name="ip" value="{{ filters.ip|default('') }}" maxlength="45" placeholder="203.0.113.5">
+            </label>
+            <label>
+                Username
+                <input type="text" name="username" value="{{ filters.username|default('') }}" maxlength="32">
+            </label>
+            <label>
+                Since (ISO)
+                <input type="text" name="since" value="{{ filters.since|default('') }}" placeholder="2026-07-12T00:00:00Z">
+            </label>
+            <label>
+                Until (ISO)
+                <input type="text" name="until" value="{{ filters.until|default('') }}" placeholder="2026-07-12T23:59:59Z">
+            </label>
+        {% else %}
+            <label class="log-filter-wide">
+                Search
+                <input type="search" name="q" value="{{ filters.q|default('') }}" maxlength="200" placeholder="Substring filter">
+            </label>
+        {% endif %}
+
+        <button type="submit" class="btn btn-small btn-primary">Apply filters</button>
+        <a class="btn btn-small" href="/admin/logs/view?source={{ source.id|url_encode }}{% if live %}&amp;live=1{% endif %}">Clear</a>
+    </form>
+
+    <div id="log-viewer-output" class="log-viewer-output" data-format="{{ source.format }}">
+        {% if source.status == 'missing' %}
+            <p class="muted">No log file yet — events will appear after the first write.</p>
+        {% elseif lines is empty %}
+            <p class="muted">No lines matched the current filters.</p>
+        {% elseif source.format == 'json_lines' %}
+            <table class="data-table log-event-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Event</th>
+                        <th>IP</th>
+                        <th>User</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="log-viewer-lines">
+                    {% for index, line in lines %}
+                        {% set row = parsed_lines[index] %}
+                        <tr>
+                            <td>{% if row and row.ts %}{{ row.ts|format_datetime }}{% else %}—{% endif %}</td>
+                            <td>{% if row and row.parse_error %}<span class="log-parse-error">parse error</span>{% else %}{{ row.event|default('—') }}{% endif %}</td>
+                            <td>{{ row.ip|default('—') }}</td>
+                            <td>{{ row.username|default('—') }}</td>
+                            <td><code class="log-meta">{% if row and row.meta is not null %}{{ row.meta|json_encode }}{% else %}{{ line }}{% endif %}</code></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <pre class="log-viewer" id="log-viewer-lines">{% for line in lines %}{{ line }}
+{% endfor %}</pre>
+        {% endif %}
+    </div>
+
+    {% if load_older_url %}
+        <p class="log-pagination"><a href="{{ load_older_url }}">Load older</a></p>
+    {% endif %}
+
+    {% if live %}
+        <div id="admin-logs-live-root" data-feed-url="{{ feed_url }}" data-interval="30000" hidden></div>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    {% if live %}
+        <script src="/assets/js/admin-logs-live.js?v={{ asset_version }}" defer nonce="{{ csp_nonce }}"></script>
+    {% endif %}
+{% endblock %}

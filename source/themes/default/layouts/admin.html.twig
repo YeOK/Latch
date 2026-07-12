@@ -15,6 +15,7 @@
                 <a class="admin-sidebar-link{% if current_path == '/admin/quarantine' %} is-active{% endif %}" href="/admin/quarantine">Quarantine</a>
                 <a class="admin-sidebar-link{% if current_path == '/admin/approval' %} is-active{% endif %}" href="/admin/approval">Approval</a>
                 <a class="admin-sidebar-link{% if current_path == '/admin/audit' %} is-active{% endif %}" href="/admin/audit">Audit log</a>
+                <a class="admin-sidebar-link{% if current_path starts with '/admin/logs' %} is-active{% endif %}" href="/admin/logs">Logs</a>
                 <a class="admin-sidebar-link{% if current_path == '/admin/maintenance' %} is-active{% endif %}" href="/admin/maintenance">Maintenance</a>
                 {% for item in plugin_admin_menu_items %}
                     {% if item is mapping %}

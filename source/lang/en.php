@@ -34,6 +34,7 @@ return [
         'settings' => 'Settings',
         'approval' => 'Approval',
         'audit_log' => 'Audit log',
+        'logs' => 'Logs',
         'sign_out' => 'Sign out',
     ],
     'auth' => [

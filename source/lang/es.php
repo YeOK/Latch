@@ -30,6 +30,7 @@ return [
         'settings' => 'Ajustes',
         'approval' => 'Aprobación',
         'audit_log' => 'Registro de auditoría',
+        'logs' => 'Registros',
         'sign_out' => 'Cerrar sesión',
     ],
     'auth' => [

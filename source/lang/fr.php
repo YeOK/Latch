@@ -30,6 +30,7 @@ return [
         'settings' => 'Paramètres',
         'approval' => 'Approbation',
         'audit_log' => 'Journal d\'audit',
+        'logs' => 'Journaux',
         'sign_out' => 'Se déconnecter',
     ],
     'auth' => [

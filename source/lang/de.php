@@ -30,6 +30,7 @@ return [
         'settings' => 'Einstellungen',
         'approval' => 'Freigabe',
         'audit_log' => 'Audit-Protokoll',
+        'logs' => 'Protokolle',
         'sign_out' => 'Abmelden',
     ],
     'auth' => [

@@ -34,9 +34,13 @@ use Latch\Core\ReputationService;
 use Latch\Core\Response;
 use Latch\Core\SiteBranding;
 use Latch\Core\Webhooks\WebhookEvent;
+use Latch\Support\Logs\LogFeedGuard;
+use Latch\Support\Logs\LogViewer;
+use Latch\Support\Logs\LogViewerException;
 use Latch\Support\ModerationTrashResponder;
 use Latch\Support\OutboundUrlGuard;
 use Latch\Support\SiteLock;
+use Latch\Support\SiteRestore;
 use Latch\Support\SiteMaintenance;
 use Latch\Support\StaffActionResponder;
 use Latch\Support\Str;
@@ -1518,6 +1522,164 @@ final class AdminController
         ]);
     }
 
+    public function logsIndex(array $params = []): void
+    {
+        $this->app->auth()->requireAdmin();
+
+        $viewer = LogViewer::fromConfig($this->app->config());
+        $sources = $viewer->listSources();
+        $serverLogsEnabled = (bool) $this->app->config()->get('logs.server_logs_enabled', false);
+
+        $displaySources = [];
+        foreach ($sources as $source) {
+            $displaySources[] = $this->logSourceForTemplate($source);
+        }
+
+        $unreadableServer = [];
+        if ($serverLogsEnabled) {
+            foreach ($displaySources as $source) {
+                if (($source['built_in'] ?? false) === true) {
+                    continue;
+                }
+                if (in_array($source['status'], ['permission_denied', 'denied'], true)) {
+                    $unreadableServer[] = $source;
+                }
+            }
+        }
+
+        $this->app->render('admin/logs/index.html.twig', [
+            'grouped_sources' => $this->groupLogSources($displaySources),
+            'server_logs_enabled' => $serverLogsEnabled,
+            'unreadable_server_sources' => $unreadableServer,
+        ]);
+    }
+
+    public function logsView(array $params = []): void
+    {
+        $this->app->auth()->requireAdmin();
+
+        $viewer = LogViewer::fromConfig($this->app->config());
+
+        try {
+            $parsed = $viewer->parseRequestFilters($this->logRequestInput());
+        } catch (LogViewerException $e) {
+            if (str_contains($e->getMessage(), 'required')) {
+                Response::redirect('/admin/logs');
+            }
+
+            Response::notFound($e->getMessage());
+        }
+
+        $sourceMeta = $viewer->registry()->getSource($parsed['source']);
+        if ($sourceMeta === null) {
+            Response::notFound('Log source not found.');
+        }
+
+        try {
+            $result = $viewer->tail(
+                $parsed['source'],
+                $parsed['limit'],
+                $parsed['cursor'],
+                $parsed['fingerprint'],
+                $parsed['filters'],
+            );
+        } catch (LogViewerException $e) {
+            Response::forbidden($e->getMessage());
+        }
+
+        $this->recordLogViewAudit($parsed['source'], count($result['lines']), $parsed['filters']);
+
+        $live = $this->app->request()->input('live') === '1';
+        $source = $this->logSourceForTemplate($result['source']);
+        $refreshUrl = $this->logsViewUrl($parsed, null, $live);
+        $loadOlderUrl = $result['next_cursor'] !== null
+            ? $this->logsViewUrl($parsed, $result, $live)
+            : null;
+
+        $this->app->render('admin/logs/view.html.twig', [
+            'source' => $source,
+            'lines' => $result['lines'],
+            'parsed_lines' => $result['parsed'],
+            'next_cursor' => $result['next_cursor'],
+            'fingerprint' => $result['fingerprint'],
+            'rotated' => $result['rotated'],
+            'scan_budget_exhausted' => $result['scan_budget_exhausted'],
+            'matches_exhausted' => $result['matches_exhausted'],
+            'filters' => $parsed['filters'],
+            'filter_query' => $parsed,
+            'security_event_types' => $viewer->securityEventTypes(),
+            'live' => $live,
+            'refresh_url' => $refreshUrl,
+            'load_older_url' => $loadOlderUrl,
+            'live_start_url' => $this->logsViewUrl($parsed, null, true),
+            'live_stop_url' => $this->logsViewUrl($parsed, null, false),
+            'feed_url' => $this->logsFeedUrl($parsed, null),
+        ]);
+    }
+
+    public function logsFeed(array $params = []): void
+    {
+        $this->app->auth()->requireAdmin();
+
+        $user = $this->app->auth()->user();
+        $userId = (int) ($user['id'] ?? 0);
+        $guard = new LogFeedGuard($this->app->rateLimiter(), $this->app->session());
+
+        if ($guard->tooManyFeedRequests($userId)) {
+            Response::json(['ok' => false, 'message' => 'Too many requests.'], 429);
+        }
+
+        $guard->recordFeedRequest($userId);
+
+        $viewer = LogViewer::fromConfig($this->app->config());
+
+        try {
+            $parsed = $viewer->parseRequestFilters($this->logRequestInput());
+        } catch (LogViewerException $e) {
+            Response::json(['ok' => false, 'message' => $e->getMessage()], 400);
+        }
+
+        if ($viewer->registry()->getSource($parsed['source']) === null) {
+            Response::json(['ok' => false, 'message' => 'Log source not found.'], 404);
+        }
+
+        try {
+            $result = $viewer->tail(
+                $parsed['source'],
+                $parsed['limit'],
+                $parsed['cursor'],
+                $parsed['fingerprint'],
+                $parsed['filters'],
+            );
+        } catch (LogViewerException $e) {
+            Response::json(['ok' => false, 'message' => $e->getMessage()], 403);
+        }
+
+        if ($guard->shouldRecordFeedAudit($parsed['source'])) {
+            $this->recordLogFeedAudit($parsed['source'], count($result['lines']));
+        }
+
+        $lines = [];
+        foreach ($result['lines'] as $index => $raw) {
+            $lines[] = [
+                'raw' => $raw,
+                'parsed' => $result['parsed'][$index] ?? null,
+            ];
+        }
+
+        Response::json([
+            'ok' => true,
+            'source' => $parsed['source'],
+            'lines' => $lines,
+            'next_cursor' => $result['next_cursor'],
+            'fingerprint' => $result['fingerprint'],
+            'rotated' => $result['rotated'],
+            'scan_budget_exhausted' => $result['scan_budget_exhausted'],
+            'matches_exhausted' => $result['matches_exhausted'],
+            'bytes_scanned' => $result['bytes_scanned'],
+        ]);
+    }
+
     /**
      * @param array<string, mixed> $metadata
      */
@@ -2390,5 +2552,169 @@ final class AdminController
     private function normalizeFooterAbout(string $text): string
     {
         return trim(str_replace(["\r\n", "\r"], "\n", $text));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function logRequestInput(): array
+    {
+        $input = [];
+        foreach ($_GET as $key => $value) {
+            if (is_string($key) && (is_string($value) || is_numeric($value))) {
+                $input[$key] = (string) $value;
+            }
+        }
+
+        return $input;
+    }
+
+    /**
+     * @param array<string, mixed> $source
+     * @return array<string, mixed>
+     */
+    private function logSourceForTemplate(array $source): array
+    {
+        $path = (string) ($source['path'] ?? '');
+        $mtime = (int) ($source['mtime'] ?? 0);
+
+        return array_merge($source, [
+            'path_short' => strlen($path) > 72 ? substr($path, 0, 69) . '…' : $path,
+            'size_label' => SiteRestore::formatBytes((int) ($source['size_bytes'] ?? 0)),
+            'mtime_iso' => $mtime > 0 ? gmdate('c', $mtime) : null,
+        ]);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $sources
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private function groupLogSources(array $sources): array
+    {
+        $groups = [];
+        foreach ($sources as $source) {
+            $group = (string) ($source['group'] ?? 'Other');
+            $groups[$group][] = $source;
+        }
+
+        ksort($groups);
+
+        return $groups;
+    }
+
+    /**
+     * @param array{event?: string, ip?: string, username?: string, since?: string, until?: string, q?: string} $filters
+     */
+    private function recordLogViewAudit(string $source, int $lineCount, array $filters): void
+    {
+        $actor = $this->app->auth()->user();
+        $this->app->auditLog()->record(
+            (int) ($actor['id'] ?? 0),
+            'logs.view',
+            'log_source',
+            null,
+            $this->app->request()->ip(),
+            [
+                'source' => $source,
+                'lines' => $lineCount,
+                'filters' => $filters,
+            ],
+        );
+    }
+
+    private function recordLogFeedAudit(string $source, int $lineCount): void
+    {
+        $actor = $this->app->auth()->user();
+        $this->app->auditLog()->record(
+            (int) ($actor['id'] ?? 0),
+            'logs.feed',
+            'log_source',
+            null,
+            $this->app->request()->ip(),
+            [
+                'source' => $source,
+                'lines' => $lineCount,
+            ],
+        );
+    }
+
+    /**
+     * @param array{
+     *   source: string,
+     *   limit: int,
+     *   cursor: ?int,
+     *   fingerprint: ?array{size: int, mtime: int},
+     *   filters: array<string, string>
+     * } $parsed
+     * @param ?array{
+     *   next_cursor: ?int,
+     *   fingerprint: array{size: int, mtime: int}
+     * } $tailResult
+     */
+    private function logsViewUrl(array $parsed, ?array $tailResult, bool $live): string
+    {
+        return '/admin/logs/view?' . http_build_query($this->logsViewQuery($parsed, $tailResult, $live));
+    }
+
+    /**
+     * @param array{
+     *   source: string,
+     *   limit: int,
+     *   cursor: ?int,
+     *   fingerprint: ?array{size: int, mtime: int},
+     *   filters: array<string, string>
+     * } $parsed
+     * @param ?array{
+     *   next_cursor: ?int,
+     *   fingerprint: array{size: int, mtime: int}
+     * } $tailResult
+     */
+    private function logsFeedUrl(array $parsed, ?array $tailResult): string
+    {
+        return '/admin/logs/feed?' . http_build_query($this->logsViewQuery($parsed, $tailResult, false));
+    }
+
+    /**
+     * @param array{
+     *   source: string,
+     *   limit: int,
+     *   cursor: ?int,
+     *   fingerprint: ?array{size: int, mtime: int},
+     *   filters: array<string, string>
+     * } $parsed
+     * @param ?array{
+     *   next_cursor: ?int,
+     *   fingerprint: array{size: int, mtime: int}
+     * } $tailResult
+     * @return array<string, int|string>
+     */
+    private function logsViewQuery(array $parsed, ?array $tailResult, bool $live): array
+    {
+        $defaultLimit = max(1, (int) $this->app->config()->get('logs.max_lines_per_request', 200));
+        $query = ['source' => $parsed['source']];
+
+        if ($parsed['limit'] !== $defaultLimit) {
+            $query['limit'] = $parsed['limit'];
+        }
+
+        foreach ($parsed['filters'] as $key => $value) {
+            $query[$key] = $value;
+        }
+
+        if ($tailResult !== null && $tailResult['next_cursor'] !== null) {
+            $query['cursor'] = $tailResult['next_cursor'];
+            $query['fp_size'] = $tailResult['fingerprint']['size'];
+            $query['fp_mtime'] = $tailResult['fingerprint']['mtime'];
+        } elseif ($parsed['cursor'] !== null && $parsed['fingerprint'] !== null) {
+            $query['cursor'] = $parsed['cursor'];
+            $query['fp_size'] = $parsed['fingerprint']['size'];
+            $query['fp_mtime'] = $parsed['fingerprint']['mtime'];
+        }
+
+        if ($live) {
+            $query['live'] = '1';
+        }
+
+        return $query;
     }
 }

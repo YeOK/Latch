@@ -566,6 +566,9 @@ final class Application implements PluginCollectContext
         $this->router->post('/admin/approval/:id/approve', $this->bind($admin, 'approvePost'));
         $this->router->post('/admin/approval/:id/reject', $this->bind($admin, 'rejectPost'));
         $this->router->get('/admin/audit', $this->bind($admin, 'auditLog'));
+        $this->router->get('/admin/logs', $this->bind($admin, 'logsIndex'));
+        $this->router->get('/admin/logs/view', $this->bind($admin, 'logsView'));
+        $this->router->get('/admin/logs/feed', $this->bind($admin, 'logsFeed'));
         $this->router->get('/admin/maintenance', $this->bind($admin, 'maintenance'));
         $this->router->post('/admin/mod-trash/purge-all', $this->bind($admin, 'purgeAllModTrash'));
         $this->router->get('/admin/trash', $this->bind($admin, 'trashQueue'));

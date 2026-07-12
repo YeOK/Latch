@@ -1,0 +1,57 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Logs — Admin{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <h1>Logs</h1>
+        <p class="muted">Runtime log files for troubleshooting. Staff accountability lives in the <a href="/admin/audit">audit log</a>.</p>
+    </section>
+
+    {% if unreadable_server_sources is not empty %}
+        <section class="admin-hint admin-hint--warn" aria-label="Unreadable server logs">
+            <h2 class="admin-hint-title">Server logs not readable</h2>
+            <p>PHP cannot read {{ unreadable_server_sources|length }} configured server log path(s). Grant the web user read access, for example:</p>
+            <pre class="log-hint-code">sudo setfacl -m u:apache:r /var/log/httpd/latch-access.log</pre>
+            <p class="muted">See <code>docs/INSTALL-FEDORA.md</code> and packaging docs for COPR defaults.</p>
+        </section>
+    {% endif %}
+
+    {% for group, sources in grouped_sources %}
+        <section class="log-source-group" aria-label="{{ group }}">
+            <h2 class="log-source-group-title">{{ group }}</h2>
+            <table class="data-table log-source-table">
+                <thead>
+                    <tr>
+                        <th>Source</th>
+                        <th>Path</th>
+                        <th>Size</th>
+                        <th>Updated</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for source in sources %}
+                        <tr>
+                            <td>{{ source.label }}</td>
+                            <td><code class="log-path" title="{{ source.path }}">{{ source.path_short }}</code></td>
+                            <td>{{ source.size_label }}</td>
+                            <td>{% if source.mtime_iso %}{{ source.mtime_iso|format_datetime }}{% else %}—{% endif %}</td>
+                            <td><span class="log-status log-status--{{ source.status }}">{{ source.status|replace({'_': ' '}) }}</span></td>
+                            <td>
+                                {% if source.status in ['readable', 'missing'] %}
+                                    <a href="/admin/logs/view?source={{ source.id|url_encode }}">View</a>
+                                {% else %}
+                                    <span class="muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endfor %}
+
+    <p class="muted log-index-footnote">API request audit UI is planned for a future release.</p>
+{% endblock %}
