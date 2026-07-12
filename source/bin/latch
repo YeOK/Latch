@@ -77,7 +77,7 @@ match ($command) {
     'install' => run_install($argv),
     'migrate' => run_migrate(),
     'audit' => run_audit(),
-    'fix-perms' => run_fix_perms(),
+    'fix-perms' => run_fix_perms($argv),
     'backup' => run_backup(),
     'cache-clear' => run_cache_clear(),
     'maintenance' => run_maintenance($argv),
@@ -125,7 +125,8 @@ Latch CLI
   php bin/latch install        Create database, config, and initial admin
   php bin/latch migrate        Apply SQLite schema migrations
   php bin/latch audit          Security + permissions self-check (install/upgrade gate)
-  php bin/latch fix-perms      Fix plugin storage and audit-cache ownership (sudo on RPM)
+  php bin/latch fix-perms      Fix storage/, plugins/, and config perms (sudo on RPM)
+  php bin/latch fix-perms --web-user=www-data   Non-apache HTTP stacks (or WEB_USER=…)
   php bin/latch backup         Tarball database + local config (WAL-safe)
   php bin/latch db-check       SQLite integrity + foreign-key check
   php bin/latch restore        List or restore from storage/backups/
@@ -320,12 +321,35 @@ function run_audit(): void
     exit(1);
 }
 
-function run_fix_perms(): void
+function run_fix_perms(array $argv): void
 {
+    $opts = parse_cli_options($argv);
+    $webUser = isset($opts['web-user']) ? trim((string) $opts['web-user']) : null;
+    if ($webUser === '') {
+        fwrite(STDERR, "fix-perms: --web-user must not be empty\n");
+        exit(1);
+    }
+
+    if ($webUser !== null) {
+        putenv('LATCH_WEB_USER=' . $webUser);
+    }
+
     $config = new Config(LATCH_ROOT . '/config');
     $storagePath = (string) $config->get('paths.storage');
     $pluginsPath = (string) $config->get('paths.plugins');
-    $result = \Latch\Core\Plugins\PluginStoragePermissions::fixPluginStorage($storagePath, $pluginsPath);
+    $dbPath = (string) $config->get('database.path');
+    $localConfigPath = LATCH_ROOT . '/config/local.php';
+    if (!is_file($localConfigPath)) {
+        $localConfigPath = null;
+    }
+
+    $result = \Latch\Core\Plugins\PluginStoragePermissions::fixRuntimePermissions(
+        $storagePath,
+        $pluginsPath,
+        $localConfigPath,
+        $dbPath,
+        $webUser,
+    );
 
     if ($result['ok']) {
         fwrite(STDOUT, 'fix-perms: ' . $result['message'] . "\n");

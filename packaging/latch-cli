@@ -22,6 +22,9 @@ fi
 if [[ "$(id -un)" == "root" ]]; then
     case "${1:-}" in
         fix-perms)
+            if [[ -n "${WEB_USER}" ]]; then
+                export LATCH_WEB_USER="${WEB_USER}"
+            fi
             exec php "${CLI}" "$@"
             ;;
         plugin)

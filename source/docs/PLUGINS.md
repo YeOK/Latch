@@ -316,7 +316,7 @@ sudo chmod 2775 /var/lib/latch/storage/plugins /var/lib/latch/storage/cache/plug
 
 Or: `sudo bash scripts/fix-latch-storage-perms.sh /usr/share/latch` (RPM layout; follows the `storage` symlink to `/var/lib/latch/storage`).
 
-`sudo latch audit` and `sudo latch doctor` report root-owned plugin storage or audit-cache entries. One-shot fix: `sudo latch fix-perms`.
+`sudo latch audit` and `sudo latch doctor` report root-owned plugin storage or audit-cache entries. One-shot fix: `sudo latch fix-perms` (repairs all of `storage/`, `plugins/` code, and `local.php`; default user `apache`, override with `--web-user=www-data` or `WEB_USER=…`).
 
 **Admin enable/disable** runs as `apache` and does not hit these CLI permission issues. Prefer **Admin → Plugins** for enable after `plugin install`, or use `sudo latch plugin enable`.
 

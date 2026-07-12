@@ -311,6 +311,13 @@ Customize Latch **without editing core** — see `docs/PLUGINS.md`. Installed pl
 | `plugin remove <slug> --confirm --purge-storage` | Also delete `storage/plugins/{slug}/` |
 
 On RPM installs, use **`sudo latch plugin remove`** (not `sudo -u apache php …`) so root can delete plugin code under `/usr/share/latch/source/plugins/` when a prior install left root-owned files. If remove fails, run `sudo latch fix-perms` then retry, or `sudo rm -rf /usr/share/latch/source/plugins/{slug}/`.
+
+**`fix-perms`** (root only) chowns all runtime paths to the web server user: `storage/` (database, cache, logs, uploads, backups, plugin state), `plugins/` (catalog install code), and tightens `config/local.php` to `root:webgroup` `640`. Default user is `apache` (Fedora/RHEL). Override:
+
+```bash
+sudo latch fix-perms --web-user=www-data   # Debian/Ubuntu
+sudo WEB_USER=nginx latch fix-perms        # via /usr/bin/latch wrapper env
+```
 | `plugin audit <path\|slug>` | Run security scan (same as `plugin-audit`; updates cache) |
 | `plugin enable <slug>` | Enable after fresh audit pass |
 | `plugin enable <slug> --force` | Override failed audit (logged to `audit_log`) |

@@ -312,7 +312,8 @@ final class Doctor
             || str_contains($joined, 'not writable');
 
         if ($hasPermIssue) {
-            $hints[] = "  sudo latch fix-perms     # chown storage/plugins/ and plugin-audit cache to {$webUser}";
+            $hints[] = "  sudo latch fix-perms     # chown storage/, plugins/, cache, DB to {$webUser}";
+            $hints[] = '  sudo WEB_USER=www-data latch fix-perms   # Debian/Ubuntu PHP-FPM user';
             $hints[] = '  sudo latch doctor        # full preflight (PHP, vendor, DB, permissions)';
         }
 
