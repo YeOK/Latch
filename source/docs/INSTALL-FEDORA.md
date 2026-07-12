@@ -35,7 +35,7 @@ If you customized Apache log paths, edit `/etc/fail2ban/jail.d/latch-login.local
 
 **Troubleshooting** — if `fail2ban-client status latch-login` shows `Total failed: 0` while `security.log` has `login_fail` events:
 
-1. **Filter regex** — the jail matches Apache *combined* log lines (`%h %l %u`, not `HOST - -`). Test:
+1. **Filter regex** — the jail matches Apache *combined* log lines after fail2ban strips `[date]` (`%h %l %u`, not `HOST - -`). Test:
    ```bash
    sudo fail2ban-regex /var/log/httpd/latch-access.log /etc/fail2ban/filter.d/latch-login.conf
    ```

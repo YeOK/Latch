@@ -128,7 +128,7 @@ Templates ship in `packaging/fail2ban/` (installed by the COPR RPM):
 
 Point `logpath` at your Apache access log for forum.example.com.
 
-Failed logins return HTTP **200**; successes return **302**. The filter matches Apache combined format (`^<HOST> %l %u`, not `^<HOST> - -`). Test with `sudo fail2ban-regex /var/log/httpd/latch-access.log /etc/fail2ban/filter.d/latch-login.conf`. Loopback (`127.0.0.1`, `::1`) is ignored so a missing `mod_remoteip` setup does not ban localhost.
+Failed logins return HTTP **200**; successes return **302**. The filter matches Apache combined format after fail2ban strips the `[date]` (`^<HOST> %l %u`, not `^<HOST> - -`, and no timestamp bracket in `failregex`). Test with `sudo fail2ban-regex /var/log/httpd/latch-access.log /etc/fail2ban/filter.d/latch-login.conf`. Loopback (`127.0.0.1`, `::1`) is ignored so a missing `mod_remoteip` setup does not ban localhost.
 
 ## Backups
 
