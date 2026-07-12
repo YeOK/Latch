@@ -76,32 +76,50 @@
         {% elseif lines is empty %}
             <p class="muted">No lines matched the current filters.</p>
         {% elseif source.format == 'json_lines' %}
-            <table class="data-table log-event-table">
-                <thead>
-                    <tr>
-                        <th>Time</th>
-                        <th>Event</th>
-                        <th>IP</th>
-                        <th>User</th>
-                        <th>Details</th>
-                    </tr>
-                </thead>
-                <tbody id="log-viewer-lines">
-                    {% for index, line in lines %}
-                        {% set row = parsed_lines[index] %}
+            <div class="log-code-view">
+                <table class="log-code-table">
+                    <thead>
                         <tr>
-                            <td>{% if row and row.ts %}{{ row.ts|format_datetime }}{% else %}—{% endif %}</td>
-                            <td>{% if row and row.parse_error %}<span class="log-parse-error">parse error</span>{% else %}{{ row.event|default('—') }}{% endif %}</td>
-                            <td>{{ row.ip|default('—') }}</td>
-                            <td>{{ row.username|default('—') }}</td>
-                            <td><code class="log-meta">{% if row and row.meta is not null %}{{ row.meta|json_encode }}{% else %}{{ line }}{% endif %}</code></td>
+                            <th class="log-col-n" scope="col">#</th>
+                            <th class="log-col-ts" scope="col">Time</th>
+                            <th class="log-col-event" scope="col">Event</th>
+                            <th class="log-col-ip" scope="col">IP</th>
+                            <th class="log-col-user" scope="col">User</th>
+                            <th class="log-col-details" scope="col">Details</th>
+                            <th class="log-col-raw" scope="col">Line</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody id="log-viewer-lines">
+                        {% for index, line in lines %}
+                            {% set row = parsed_lines[index] %}
+                            <tr class="log-code-row">
+                                <td class="log-col-n">{{ index + 1 }}</td>
+                                <td class="log-col-ts">{% if row and row.ts %}{{ row.ts|format_datetime }}{% else %}—{% endif %}</td>
+                                <td class="log-col-event">{% if row and row.parse_error %}<span class="log-parse-error">parse error</span>{% else %}{{ row.event|default('—') }}{% endif %}</td>
+                                <td class="log-col-ip">{{ row.ip|default('—') }}</td>
+                                <td class="log-col-user">{{ row.username|default('—') }}</td>
+                                <td class="log-col-details">
+                                    {% if row and row.meta is not null %}
+                                        <pre class="log-code-details">{{ row.meta|json_encode(constant('JSON_UNESCAPED_SLASHES')) }}</pre>
+                                    {% else %}
+                                        <span class="log-code-empty">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="log-col-raw"><pre class="log-code-line">{{ line }}</pre></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         {% else %}
-            <pre class="log-viewer" id="log-viewer-lines">{% for line in lines %}{{ line }}
-{% endfor %}</pre>
+            <div class="log-code-view log-code-view--text" id="log-viewer-lines">
+                {% for index, line in lines %}
+                    <div class="log-code-text-row">
+                        <span class="log-code-gutter" aria-hidden="true">{{ index + 1 }}</span>
+                        <pre class="log-code-line">{{ line }}</pre>
+                    </div>
+                {% endfor %}
+            </div>
         {% endif %}
     </div>
 

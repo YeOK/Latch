@@ -6063,27 +6063,142 @@ body.topic-mod-mode .post-actions {
     margin-bottom: 1rem;
 }
 
-.log-viewer {
-    margin: 0;
-    padding: 1rem;
+/* Monospace log panel (security JSON + Apache text) */
+.log-code-view {
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: color-mix(in srgb, var(--bg) 65%, var(--surface));
+    background: color-mix(in srgb, var(--bg) 50%, var(--surface));
+    overflow: auto;
+    max-height: min(70vh, 42rem);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     line-height: 1.45;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
 }
 
-.log-meta {
-    display: block;
-    max-width: 28rem;
+.log-code-table {
+    width: 100%;
+    min-width: 52rem;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.log-code-table th,
+.log-code-table td {
+    padding: 0.4rem 0.65rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    vertical-align: top;
+    text-align: left;
+}
+
+.log-code-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.log-code-row:hover td {
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.log-col-n {
+    width: 2.75rem;
+    text-align: right;
+    color: var(--muted);
+    user-select: none;
+}
+
+.log-col-ts {
+    width: 10.5rem;
+    white-space: nowrap;
+}
+
+.log-col-event {
+    width: 8.5rem;
+    white-space: nowrap;
+}
+
+.log-col-ip {
+    width: 11rem;
+    white-space: nowrap;
+}
+
+.log-col-user {
+    width: 8rem;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 0.78rem;
+}
+
+.log-col-details {
+    width: 14rem;
+}
+
+.log-col-raw {
+    width: auto;
+}
+
+.log-code-details,
+.log-code-line {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    font: inherit;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+.log-col-details .log-code-details {
+    max-height: 5.5rem;
+    overflow: auto;
+    color: var(--muted);
+    font-size: 0.76rem;
+    word-break: normal;
+}
+
+.log-col-raw .log-code-line {
+    color: var(--text);
+}
+
+.log-code-empty {
+    color: var(--muted);
+}
+
+.log-code-view--text {
+    padding: 0.35rem 0;
+}
+
+.log-code-text-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    padding: 0.1rem 0.65rem 0.1rem 0;
+}
+
+.log-code-text-row:hover {
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.log-code-gutter {
+    flex: 0 0 2.75rem;
+    padding-right: 0.65rem;
+    text-align: right;
+    color: var(--muted);
+    user-select: none;
+}
+
+.log-code-text-row .log-code-line {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .log-parse-error {
@@ -6093,8 +6208,4 @@ body.topic-mod-mode .post-actions {
 
 .log-pagination {
     margin: 0;
-}
-
-.log-event-table code {
-    font-size: 0.78rem;
 }

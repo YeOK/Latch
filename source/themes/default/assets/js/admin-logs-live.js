@@ -48,23 +48,36 @@
                 : escapeHtml(row && row.event ? row.event : '—');
             var ip = escapeHtml(row && row.ip ? row.ip : '—');
             var user = escapeHtml(row && row.username ? row.username : '—');
-            var details = row && row.meta != null
-                ? escapeHtml(JSON.stringify(row.meta))
-                : escapeHtml(entry.raw || '');
+            var detailsCell = '<span class="log-code-empty">—</span>';
+            if (row && row.meta != null) {
+                detailsCell = '<pre class="log-code-details">' + escapeHtml(JSON.stringify(row.meta)) + '</pre>';
+            }
+            var raw = escapeHtml(entry.raw || '');
 
             html +=
-                '<tr><td>' + ts + '</td><td>' + eventCell + '</td><td>' + ip +
-                '</td><td>' + user + '</td><td><code class="log-meta">' + details + '</code></td></tr>';
+                '<tr class="log-code-row">' +
+                '<td class="log-col-n">' + (i + 1) + '</td>' +
+                '<td class="log-col-ts">' + ts + '</td>' +
+                '<td class="log-col-event">' + eventCell + '</td>' +
+                '<td class="log-col-ip">' + ip + '</td>' +
+                '<td class="log-col-user">' + user + '</td>' +
+                '<td class="log-col-details">' + detailsCell + '</td>' +
+                '<td class="log-col-raw"><pre class="log-code-line">' + raw + '</pre></td>' +
+                '</tr>';
         }
         linesMount.innerHTML = html;
     }
 
     function renderTextLines(lines) {
-        var text = '';
+        var html = '';
         for (var i = 0; i < lines.length; i++) {
-            text += (lines[i].raw || '') + '\n';
+            html +=
+                '<div class="log-code-text-row">' +
+                '<span class="log-code-gutter" aria-hidden="true">' + (i + 1) + '</span>' +
+                '<pre class="log-code-line">' + escapeHtml(lines[i].raw || '') + '</pre>' +
+                '</div>';
         }
-        linesMount.textContent = text;
+        linesMount.innerHTML = html;
     }
 
     function applyPayload(payload) {
