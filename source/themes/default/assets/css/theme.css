@@ -2346,30 +2346,129 @@ body:not(.page-admin):not(.page-profile) :is(
 .composer-toolbar {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
-    padding: 0.35rem;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.65rem;
     border-bottom: 1px solid var(--border);
-    background: var(--surface);
+    background: color-mix(in srgb, var(--surface-raised) 72%, var(--surface));
     overflow: visible;
     position: relative;
     z-index: 5;
 }
 
-.composer-btn {
+.composer-toolbar-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.composer-toolbar-group {
+    display: inline-flex;
+    align-items: stretch;
     border: 1px solid var(--border);
-    background: var(--surface-raised);
-    border-radius: 6px;
-    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--text) 4%, transparent);
+    overflow: hidden;
+}
+
+.composer-toolbar-group--utility {
+    box-shadow: none;
+}
+
+.composer-toolbar-group .composer-btn + .composer-btn {
+    border-inline-start: 1px solid var(--border);
+}
+
+.composer-toolbar-group .composer-emote-picker,
+.composer-toolbar-group .composer-help-picker {
+    display: contents;
+}
+
+.composer-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    padding: 0.35rem 0.55rem;
+    min-height: 2rem;
     font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--muted);
     cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.composer-btn--icon {
+    width: 2rem;
     min-width: 2rem;
+    padding: 0.35rem;
+}
+
+.composer-btn--text {
+    padding-inline: 0.6rem;
+}
+
+.composer-btn-glyph {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.composer-btn-glyph--emoji {
+    width: auto;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.composer-btn-icon {
+    display: block;
+    flex-shrink: 0;
+    opacity: 0.88;
+}
+
+.composer-btn-label {
+    white-space: nowrap;
+}
+
+.composer-btn:hover {
+    background: var(--accent-soft);
+    color: var(--accent-hover);
+}
+
+.composer-btn:hover .composer-btn-glyph,
+.composer-btn:hover .composer-btn-icon {
+    color: var(--accent-hover);
+    opacity: 1;
+}
+
+.composer-btn:active {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+}
+
+.composer-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    z-index: 1;
 }
 
 .composer-toolbar-end {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    margin-left: auto;
+    gap: 0.4rem;
+    margin-inline-start: auto;
+    flex: 0 0 auto;
 }
 
 .composer-emote-picker,

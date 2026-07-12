@@ -12,6 +12,9 @@ Work in progress on `main` — not tagged or released yet. Fold into the next ve
 ### Fixed
 - **Composer live preview** — skips plugin link cards (link-preview) and inline images (image-upload); markdown images show a compact `[image]` placeholder; smileys, spoilers, code, and other markup still render.
 
+### Changed
+- **Composer toolbar** — grouped segmented buttons with icons, hover/focus states, and utility controls aligned to the right.
+
 ## [0.4.4.0] — 2026-07-12
 
 ### Added

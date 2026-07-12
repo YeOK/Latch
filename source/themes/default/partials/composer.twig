@@ -7,30 +7,71 @@
         </label>
     </div>
     <div class="composer-toolbar" aria-label="{{ trans('compose.formatting') }}">
-        <button type="button" class="composer-btn" data-action="bold" title="{{ trans('compose.bold') }} (**text**)"><strong>B</strong></button>
-        <button type="button" class="composer-btn" data-action="italic" title="{{ trans('compose.italic') }} (*text*)"><em>I</em></button>
-        <button type="button" class="composer-btn" data-action="link" title="{{ trans('compose.link') }} ([url=…]…[/url])">{{ trans('compose.link') }}</button>
-        <button type="button" class="composer-btn" data-action="quote" title="{{ trans('compose.quote') }} ([quote]…[/quote])">{{ trans('compose.quote') }}</button>
-        <button type="button" class="composer-btn" data-action="list" title="{{ trans('compose.list') }} (- item)" aria-label="{{ trans('compose.list') }}">• {{ trans('compose.list') }}</button>
-        <button type="button" class="composer-btn" data-action="heading" title="{{ trans('compose.heading') }} (## text)" aria-label="{{ trans('compose.heading') }}">H</button>
-        <button type="button" class="composer-btn" data-action="code" title="{{ trans('compose.code') }} (```lang … ```)">{{ trans('compose.code') }}</button>
-        <button type="button" class="composer-btn" data-action="inline-code" title="{{ trans('compose.inline_code') }} (`code`)">{ }</button>
-        <button type="button" class="composer-btn" data-action="spoiler" title="{{ trans('compose.spoiler') }} ([spoiler]…[/spoiler])">{{ trans('compose.spoiler') }}</button>
-        <button type="button" class="composer-btn" data-action="mention" title="{{ trans('compose.mention') }} (@username)" aria-label="{{ trans('compose.mention') }}">@</button>
-        {% for html in plugin_composer_toolbar %}
-            {{ html|raw }}
-        {% endfor %}
-        <div class="composer-toolbar-end">
-            <div class="composer-emote-picker">
-                <button type="button" class="composer-btn composer-emote-toggle" aria-expanded="false" aria-haspopup="true" title="{{ trans('compose.emotes') }}">😊</button>
-                <div class="composer-emote-panel" hidden>
-                    {% for code, emoji in post_smileys() %}
-                        <button type="button" class="composer-emote-item" data-emote="{{ code }}" title="{{ code }}">{{ emoji }}</button>
+        <div class="composer-toolbar-main">
+            <div class="composer-toolbar-group" role="group" aria-label="{{ trans('compose.bold') }} / {{ trans('compose.italic') }}">
+                <button type="button" class="composer-btn composer-btn--icon" data-action="bold" title="{{ trans('compose.bold') }} (**text**)"><span class="composer-btn-glyph" aria-hidden="true"><strong>B</strong></span></button>
+                <button type="button" class="composer-btn composer-btn--icon" data-action="italic" title="{{ trans('compose.italic') }} (*text*)"><span class="composer-btn-glyph" aria-hidden="true"><em>I</em></span></button>
+            </div>
+            <div class="composer-toolbar-group" role="group" aria-label="{{ trans('compose.link') }}">
+                <button type="button" class="composer-btn composer-btn--text" data-action="link" title="{{ trans('compose.link') }} ([url=…]…[/url])">
+                    <svg class="composer-btn-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M6.2 9.8 9.8 6.2M5.5 11.1l-1.6 1.6a2.1 2.1 0 0 1-3-3l1.6-1.6M10.5 4.9l1.6-1.6a2.1 2.1 0 1 1 3 3l-1.6 1.6M7.1 8.9l1.9-1.9"/></svg>
+                    <span class="composer-btn-label">{{ trans('compose.link') }}</span>
+                </button>
+                <button type="button" class="composer-btn composer-btn--text" data-action="quote" title="{{ trans('compose.quote') }} ([quote]…[/quote])">
+                    <svg class="composer-btn-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M3.2 4.5c0-1.5 1.1-2.5 2.6-2.5.8 0 1.4.3 1.8.8L6 4.2c-.3-.2-.6-.3-1-.3-.7 0-1.2.5-1.2 1.2v.4H6v2.7H3.2V4.5Zm6.8 0c0-1.5 1.1-2.5 2.6-2.5.8 0 1.4.3 1.8.8l-1.6 1.4c-.3-.2-.6-.3-1-.3-.7 0-1.2.5-1.2 1.2v.4h2.2v2.7H10V4.5Z"/></svg>
+                    <span class="composer-btn-label">{{ trans('compose.quote') }}</span>
+                </button>
+                <button type="button" class="composer-btn composer-btn--icon" data-action="list" title="{{ trans('compose.list') }} (- item)" aria-label="{{ trans('compose.list') }}">
+                    <svg class="composer-btn-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M2.5 4.2a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8Zm0 3.5a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8Zm0 3.5a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8ZM5.2 4h8.3v1.4H5.2V4Zm0 3.5h8.3v1.4H5.2V7.5Zm0 3.5h8.3v1.4H5.2V11Z"/></svg>
+                </button>
+                <button type="button" class="composer-btn composer-btn--icon" data-action="heading" title="{{ trans('compose.heading') }} (## text)" aria-label="{{ trans('compose.heading') }}">
+                    <svg class="composer-btn-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M2.8 3.2h2.2v4.6h6.2V3.2h2.2v9.6h-2.2V9.8H5V12.8H2.8V3.2Z"/></svg>
+                </button>
+            </div>
+            <div class="composer-toolbar-group" role="group" aria-label="{{ trans('compose.code') }}">
+                <button type="button" class="composer-btn composer-btn--text" data-action="code" title="{{ trans('compose.code') }} (```lang … ```)">
+                    <svg class="composer-btn-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4.8 5.2 2.3 8l2.5 2.8M11.2 5.2l2.5 2.8-2.5 2.8M9 3.5 7 12.5"/></svg>
+                    <span class="composer-btn-label">{{ trans('compose.code') }}</span>
+                </button>
+                <button type="button" class="composer-btn composer-btn--icon" data-action="inline-code" title="{{ trans('compose.inline_code') }} (`code`)" aria-label="{{ trans('compose.inline_code') }}">
+                    <svg class="composer-btn-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M5.5 5.2 3.5 8l2 2.8M10.5 5.2l2 2.8-2 2.8"/></svg>
+                </button>
+            </div>
+            <div class="composer-toolbar-group" role="group" aria-label="{{ trans('compose.spoiler') }}">
+                <button type="button" class="composer-btn composer-btn--text" data-action="spoiler" title="{{ trans('compose.spoiler') }} ([spoiler]…[/spoiler])">
+                    <svg class="composer-btn-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2.2 8s1.8-3.5 5.8-3.5S13.8 8 13.8 8s-1.8 3.5-5.8 3.5S2.2 8 2.2 8Z"/><circle cx="8" cy="8" r="1.6" fill="currentColor" stroke="none"/></svg>
+                    <span class="composer-btn-label">{{ trans('compose.spoiler') }}</span>
+                </button>
+                <button type="button" class="composer-btn composer-btn--icon" data-action="mention" title="{{ trans('compose.mention') }} (@username)" aria-label="{{ trans('compose.mention') }}">
+                    <svg class="composer-btn-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 2.4a4.8 4.8 0 0 0-4.2 7.1c.5.8 1.3 1.3 2.2 1.3.8 0 1.5-.4 1.9-1 .1-.2.4-.2.5 0 .5.8 1.4 1.3 2.4 1.3 1.7 0 3.1-1.4 3.1-3.1V7.8c0-1.4-1.1-2.5-2.5-2.5-.9 0-1.7.5-2.1 1.2-.4-.7-1.2-1.2-2.1-1.2-1.4 0-2.5 1.1-2.5 2.5v.2c0 .5.4.9.9.9h1.1v3.4c0 .6-.5 1.1-1.1 1.1-.6 0-1.1-.5-1.1-1.1V7.8c0-2.3 1.9-4.2 4.2-4.2 1 0 1.9.4 2.6 1 .7-.6 1.6-1 2.6-1 2.3 0 4.2 1.9 4.2 4.2v1.8c0 2.7-2.2 4.9-4.9 4.9-1 0-1.9-.3-2.6-.8-.7.5-1.6.8-2.6.8A5.2 5.2 0 0 1 2.8 8.6 5.6 5.6 0 0 1 8 2.4Z"/></svg>
+                </button>
+            </div>
+            {% if plugin_composer_toolbar|length > 0 %}
+                <div class="composer-toolbar-group composer-toolbar-group--plugin" role="group" aria-label="{{ trans('compose.formatting') }}">
+                    {% for html in plugin_composer_toolbar %}
+                        {{ html|raw }}
                     {% endfor %}
                 </div>
+            {% endif %}
+        </div>
+        <div class="composer-toolbar-end">
+            <div class="composer-toolbar-group composer-toolbar-group--utility" role="group" aria-label="{{ trans('compose.emotes') }}">
+                <div class="composer-emote-picker">
+                    <button type="button" class="composer-btn composer-btn--icon composer-emote-toggle" aria-expanded="false" aria-haspopup="true" title="{{ trans('compose.emotes') }}">
+                        <span class="composer-btn-glyph composer-btn-glyph--emoji" aria-hidden="true">😊</span>
+                    </button>
+                    <div class="composer-emote-panel" hidden>
+                        {% for code, emoji in post_smileys() %}
+                            <button type="button" class="composer-emote-item" data-emote="{{ code }}" title="{{ code }}">{{ emoji }}</button>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
-            <div class="composer-help-picker">
-                <button type="button" class="composer-btn composer-help-toggle" aria-expanded="false" aria-haspopup="dialog" title="{{ trans('compose.markup_help') }}">?</button>
+            <div class="composer-toolbar-group composer-toolbar-group--utility" role="group" aria-label="{{ trans('compose.markup_help') }}">
+                <div class="composer-help-picker">
+                    <button type="button" class="composer-btn composer-btn--icon composer-help-toggle" aria-expanded="false" aria-haspopup="dialog" title="{{ trans('compose.markup_help') }}" aria-label="{{ trans('compose.markup_help') }}">
+                        <svg class="composer-btn-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path fill="currentColor" d="M6.4 6.1c.2-1.2 1.2-2 2.5-2 1.4 0 2.4.9 2.4 2.1 0 .9-.5 1.4-1.4 1.9-.7.4-1 .8-1 1.5v.2H7.1v-.3c0-.7.3-1.1 1-1.5.6-.4.9-.7.9-1.2 0-.6-.5-1-1.2-1-1.2 0-1.2.9-1.2.9H6.4Zm1.5 5.1h1.3V10h-1.3v1.2Z"/></svg>
+                    </button>
                 <div class="composer-help-panel" role="dialog" aria-label="{{ trans('compose.markup_help') }}" hidden>
                     <p class="composer-help-intro muted">{{ trans('compose.markup_intro') }}</p>
                     <dl class="composer-help-list">
@@ -46,6 +87,7 @@
                         <dt><code>@username</code></dt><dd>{{ trans('compose.mention') }}</dd>
                         <dt><code>:smile:</code></dt><dd>Emoji shortcode</dd>
                     </dl>
+                </div>
                 </div>
             </div>
         </div>
