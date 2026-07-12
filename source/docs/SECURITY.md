@@ -100,6 +100,8 @@ Common security log `event` values: `login_fail`, `login_success`, `login_banned
 
 When a request includes **`CF-Ray`** (set by Cloudflare edge), Latch trusts **`CF-Connecting-IP`** for rate limits, audit logs, and `security.log`. Spoofing is mitigated by requiring `CF-Ray`; also **firewall the origin** so only Cloudflare IP ranges can reach port 80.
 
+**Apache access logs** use the same `REMOTE_ADDR` unless `mod_remoteip` is configured. The COPR RPM installs `/etc/httpd/conf.d/latch-remoteip.conf` so `latch-access.log` (and fail2ban) see real visitor IPs instead of loopback. Reload `httpd` after install; verify with `grep 'POST /login' /var/log/httpd/latch-access.log | tail -3` — the first field should not be `::1` for internet traffic.
+
 Disable if not using Cloudflare: in `config/local.php`:
 
 ```php
@@ -125,6 +127,8 @@ Templates ship in `packaging/fail2ban/` (installed by the COPR RPM):
 - `latch-login.local` → `/etc/fail2ban/jail.d/`
 
 Point `logpath` at your Apache access log for forum.example.com.
+
+Failed logins return HTTP **200**; successes return **302**. The filter matches Apache combined format (`^<HOST> %l %u`, not `^<HOST> - -`). Test with `sudo fail2ban-regex /var/log/httpd/latch-access.log /etc/fail2ban/filter.d/latch-login.conf`. Loopback (`127.0.0.1`, `::1`) is ignored so a missing `mod_remoteip` setup does not ban localhost.
 
 ## Backups
 

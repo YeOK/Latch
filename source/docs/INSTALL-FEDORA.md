@@ -33,6 +33,21 @@ sudo fail2ban-client status latch-login
 
 If you customized Apache log paths, edit `/etc/fail2ban/jail.d/latch-login.local` to match.
 
+**Troubleshooting** — if `fail2ban-client status latch-login` shows `Total failed: 0` while `security.log` has `login_fail` events:
+
+1. **Filter regex** — the jail matches Apache *combined* log lines (`%h %l %u`, not `HOST - -`). Test:
+   ```bash
+   sudo fail2ban-regex /var/log/httpd/latch-access.log /etc/fail2ban/filter.d/latch-login.conf
+   ```
+   Expect non-zero `Failregex` hits on `POST /login` lines with status `200`.
+
+2. **Real client IPs** — behind a local reverse proxy, access logs often show `127.0.0.1` / `::1` while Latch `security.log` already has the visitor IP. The RPM ships `/etc/httpd/conf.d/latch-remoteip.conf` (`mod_remoteip` + `CF-Connecting-IP`). After enabling:
+   ```bash
+   sudo systemctl reload httpd
+   sudo fail2ban-client reload latch-login
+   ```
+   New access-log lines should show bot IPs, not loopback.
+
 Edit the vhost `ServerName` if needed:
 
 ```bash

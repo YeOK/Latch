@@ -7,6 +7,7 @@
 | `latch-setup` | First-time `bin/latch install` after `dnf install latch` |
 | `latch-rpm-update` | `%posttrans` upgrade hook (calls `scripts/update.sh`) |
 | `latch-httpd.conf` | Apache vhost template → `/etc/httpd/conf.d/latch.conf` |
+| `latch-remoteip.conf` | `mod_remoteip` snippet → `/etc/httpd/conf.d/latch-remoteip.conf` (real client IPs in access logs) |
 | `fail2ban/` | `latch-login` filter + jail → `/etc/fail2ban/{filter.d,jail.d}/` |
 | `systemd/` | `latch-cron-*.timer` replaces crontab for `apache` |
 

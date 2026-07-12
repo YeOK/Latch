@@ -104,6 +104,7 @@ rsync -a \
     ./ %{buildroot}%{latch_datadir}/
 
 install -m 0644 packaging/latch-httpd.conf %{buildroot}%{_sysconfdir}/httpd/conf.d/latch.conf
+install -m 0644 packaging/latch-remoteip.conf %{buildroot}%{_sysconfdir}/httpd/conf.d/latch-remoteip.conf
 install -m 0644 source/config/local.php.example %{buildroot}%{_sysconfdir}/latch/local.php.example
 install -m 0755 packaging/latch-cli %{buildroot}%{_bindir}/latch
 install -m 0755 packaging/latch-setup %{buildroot}%{_bindir}/latch-setup
@@ -183,6 +184,7 @@ fi
 %files
 %dir %{_sysconfdir}/latch
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/latch.conf
+%config(noreplace) %{_sysconfdir}/httpd/conf.d/latch-remoteip.conf
 %config(noreplace) %{_sysconfdir}/fail2ban/filter.d/latch-login.conf
 %config(noreplace) %{_sysconfdir}/fail2ban/jail.d/latch-login.local
 %{_sysconfdir}/latch/local.php.example
