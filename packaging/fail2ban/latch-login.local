@@ -1,10 +1,11 @@
 # /etc/fail2ban/jail.d/latch-login.local
-# Log path matches packaging/latch-httpd.conf CustomLog.
+# Watches Latch security.log (real IPs via CF-Connecting-IP). For direct Apache
+# exposure without a proxy, set logpath to /var/log/httpd/latch-access.log instead.
 [latch-login]
 enabled = true
 port = http,https
 filter = latch-login
-logpath = /var/log/httpd/latch-access.log
+logpath = /var/lib/latch/storage/logs/security.log
 maxretry = 5
 findtime = 600
 bantime = 3600

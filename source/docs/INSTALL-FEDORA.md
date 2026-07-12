@@ -25,7 +25,7 @@ sudo systemctl enable --now httpd php-fpm
 sudo systemctl enable --now latch-cron-hourly.timer latch-cron-daily.timer latch-cron-weekly.timer
 ```
 
-The RPM installs a **fail2ban** `latch-login` jail (watches `/var/log/httpd/latch-access.log` for failed `POST /login`). `dnf install latch` pulls in fail2ban via a weak dependency when recommends are enabled. Verify:
+The RPM installs a **fail2ban** `latch-login` jail (watches `/var/lib/latch/storage/logs/security.log` for `login_fail` events with real client IPs). `dnf install latch` pulls in fail2ban via a weak dependency when recommends are enabled. Verify:
 
 ```bash
 sudo fail2ban-client status latch-login
@@ -35,18 +35,14 @@ If you customized Apache log paths, edit `/etc/fail2ban/jail.d/latch-login.local
 
 **Troubleshooting** — if `fail2ban-client status latch-login` shows `Total failed: 0` while `security.log` has `login_fail` events:
 
-1. **Filter regex** — the jail matches Apache *combined* log lines (fail2ban `datepattern` strips the timestamp but leaves `[]`; filter uses `^<HOST> -.*"POST /login" 200`). Test:
+1. **Jail log path** — default is `security.log`, not Apache access log:
    ```bash
-   sudo fail2ban-regex /var/log/httpd/latch-access.log /etc/fail2ban/filter.d/latch-login.conf
+   sudo grep logpath /etc/fail2ban/jail.d/latch-login.local
+   sudo fail2ban-regex /var/lib/latch/storage/logs/security.log /etc/fail2ban/filter.d/latch-login.conf
    ```
-   Expect non-zero `Failregex` hits on `POST /login` lines with status `200`.
+   Expect non-zero `Failregex` hits on `"event":"login_fail"` lines.
 
-2. **Real client IPs** — behind a local reverse proxy, access logs often show `127.0.0.1` / `::1` while Latch `security.log` already has the visitor IP. The RPM ships `/etc/httpd/conf.d/latch-remoteip.conf` (`mod_remoteip` + `CF-Connecting-IP`). After enabling:
-   ```bash
-   sudo systemctl reload httpd
-   sudo fail2ban-client reload latch-login
-   ```
-   New access-log lines should show bot IPs, not loopback.
+2. **Access log still shows `::1`** — normal behind a local reverse proxy; fail2ban uses `security.log` because Latch already resolves `CF-Connecting-IP`. Optional: `/etc/httpd/conf.d/latch-remoteip.conf` for correlating Apache access logs in Admin → Logs.
 
 Edit the vhost `ServerName` if needed:
 

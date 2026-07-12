@@ -32,7 +32,7 @@ ErrorLog  /var/log/httpd/latch-error.log
 CustomLog /var/log/httpd/latch-access.log combined
 ```
 
-These paths match `fail2ban/jail.d/latch-login.local` (`logpath = /var/log/httpd/latch-access.log`). If you change vhost log locations, update fail2ban **and** any `logs.sources[]` entries in `/etc/latch/local.php`.
+fail2ban `latch-login` watches `/var/lib/latch/storage/logs/security.log` by default (`login_fail` JSON with real IPs). Apache paths above are for the admin log viewer; if you change vhost log locations, update `logs.sources[]` in `/etc/latch/local.php`.
 
 **Enabling server logs in the viewer** — opt-in in `/etc/latch/local.php`:
 

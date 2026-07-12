@@ -90,7 +90,7 @@ php bin/latch logs tail --source=latch.security --event=login_fail --follow
 
 On Fedora RPM: `sudo latch logs …`. See [CLI.md — logs](CLI.md#logs).
 
-**Correlating auth abuse** — spike in `login_fail` in `latch.security` often matches failed `POST /login` lines in Apache access logs (same pattern fail2ban uses). Enable server sources in `local.php` to tail both from the admin UI; see [INSTALL-FEDORA.md](INSTALL-FEDORA.md#server-logs-admin-viewer) and `packaging/README.md`.
+**Correlating auth abuse** — `login_fail` in `latch.security` is what fail2ban watches by default (real IPs behind Cloudflare). Apache access logs may still show `::1` until `mod_remoteip` is configured; enable server sources in `local.php` to tail both from the admin UI. See [INSTALL-FEDORA.md](INSTALL-FEDORA.md#server-logs-admin-viewer) and `packaging/README.md`.
 
 Common security log `event` values: `login_fail`, `login_success`, `login_banned`, `login_totp_fail`, `oidc_fail`, `ban`, `password_reset_request`, `founder_block`, `oauth_app_revoke`. Full curated list: `config/default.php` → `logs.security_event_types`.
 
@@ -126,9 +126,9 @@ Templates ship in `packaging/fail2ban/` (installed by the COPR RPM):
 - `latch-login.conf` → `/etc/fail2ban/filter.d/`
 - `latch-login.local` → `/etc/fail2ban/jail.d/`
 
-Point `logpath` at your Apache access log for forum.example.com.
+Default `logpath` is `/var/lib/latch/storage/logs/security.log` — matches `"event":"login_fail","ip":"<HOST>"` JSON lines (real client IPs via Cloudflare). Test with `sudo fail2ban-regex /var/lib/latch/storage/logs/security.log /etc/fail2ban/filter.d/latch-login.conf`.
 
-Failed logins return HTTP **200**; successes return **302**. The filter uses the Apache combined `datepattern` (fail2ban leaves `[]` after stripping the timestamp) and matches `^<HOST> -.*"POST /login…" 200` like `apache-badbots`. Test with `sudo fail2ban-regex /var/log/httpd/latch-access.log /etc/fail2ban/filter.d/latch-login.conf`. Loopback (`127.0.0.1`, `::1`) is ignored so a missing `mod_remoteip` setup does not ban localhost.
+For direct Apache exposure (no proxy), point `logpath` at your access log instead; the filter also matches failed `POST /login` HTTP 200 lines (`^<HOST> -.*"POST /login…" 200`). Loopback is ignored in both modes.
 
 ## Backups
 

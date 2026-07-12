@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Validate packaging/fail2ban/latch-login.conf against sample Apache combined lines.
+# Validate packaging/fail2ban/latch-login.conf against sample security.log lines.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -14,10 +14,10 @@ TMP="$(mktemp)"
 trap 'rm -f "$TMP"' EXIT
 
 cat >"$TMP" <<'EOF'
-::1 - - [12/Jul/2026:15:42:27 +0100] "POST /login HTTP/1.1" 200 16348 "https://latch.network/register" "Mozilla/5.0"
-203.0.113.9 - - [12/Jul/2026:15:54:51 +0100] "POST /login HTTP/1.1" 200 16236 "-" "-"
-198.51.100.2 - - [12/Jul/2026:15:54:57 +0100] "POST /login/2fa HTTP/1.1" 200 16244 "-" "-"
-203.0.113.9 - - [12/Jul/2026:15:55:01 +0100] "POST /login HTTP/1.1" 302 0 "-" "-"
+{"ts":"2026-07-12T14:42:28+00:00","event":"login_fail","ip":"2602:fa5d:1::95","user_id":null,"username":"bot1","target_type":null,"target_id":null,"meta":null}
+{"ts":"2026-07-12T14:54:51+00:00","event":"login_fail","ip":"63.135.76.7","user_id":null,"username":"bot2","target_type":null,"target_id":null,"meta":null}
+{"ts":"2026-07-12T14:54:57+00:00","event":"login_success","ip":"1.2.3.4","user_id":1,"username":"admin","target_type":null,"target_id":null,"meta":null}
+{"ts":"2026-07-12T14:55:00+00:00","event":"login_fail","ip":"::1","user_id":null,"username":"local","target_type":null,"target_id":null,"meta":null}
 EOF
 
 OUT="$(fail2ban-regex "$TMP" "$FILTER" 2>&1)" || true
@@ -29,10 +29,10 @@ if echo "$OUT" | grep -q 'Failregex: 0 total'; then
 fi
 
 HITS="$(echo "$OUT" | sed -n 's/.*Failregex: \([0-9]*\) total.*/\1/p' | head -1)"
-if [ -n "$HITS" ] && [ "$HITS" -ge 3 ]; then
-    echo "ok: latch-login filter matched ${HITS} failed-login samples (302 redirect excluded)"
+if [ -n "$HITS" ] && [ "$HITS" -ge 2 ]; then
+    echo "ok: latch-login filter matched ${HITS} login_fail samples (success + loopback excluded)"
     exit 0
 fi
 
-echo "error: expected at least 3 failregex hits on sample log (got: ${HITS:-0})" >&2
+echo "error: expected at least 2 failregex hits on sample log (got: ${HITS:-0})" >&2
 exit 1
