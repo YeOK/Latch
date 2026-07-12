@@ -6,7 +6,6 @@
     <section class="page-header">
         <p class="breadcrumb"><a href="/">{{ trans('common.boards') }}</a> / <a href="/board/{{ board.slug }}">{{ board.name }}</a> / {{ trans('board.new_topic_breadcrumb') }}</p>
         <h1>{{ trans('board.new_topic_in', { board: board.name }) }}</h1>
-        <p class="muted">{{ trans('board.markup_hint') }}</p>
     </section>
 
     <form method="post" action="/board/{{ board.slug }}/new" class="form form-compose">
