@@ -74,16 +74,19 @@ Plugin catalog versioning is independent but must stay internally consistent:
 
 | Surface | Example |
 |---------|---------|
-| Catalog release | `catalog.json` → `"release": "v1.0.1"` |
-| Bundle zip | `latch-plugins-1.0.1.zip` |
+| Catalog release | `catalog.json` → `"release": "v1.0.3"` |
+| Bundle zip | `latch-plugins-1.0.3.zip` |
 | Per-plugin version | `catalog.json` + `plugin.json` + zip name `{slug}-{version}.zip` |
 
+**Always use the publish script** — partial uploads break Admin → Catalog install:
+
 ```bash
-./scripts/build-zips.sh v1.0.1
-gh release create v1.0.1 releases/*.zip ...
+cd Latch-plugins
+./scripts/publish-release.sh v1.0.3   # build, upload all zips, verify GitHub assets
+./scripts/check-release.sh              # re-audit anytime
 ```
 
-See [Latch-plugins README](https://github.com/YeOK/Latch-plugins/blob/main/README.md).
+See [Latch-plugins docs/RELEASE.md](https://github.com/YeOK/Latch-plugins/blob/main/docs/RELEASE.md).
 
 ## Common mistakes
 
@@ -91,3 +94,4 @@ See [Latch-plugins README](https://github.com/YeOK/Latch-plugins/blob/main/READM
 - **Tag without spec bump** — COPR builds the old version from a new tag.
 - **Tarball only** — production on Fedora still runs the old RPM.
 - **Plugin zip name ≠ catalog `version`** — admin catalog install 404s (e.g. `spam-bridge-1.0.0.zip` vs catalog `1.0.2`).
+- **Latch-plugins release missing per-plugin zips** — only bundle + one plugin uploaded; run `./scripts/check-release.sh --github` in Latch-plugins.

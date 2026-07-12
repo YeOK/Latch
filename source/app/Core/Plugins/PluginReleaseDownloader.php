@@ -41,8 +41,9 @@ final class PluginReleaseDownloader
         if ($resolved === null) {
             throw new RuntimeException(
                 "Plugin release zip not found: {$zipName}. "
-                . "Check that GitHub release {$releaseTag} exists and includes this asset "
-                . '(see github.com/' . $this->releaseRepo . '/releases).',
+                . "GitHub release {$releaseTag} must include every catalog {slug}-{version}.zip "
+                . '(see github.com/' . $this->releaseRepo . '/releases). '
+                . 'Maintainers: run ./scripts/check-release.sh --github in Latch-plugins.',
             );
         }
 
