@@ -42,6 +42,8 @@ final class PluginHttpClient implements PluginHttpClientInterface
                 'content' => $body ?? '',
                 'timeout' => $this->timeoutSeconds,
                 'ignore_errors' => true,
+                'follow_location' => 1,
+                'max_redirects' => 5,
             ],
         ]);
 
@@ -50,11 +52,26 @@ final class PluginHttpClient implements PluginHttpClientInterface
             return null;
         }
 
+        return [
+            'status' => self::statusFromHeaders($http_response_header ?? []),
+            'body' => $raw,
+        ];
+    }
+
+    /**
+     * PHP keeps every hop in $http_response_header; GitHub release zips 302 to CDN then 200.
+     *
+     * @param list<string> $headers
+     */
+    public static function statusFromHeaders(array $headers): int
+    {
         $status = 0;
-        if (isset($http_response_header[0]) && preg_match('/\d{3}/', $http_response_header[0], $match)) {
-            $status = (int) $match[0];
+        foreach ($headers as $line) {
+            if (preg_match('/^HTTP\/\S+\s+(\d{3})/', $line, $match)) {
+                $status = (int) $match[1];
+            }
         }
 
-        return ['status' => $status, 'body' => $raw];
+        return $status;
     }
 }
