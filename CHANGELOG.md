@@ -9,6 +9,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.5.2] — 2026-07-12
+
+### Fixed
+- **Admin log viewer** — filter grid spacing; Apply/Clear on their own row below the filter panel.
+- **Admin audit log** — code-view layout (summary row, Record/Details sub-rows) matching the log viewer.
+- **Modern theme** — `asset_version` includes active pack id so Cloudflare/CDN does not serve stale CSS when switching from Default.
+
+### Changed
+- **Maintenance / site lock** — unlock CLI hint uses `sudo latch lock off` on RPM installs (`/usr/bin/latch`).
+- **Documentation** — `INSTALL-FEDORA.md` disaster-recovery and fail2ban sections use `sudo latch`; jail documents `security.log` path.
+
 ## [0.4.5.1] — 2026-07-12
 
 ### Fixed
