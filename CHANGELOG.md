@@ -9,11 +9,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.4.1] — 2026-07-12
+
 ### Fixed
 - **Composer live preview** — skips plugin link cards (link-preview) and inline images (image-upload); markdown images show a compact `[image]` placeholder; smileys, spoilers, code, and other markup still render.
 
 ### Changed
 - **Composer toolbar** — grouped segmented buttons with icons, hover/focus states, and utility controls aligned to the right.
+- **Documentation** — README, INSTALL, MARKUP, PLUGINS, and THEMING updated for v0.4.x (catalog admin UI, live preview, COPR).
 
 ## [0.4.4.0] — 2026-07-12
 

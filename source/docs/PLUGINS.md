@@ -332,9 +332,7 @@ php bin/latch plugin-audit forum-stats
 php bin/latch plugin enable forum-stats
 ```
 
-Catalog v1.0.0: `forum-stats`, `image-upload`, `word-filter`, `spam-bridge`, `slack-notify`. See the catalog README for bundle zip and per-plugin READMEs.
-
-Until admin browser install lands, use `plugin install` with a local path or zip. Admin install from the catalog is planned (GitHub-only; audit gate unchanged).
+See the [Latch-plugins](https://github.com/YeOK/Latch-plugins) catalog README for the current plugin list, bundle zip, and per-plugin READMEs.
 
 **Shipped in core `plugins/` today:** `md-import` only (operator plugin — not in the public catalog).
 

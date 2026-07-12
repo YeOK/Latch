@@ -12,7 +12,7 @@ Operator and developer reference under `source/docs/`. Published to the forum Do
 | [CLI.md](CLI.md) | `bin/latch` commands (migrate, backup, test, import, …) |
 | [TESTING.md](TESTING.md) | PHPUnit suites, smoke/security gates, theme JS + plugin audit tests, OIDC E2E |
 | [SECURITY.md](SECURITY.md) | Hardening, static analysis gates, backups, operator checklist |
-| [MARKUP.md](MARKUP.md) | Post markup reference (not yet on Documentation board) |
+| [MARKUP.md](MARKUP.md) | Post markup + composer live preview reference |
 
 ## Features
 

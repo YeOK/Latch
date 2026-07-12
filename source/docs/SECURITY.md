@@ -5,7 +5,7 @@
 Latch is a self-hosted PHP forum using SQLite. Primary risks:
 
 - Credential stuffing and brute-force login
-- XSS via post content (mitigated: raw storage, Twig auto-escape in Phase 1)
+- XSS via post content (mitigated: `PostFormatter` escaping + host allowlists, strict CSP, safe preview via server-side format)
 - CSRF on mutating forms (mitigated: tokens on all POST routes)
 - Session hijacking (mitigated: httponly, secure, SameSite cookies; session registry + revoke)
 - Direct access to `storage/` (must stay outside DocumentRoot)

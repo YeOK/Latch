@@ -1,6 +1,6 @@
 # Latch
 
-A fast, secure, self-hosted PHP forum with SQLite, theming, plugins, and an OAuth API (phased roadmap).
+A fast, secure, self-hosted PHP forum with SQLite, theming, plugins, and an OAuth API.
 
 ## Why Latch?
 
@@ -10,9 +10,9 @@ Most forums ask you to run a database server, a cache, a job queue, and a dozen 
 
 **Built for operators, not just visitors.** Install, migrate, backup, restore, health checks, and maintenance are first-class CLI commands (`bin/latch`), not wiki archaeology. Site lock quiesces the forum during upgrades; WAL-safe backups and `db-check` catch corruption before it spreads.
 
-**Security is not an afterthought.** Mandatory admin 2FA, strict CSP, session registry, audit logging, board ACLs, report queue, and an `audit` gate for plugins — hardened from Phase 1.5 onward, not bolted on years later.
+**Security is not an afterthought.** Mandatory admin 2FA, strict CSP, session registry, audit logging, board ACLs, report queue, and a `plugin-audit` gate before enable — hardened from Phase 1.5 onward, not bolted on years later.
 
-**Modern forum features, modest footprint.** Full-text search, tags, reactions, DMs, notifications, reputation, OAuth API, webhooks, and a plugin hook system — without Redis, Elasticsearch, or a separate Node process.
+**Modern forum features, modest footprint.** Full-text search, tags, reactions, DMs, notifications, reputation, OAuth API, webhooks, and a **28-hook plugin system** — without Redis, Elasticsearch, or a separate Node process.
 
 **Good fit if you:** want a self-hosted community on a home server or small VPS; are comfortable with PHP and a Unix web stack; value data ownership and operator tooling over managed SaaS.
 
@@ -35,28 +35,43 @@ Try it in minutes — download a release tarball, run `php bin/latch install`, p
 
 ## Status
 
-See [CHANGELOG.md](CHANGELOG.md) and [GitHub Releases](https://github.com/YeOK/Latch/releases) for the current version.
+**Current release:** see [VERSION](VERSION) and [CHANGELOG.md](CHANGELOG.md). [GitHub Releases](https://github.com/YeOK/Latch/releases) ship tarballs; Fedora/RHEL operators can use [COPR](source/docs/INSTALL-FEDORA.md) (`dnf install latch`).
+
+## Features (high level)
+
+| Area | Highlights |
+|------|------------|
+| **Posting** | Markdown-style markup, fenced code blocks with highlight.js, live AJAX preview while composing, @mentions, reactions, spoilers |
+| **Plugins** | 28 hooks (`post.format.link`, `post.format.after`, CSP, layout, lifecycle, …); static audit before enable; **[Latch-plugins](https://github.com/YeOK/Latch-plugins)** catalog |
+| **Admin** | Dashboard, mod tools, board ACLs, **Plugins → Installed / Catalog** tabs with in-browser install from GitHub releases |
+| **API** | OAuth 2.0 + PKCE, read/write REST API, webhooks |
+| **Ops** | `bin/latch` CLI — install, migrate, backup, restore, `db-check`, `audit`, `fix-perms`, cron timers (RPM) |
+
+Tier-1 catalog plugins (install separately): **image-upload** (R2/CDN), **link-preview** (onebox cards + lazy video embeds), **word-filter**, **forum-stats**, **spam-bridge**, **slack-notify**, and more. See [source/docs/PLUGINS.md](source/docs/PLUGINS.md).
 
 ## Quick paths
 
 | Path | Purpose |
 |------|---------|
 | `source/public/` | Web root (only this should be exposed to HTTP) |
-| `source/bin/` | CLI tools (`install`, `migrate`, `audit`) |
+| `source/bin/` | CLI tools (`install`, `migrate`, `audit`, `plugin install`) |
 | `source/docs/` | Installation and developer documentation |
 | `source/storage/` | SQLite database and runtime files (keep private) |
+| `source/plugins/` | Operator plugins (`md-import` ships in core; catalog plugins install here) |
 
 ## Install (release tarball)
 
 ```bash
-tar -xzf latch-0.3.0.23.tar.gz && cd latch-0.3.0.23-stage
+# Replace VERSION with the latest from GitHub Releases
+VERSION=0.4.4.1
+tar -xzf latch-${VERSION}.tar.gz && cd latch-${VERSION}-stage
 bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 ```
 
 Download: [GitHub Releases](https://github.com/YeOK/Latch/releases) · Build locally: `./scripts/build-release.sh` → `dist/latch-<version>.tar.gz`
 
-Fedora/RHEL COPR: [source/docs/INSTALL-FEDORA.md](source/docs/INSTALL-FEDORA.md)
+**Fedora/RHEL (RPM):** [source/docs/INSTALL-FEDORA.md](source/docs/INSTALL-FEDORA.md) — `dnf install latch`, config in `/etc/latch/local.php`, data in `/var/lib/latch/storage/`.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md). Maintainer release checklist: [docs/RELEASE.md](docs/RELEASE.md).

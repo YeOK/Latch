@@ -6,14 +6,14 @@ Every public release must bump **all** version surfaces together. Partial bumps 
 
 | Surface | File / artifact | Example |
 |---------|-----------------|---------|
-| Tree version | `VERSION` | `0.4.3.0` |
-| Config fallback | `source/config/default.php` → `app.version` | `0.4.3.0` |
-| RPM spec | `packaging/latch.spec` → `Version:` | `0.4.3.0` |
-| Changelog | `CHANGELOG.md` → `## [0.4.3.0]` | dated section, `[Unreleased]` empty |
+| Tree version | `VERSION` | `0.4.4.1` |
+| Config fallback | `source/config/default.php` → `app.version` | `0.4.4.1` |
+| RPM spec | `packaging/latch.spec` → `Version:` | `0.4.4.1` |
+| Changelog | `CHANGELOG.md` → `## [0.4.4.1]` | dated section, `[Unreleased]` empty |
 | Security policy | `SECURITY.md` supported-versions table | latest = current |
-| Git tag | `v0.4.3.0` | matches `VERSION` |
+| Git tag | `v0.4.4.1` | matches `VERSION` |
 | GitHub Release | tag + notes + assets | tarball + `SHA256SUMS` |
-| Release tarball | `dist/latch-0.4.3.0.tar.gz` | from `build-release.sh` |
+| Release tarball | `dist/latch-0.4.4.1.tar.gz` | from `build-release.sh` |
 | COPR / RPM | `dnf upgrade latch` | built from tag via `packaging/latch.spec` |
 
 Preflight (must pass before `build-release.sh`):
@@ -35,7 +35,7 @@ Preflight (must pass before `build-release.sh`):
    php bin/latch audit
    ```
 6. **Version sync** — `./scripts/check-versions.sh`
-7. **Commit** — e.g. `Release 0.4.3.0: …` (include spec + SECURITY bumps in the same commit as `VERSION`).
+7. **Commit** — e.g. `Release 0.4.4.1: …` (include spec + SECURITY bumps in the same commit as `VERSION`).
 
 ## Build and publish
 
@@ -49,18 +49,18 @@ Preflight (must pass before `build-release.sh`):
 ### Git tag and GitHub Release
 
 ```bash
-git tag -a v0.4.3.0 -m "Latch 0.4.3.0"
+git tag -a v0.4.4.1 -m "Latch 0.4.4.1"
 git push origin main
-git push origin v0.4.3.0
+git push origin v0.4.4.1
 
-gh release create v0.4.3.0 \
-  dist/latch-0.4.3.0.tar.gz \
+gh release create v0.4.4.1 \
+  dist/latch-0.4.4.1.tar.gz \
   dist/SHA256SUMS \
-  --title "Latch v0.4.3.0" \
+  --title "Latch v0.4.4.1" \
   --notes-file /tmp/release-notes.md
 ```
 
-GitHub’s source archive for tag `v0.4.3.0` (`Latch-0.4.3.0.tar.gz`) is what COPR `%prep` consumes — the tag must exist **before** triggering a COPR build.
+GitHub’s source archive for tag `v0.4.4.1` (`Latch-0.4.4.1.tar.gz`) is what COPR `%prep` consumes — the tag must exist **before** triggering a COPR build.
 
 ### COPR / RPM
 

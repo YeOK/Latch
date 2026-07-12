@@ -26,6 +26,8 @@ source/config/local.php
 source/vendor/
 
 # Tests / build
+source/sqlite:*/
+**/latch-rate-limit-*.sqlite
 source/tests/.phpunit.cache/
 **/.phpunit.result.cache
 source/tests/api/config.local.php

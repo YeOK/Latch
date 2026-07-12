@@ -1614,27 +1614,6 @@ body:not(.page-admin):not(.page-profile) :is(
     margin-top: 0.35rem;
 }
 
-.composer-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface-raised);
-}
-
-.composer-tab {
-    border: none;
-    background: none;
-    padding: 0.5rem 0.85rem;
-    font: inherit;
-    cursor: pointer;
-    color: var(--muted);
-}
-
-.composer-tab.is-active {
-    color: var(--accent);
-    font-weight: 600;
-    box-shadow: inset 0 -2px 0 var(--accent);
-}
-
 .composer-toolbar {
     display: flex;
     flex-wrap: wrap;

@@ -1,6 +1,6 @@
 # Post markup reference
 
-Latch stores posts as **plain text** in the database. The server renders them to safe HTML with `Latch\Core\PostFormatter` on every view (and in the compose **Preview** tab via `POST /preview`).
+Latch stores posts as **plain text** in the database. The server renders them to safe HTML with `Latch\Core\PostFormatter` on every view (and in the compose **live preview** panel via `POST /preview` while you type).
 
 This document is the **author and integrator** reference. Theme authors styling `.post-content` should also read [THEMING.md](THEMING.md) § Post content markup.
 
@@ -198,11 +198,28 @@ Do not add these manually unless you operate imports or announcement scripts.
 
 ---
 
+## Composer live preview
+
+While composing or editing a post, the editor calls `POST /preview` (CSRF + rate limit) and renders markup in the preview pane below the textarea.
+
+**Preview mode** (`PostFormatter::format($body, composerPreview: true)`) differs from the published post:
+
+| Content | Live preview | Published post |
+|---------|--------------|----------------|
+| Markdown images `![alt](url)` | `[image]` or `[image: alt]` placeholder | Full image (when host allowlisted) |
+| Standalone `https://` URLs | Plain link | Plugin onebox/embed via `post.format.link` |
+| Smileys, bold, code, spoilers, quotes | Rendered normally | Same |
+
+This keeps large plugin cards and upload previews from covering the preview pane. Plugin hooks `post.format.link` and image wrappers in `post.format.after` are skipped in preview mode.
+
+---
+
 ## For theme and plugin authors
 
 - Style output classes in `theme.css` — see [THEMING.md](THEMING.md).
 - Plugins may extend image hosts via `post.format.image_host` and CSP `img-src` hooks (`image-upload`).
-- Plugins may replace standalone URL links with onebox/embed cards via `post.format.link` (`link-preview`).
+- Plugins may replace standalone URL links with onebox/embed cards via `post.format.link` (`link-preview`) — **not** applied in composer preview.
+- Toolbar buttons: return HTML from `editor.compose`; use classes `composer-btn`, `composer-btn--text` or `composer-btn--icon` (see `partials/composer.twig`). HTML is injected unsanitized — must pass `plugin-audit`.
 - Plugins may adjust body before save via `post.before_save`; rejected bodies return a flash error.
 
 ---

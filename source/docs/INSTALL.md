@@ -16,17 +16,18 @@ sudo dnf install -y php-pdo php-mbstring
 - Composer (or use the bundled `composer.phar`)
 - Apache with `mod_rewrite`, or nginx with equivalent routing
 
-## Release install (v0.3.0+)
+## Release install (v0.4.x)
 
-Download from **[GitHub Releases](https://github.com/YeOK/Latch/releases)** (`latch-0.3.0.13.tar.gz` + `SHA256SUMS`):
+Download the latest **`latch-<version>.tar.gz`** and **`SHA256SUMS`** from **[GitHub Releases](https://github.com/YeOK/Latch/releases)** (example below uses `0.4.4.1`):
 
 ```bash
 sha256sum -c SHA256SUMS
-tar -xzf latch-0.3.0.13.tar.gz
-cd latch-0.3.0.13-stage/source
-composer install --no-dev
-php bin/latch install --url=https://forum.example.com --name="My Forum"
+tar -xzf latch-0.4.4.1.tar.gz
+cd latch-0.4.4.1-stage
+bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 ```
+
+(`install.sh` runs Composer, `bin/latch install`, `doctor`, and cron when invoked as root. Manual path: `cd source && composer install --no-dev && php bin/latch install …`.)
 
 Or clone the public repo (`vendor/` is not in git — `install.sh` runs Composer from `composer.lock`):
 
@@ -35,8 +36,6 @@ git clone https://github.com/YeOK/Latch.git
 cd Latch
 bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 ```
-
-(`install.sh` runs Composer, `bin/latch install`, `doctor`, and cron when invoked as root. Requires `composer` on PATH or bundled `source/composer.phar`.)
 
 Point the web server **only** at `public/`. Keep `storage/` and `config/local.php` private.
 

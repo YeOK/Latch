@@ -272,7 +272,7 @@ Links are **https only**. Style these classes in `theme.css`:
 | `partials/avatar.twig` | Sized avatar with lazy load or identicon |
 | `partials/icon.twig` | Inline SVG icons |
 | `partials/topic_list.html.twig` | Board/tag/search topic rows |
-| `partials/composer.twig` | Write/preview tabs |
+| `partials/composer.twig` | Compose toolbar, split editor + live preview, code-language bar |
 | `partials/username_link.twig` | Links to `/user/{username}` |
 | `partials/rss_link.twig` | RSS icon + tooltip |
 | `partials/rss_bar.twig` | Context-aware RSS bar (included from base layout) |
