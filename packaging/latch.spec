@@ -11,7 +11,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.4.5.3
+Version:        0.4.6.0
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -201,6 +201,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Mon Jul 13 2026 YeOK <yeokky@gmail.com> - 0.4.6.0-1
+- Client-mode plugin theme.assets fix; forum UI cards; admin SPA staff actions; plugin asset docs
+
 * Sun Jul 12 2026 YeOK <yeokky@gmail.com> - 0.4.5.3-1
 - Plugin update (CLI + admin); home.before_boards hook; admin settings AJAX save fix
 
