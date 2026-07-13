@@ -87,12 +87,16 @@ final class LinkPreviewPluginTest extends TestCase
         $this->assertIsString($js);
 
         $this->assertStringContainsString(
-            "mountEmbed(btn.closest('.link-embed'), true)",
+            "mountEmbed(this.closest('.link-embed'), true)",
             $js,
-            'Play handlers must resolve the embed from the clicked button, not a shared loop variable',
+            'Play handlers must use the clicked button (this), not a shared loop variable',
         );
         $this->assertStringNotContainsString(
             'mountEmbed(el, true)',
+            $js,
+        );
+        $this->assertStringNotContainsString(
+            'mountEmbed(btn.closest',
             $js,
         );
     }
