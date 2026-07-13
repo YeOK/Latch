@@ -11,7 +11,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.4.5.2
+Version:        0.4.5.3
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -201,6 +201,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sun Jul 12 2026 YeOK <yeokky@gmail.com> - 0.4.5.3-1
+- Plugin update (CLI + admin); home.before_boards hook; admin settings AJAX save fix
+
 * Sun Jul 12 2026 YeOK <yeokky@gmail.com> - 0.4.5.2-1
 - Log viewer filter layout; audit log code-view; Modern theme CDN cache bust; sudo latch unlock hints; INSTALL-FEDORA CLI alignment
 

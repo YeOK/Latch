@@ -9,6 +9,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.5.3] — 2026-07-12
+
+### Added
+- **Plugin update** — `php bin/latch plugin update <slug>` and **Admin → Plugins → Installed** update action; replaces `plugins/{slug}/` from the catalog or a local zip while keeping `storage/plugins/{slug}/` and enabled state.
+- **`home.before_boards` hook** — home templates render `plugin_home_before_boards_html` above the board list (use with updated **git-release** for showcase layout).
+
+### Fixed
+- **Admin settings** — saving site theme and other settings stays in the AJAX account panel / in-place admin shell instead of redirecting to the full admin layout.
+
+### Tests
+- **Link preview** — regression test for `embed.js` play-button binding (pair with **link-preview** 1.0.3 from Latch-plugins).
+
 ## [0.4.5.2] — 2026-07-12
 
 ### Fixed
