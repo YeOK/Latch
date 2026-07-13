@@ -12,7 +12,7 @@
 
 Name:           latch
 Version:        0.4.6.1
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
 License:        MIT
@@ -65,6 +65,19 @@ fi
 
 %check
 cd source
+# %build uses --no-dev (production vendor); phpunit is require-dev — install it for %check only (%install already ran).
+if command -v composer >/dev/null 2>&1; then
+    composer install --optimize-autoloader --no-interaction
+elif [ -f composer.phar ]; then
+    php composer.phar install --optimize-autoloader --no-interaction
+else
+    echo "composer not found; cannot run %%check" >&2
+    exit 1
+fi
+if [ ! -f vendor/bin/phpunit ]; then
+    echo "vendor/bin/phpunit missing after composer install" >&2
+    exit 1
+fi
 php vendor/bin/phpunit -c phpunit-smoke.xml.dist --testsuite smoke
 php vendor/bin/phpunit -c phpunit-security.xml.dist --testsuite security
 
@@ -206,6 +219,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Mon Jul 13 2026 YeOK <yeokky@gmail.com> - 0.4.6.1-2
+- COPR %%check: composer install dev deps (phpunit) after production %%build vendor
+
 * Mon Jul 13 2026 YeOK <yeokky@gmail.com> - 0.4.6.1-1
 - Release gate CI; member topic visibility fix; link-preview HTML; plugin audit cache resilience; git-release 1.1.9
 
@@ -254,13 +270,13 @@ fi
 * Sat Jul 11 2026 YeOK <yeokky@gmail.com> - 0.4.0.0-1
 - Mail queue; plugin install/remove; word-filter plugin; plugin admin settings UI; bundled plugin disabled-by-default policy
 
-* Thu Jul 10 2026 YeOK <yeokky@gmail.com> - 0.3.0.23-1
+* Fri Jul 10 2026 YeOK <yeokky@gmail.com> - 0.3.0.23-1
 - Fragment cache; large-topic cursor pagination; SQLite scale + CDN docs
 
-* Thu Jul 10 2026 YeOK <yeokky@gmail.com> - 0.3.0.22-1
+* Fri Jul 10 2026 YeOK <yeokky@gmail.com> - 0.3.0.22-1
 - Version display reads tree VERSION file first; config app.version fallback
 
-* Thu Jul 10 2026 YeOK <yeokky@gmail.com> - 0.3.0.21-1
+* Fri Jul 10 2026 YeOK <yeokky@gmail.com> - 0.3.0.21-1
 - Open redirect hardening; GDPR Gravatar consent; light-theme a11y contrast; PHPUnit config split; public doc hygiene
 
 * Tue Jul 07 2026 YeOK <yeokky@gmail.com> - 0.3.0.20-1
