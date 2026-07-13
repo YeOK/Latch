@@ -8,6 +8,7 @@
  *
  * Forms with data-account-bypass submit normally (full page) — use for file uploads and
  * redirects outside /admin. Other POST forms in .admin-main use fetch + in-panel reload.
+ * GET filter forms (e.g. Admin → Logs) load results in the panel via the form query string.
  */
 (function () {
     'use strict';
@@ -536,6 +537,39 @@
         });
     }
 
+    function shouldHandleGetForm(form) {
+        if (!form || form.method.toLowerCase() !== 'get') {
+            return false;
+        }
+        if (form.hasAttribute('data-account-bypass')) {
+            return false;
+        }
+        if (overlay.contains(form) && isOpen) {
+            return true;
+        }
+        if (document.body.classList.contains('page-admin') && form.closest('.admin-main')) {
+            return true;
+        }
+        return false;
+    }
+
+    function submitGetFormInPanel(form) {
+        var action = form.getAttribute('action') || window.location.pathname;
+        var url = new URL(action, window.location.href);
+        var params = new URLSearchParams(new FormData(form));
+        url.search = params.toString();
+        var target = url.pathname + url.search;
+
+        if (isOpen && overlay.contains(form)) {
+            loadUrl(target, false);
+            return;
+        }
+
+        if (document.body.classList.contains('page-admin') && form.closest('.admin-main')) {
+            loadInPlaceAdmin(target, false);
+        }
+    }
+
     function shouldHandleForm(form) {
         if (!form || form.method.toLowerCase() !== 'post') {
             return false;
@@ -685,6 +719,14 @@
 
     document.addEventListener('submit', function (event) {
         var form = event.target;
+        if (shouldHandleGetForm(form)) {
+            event.preventDefault();
+            if (loading) {
+                return;
+            }
+            submitGetFormInPanel(form);
+            return;
+        }
         if (!shouldHandleForm(form)) {
             return;
         }
