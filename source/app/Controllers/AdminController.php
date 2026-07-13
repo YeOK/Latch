@@ -984,10 +984,7 @@ final class AdminController
     public function saveSettings(array $params = []): void
     {
         $this->app->auth()->requireAdmin();
-
-        if (!$this->app->csrf()->validate($this->app->request()->input('_csrf'))) {
-            Response::forbidden('Invalid form token.');
-        }
+        $this->validateStaffCsrf();
 
         $siteName = trim((string) $this->app->request()->input('site_name', ''));
         $siteTagline = trim((string) $this->app->request()->input('site_tagline', ''));
@@ -997,24 +994,21 @@ final class AdminController
         if ($siteName !== '') {
             $siteNameError = $validator->siteNameError($siteName);
             if ($siteNameError !== null) {
-                $this->app->session()->flash('error', $siteNameError);
-                Response::redirect('/admin/settings');
+                $this->finishStaffAction(false, $siteNameError, '/admin/settings');
             }
             $this->app->settings()->set('site_name', $siteName);
         }
 
         $taglineError = $validator->siteTaglineError($siteTagline);
         if ($taglineError !== null) {
-            $this->app->session()->flash('error', $taglineError);
-            Response::redirect('/admin/settings');
+            $this->finishStaffAction(false, $taglineError, '/admin/settings');
         }
 
         $this->app->settings()->set('site_tagline', $siteTagline);
 
         $footerAboutError = $validator->footerAboutError($footerAbout);
         if ($footerAboutError !== null) {
-            $this->app->session()->flash('error', $footerAboutError);
-            Response::redirect('/admin/settings');
+            $this->finishStaffAction(false, $footerAboutError, '/admin/settings');
         }
 
         $this->app->settings()->set('footer_about', $this->normalizeFooterAbout($footerAbout));
@@ -1023,14 +1017,12 @@ final class AdminController
             (string) $this->app->request()->input('brand_mode', SiteBranding::MODE_CUSTOM),
         );
         if ($brandModeError !== null) {
-            $this->app->session()->flash('error', $brandModeError);
-            Response::redirect('/admin/settings');
+            $this->finishStaffAction(false, $brandModeError, '/admin/settings');
         }
 
         $brandError = $this->saveBrandingUploads();
         if ($brandError !== null) {
-            $this->app->session()->flash('error', $brandError);
-            Response::redirect('/admin/settings');
+            $this->finishStaffAction(false, $brandError, '/admin/settings');
         }
 
         $wasMembersOnly = $this->app->membersOnly();
@@ -1116,8 +1108,7 @@ final class AdminController
 
         $activeTheme = (string) $this->app->request()->input('active_theme', 'default');
         if (!$this->app->themeRegistry()->isValid($activeTheme)) {
-            $this->app->session()->flash('error', 'Selected site theme is not installed.');
-            Response::redirect('/admin/settings');
+            $this->finishStaffAction(false, 'Selected site theme is not installed.', '/admin/settings');
         }
         $previousTheme = trim((string) $this->app->settings()->get(\Latch\Core\ThemeRegistry::SETTING_ACTIVE, ''));
         $this->app->settings()->set(\Latch\Core\ThemeRegistry::SETTING_ACTIVE, $activeTheme);
@@ -1186,8 +1177,7 @@ final class AdminController
             $this->app->request()->ip(),
         );
 
-        $this->app->session()->flash('success', 'Settings saved.');
-        Response::redirect('/admin/settings');
+        $this->finishStaffAction(true, 'Settings saved.', '/admin/settings');
     }
 
     public function reports(array $params = []): void
