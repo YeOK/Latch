@@ -55,7 +55,7 @@ final class PrivacyAnalyticsPluginTest extends TestCase
     {
         $settings = new Settings(
             Settings::PROVIDER_PLAUSIBLE,
-            'latch.network',
+            'forum.example.com',
             'plausible.io',
             '',
             '',
@@ -66,7 +66,7 @@ final class PrivacyAnalyticsPluginTest extends TestCase
         $html = $snippet->renderHead('abc123nonce');
 
         $this->assertStringContainsString('https://plausible.io/js/script.js', $html);
-        $this->assertStringContainsString('data-domain="latch.network"', $html);
+        $this->assertStringContainsString('data-domain="forum.example.com"', $html);
         $this->assertStringContainsString('nonce="abc123nonce"', $html);
         $this->assertSame('plausible.io', $snippet->cspScriptHost());
     }
