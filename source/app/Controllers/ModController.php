@@ -350,6 +350,14 @@ final class ModController
             $this->finishStaffAction(false, 'Board not found.', '/topic/' . $topic['id']);
         }
 
+        if ($this->app->moderationTrash()->isTrashBoard($board)) {
+            $this->finishStaffAction(
+                false,
+                'Use moderation trash to archive removed posts instead of moving topics here.',
+                '/topic/' . $topic['id'],
+            );
+        }
+
         try {
             $result = $this->app->topics()->moveToBoard((int) $topic['id'], $boardId);
         } catch (RuntimeException $e) {

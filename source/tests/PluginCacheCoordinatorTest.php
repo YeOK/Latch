@@ -136,6 +136,29 @@ final class PluginCacheCoordinatorTest extends TestCase
         $this->assertNull($this->cache->getFragment($key));
     }
 
+    public function testClientModeStillRunsThemeAssetsHook(): void
+    {
+        $hooks = new HookRegistry();
+        $hooks->add(
+            HookName::THEME_ASSETS,
+            static fn (): string => '/plugin/git-release/widget.css?v=1',
+            10,
+            'git-release',
+        );
+
+        $coordinator = $this->coordinatorFor([
+            $this->manifest('git-release', new PluginCacheConfig(
+                guestPage: PluginCacheConfig::GUEST_PAGE_CLIENT,
+                invalidateOn: ['plugin'],
+                clientRoute: '/plugin/git-release/widget.json',
+            )),
+        ], $hooks);
+
+        $assets = $coordinator->collect($this->collectContext(), HookName::THEME_ASSETS);
+
+        $this->assertSame(['/plugin/git-release/widget.css?v=1'], $assets);
+    }
+
     public function testBakeModePassesThroughHookOutput(): void
     {
         $hooks = new HookRegistry();

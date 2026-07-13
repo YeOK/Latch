@@ -156,6 +156,64 @@ Core loads `/assets/js/plugin-clients.js` when any enabled plugin uses `guest_pa
 
 Omit `cache` entirely to use the same defaults (`bake` + `invalidate_on: ["site"]`).
 
+### Plugin assets (CSS, JS, HTML snippets)
+
+Plugins ship static files under `plugins/{slug}/assets/`. There are three supported patterns — pick based on your guest-cache mode and where the asset must load.
+
+#### 1. Serve files via `route.register` (required for all patterns)
+
+Register a GET route and stream the file with long-cache headers and an ETag (see `forum-stats`, `link-preview`, `git-release`):
+
+```php
+$router->get('/plugin/my-plugin/widget.css', static function () use ($cssPath, $assetVersion): void {
+    // readfile + Content-Type + Cache-Control: immutable + ETag
+});
+```
+
+Declare the route hook in `plugin.json` → `hooks`. Paths must stay under `/plugin/{slug}/…` so operators can reason about plugin traffic.
+
+#### 2. Load CSS/JS on every page — `theme.assets` / `theme.scripts`
+
+Return versioned URLs; core appends them in `layouts/base.html.twig`:
+
+```php
+$hooks->add(HookName::THEME_ASSETS, static fn (): string =>
+    '/plugin/my-plugin/widget.css?v=' . rawurlencode($assetVersion)
+);
+$hooks->add(HookName::THEME_SCRIPTS, static fn (): string =>
+    '/plugin/my-plugin/widget.js?v=' . rawurlencode($assetVersion)
+);
+```
+
+Use for plugins that need global styles or scripts (`image-upload`, `link-preview`). For **admin-only** JS, gate the hook — return `''` unless `$app->auth()->isAdmin()` and the path matches your settings page (`git-release` admin cache purge UI).
+
+**Client-mode (`guest_page: client`) and assets:** Only content hooks (`home.before_boards`, `home.after_boards`, `layout.head`, `layout.footer`) are replaced with browser placeholders on cached guest pages. **`theme.assets` and `theme.scripts` still run** (Latch **0.4.6+**), so stylesheet `<link>` tags are baked into the cached page `<head>` while widget HTML hydrates later via `plugin-clients.js`. Prefer `theme.assets` over embedding `<link>` inside client JSON.
+
+| Cache mode | `theme.assets` / `theme.scripts` | Embed `<link>` in hook HTML |
+|------------|----------------------------------|-----------------------------|
+| `bake` | Works | Works (redundant if both used) |
+| `fragment` | Works on all pages; fragment HTML may still embed its own `<link>` for self-contained blocks (`forum-stats`) | Common — link travels with the cached fragment |
+| `client` | **Recommended** for widget CSS (page head) | Fallback — link loads only after JSON hydrate (slower FOUC) |
+
+#### 3. HTML snippet templates (analytics, embeds)
+
+Keep `<script>` markup out of PHP strings when possible — `plugin-audit` flags `markup_script_tag` in `.php` source. Store snippets in `assets/*.html` with `{{PLACEHOLDER}}` tokens and substitute escaped values in PHP (`privacy-analytics`):
+
+```
+assets/plausible-snippet.html   ← plain HTML template
+src/AnalyticsSnippet.php      ← load, escape vars, return string for layout.head
+```
+
+Pair `layout.head` output with matching `csp.script_src` / `csp.connect_src` hosts.
+
+#### Checklist
+
+1. Add `route.register` routes for each file under `assets/`.
+2. List `theme.assets` / `theme.scripts` in `hooks` when using those collect hooks.
+3. For `guest_page: client`, put CSS in `theme.assets` (not only inside JSON `html`).
+4. Run `plugin-audit` — JS assets are scanned for `innerHTML`, `eval`, external `fetch`, etc.
+5. Bump `?v={{ asset_version }}` query via core `assetVersion()` — do not hardcode cache busting.
+
 ### `post.before_save` / `post.after_save`
 
 `PostSaveContext` is passed to both hooks:
@@ -409,9 +467,9 @@ Fresh sites run migration `028_plugins.sql` (`INSERT OR IGNORE` → empty array)
 
 Home page totals — posts, topics, registered members via `home.after_boards`. Catalog plugin; `guest_page: fragment` on `home.after_boards`, `invalidate_on: ["site", "plugin"]`.
 
-### `git-release` (operator — not in catalog)
+### `git-release`
 
-Latest GitHub release card on the home page. Install from [Latch-plugins/git-release](https://github.com/YeOK/Latch-plugins/tree/main/git-release). Uses `guest_page: client` + `/plugin/git-release/widget.json`; see plugin README.
+Latest GitHub release card on the home page (`home.before_boards`). Catalog plugin from Latch-plugins **v1.0.9+**; requires Latch **0.4.6+** for client-mode `theme.assets`. Uses `guest_page: client` + `/plugin/git-release/widget.json`; point `github_repo` at any public `owner/name`. See plugin README for cache TTL and purge.
 
 ### `image-upload` (R2 / CDN post images)
 

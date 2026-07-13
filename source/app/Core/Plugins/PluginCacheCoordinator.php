@@ -19,6 +19,19 @@ use Latch\Core\SecurityHeaders;
  */
 final class PluginCacheCoordinator
 {
+    /**
+     * Client-mode plugins hydrate these hooks in the browser; other hooks (e.g. theme.assets)
+     * must still run so cached pages load CSS/JS and register routes.
+     *
+     * @var list<string>
+     */
+    private const CLIENT_PLACEHOLDER_HOOKS = [
+        HookName::HOME_BEFORE_BOARDS,
+        HookName::HOME_AFTER_BOARDS,
+        HookName::LAYOUT_FOOTER,
+        HookName::LAYOUT_HEAD,
+    ];
+
     /** @var array<string, PluginManifest> */
     private array $manifestsBySlug = [];
 
@@ -111,7 +124,7 @@ final class PluginCacheCoordinator
         $manifest = $slug !== null ? ($this->manifestsBySlug[$slug] ?? null) : null;
         $cache = $manifest?->cacheConfig ?? PluginCacheConfig::default();
 
-        if ($cache->isClient() && $slug !== null) {
+        if ($cache->isClient() && $slug !== null && $this->hookUsesClientPlaceholder($hook)) {
             return $this->clientPlaceholder($slug, $cache);
         }
 
@@ -126,6 +139,11 @@ final class PluginCacheCoordinator
         }
 
         return $raw;
+    }
+
+    private function hookUsesClientPlaceholder(string $hook): bool
+    {
+        return in_array($hook, self::CLIENT_PLACEHOLDER_HOOKS, true);
     }
 
     private function clientPlaceholder(string $slug, PluginCacheConfig $cache): string

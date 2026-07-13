@@ -108,7 +108,7 @@
                     </form>
                 </details>
             {% endif %}
-            {% if is_mod_trash_board|default(false) and is_mod and post.is_trashed_archive|default(false) %}
+            {% if is_mod_trash_board|default(false) and is_mod and post.is_restorable_archive|default(false) %}
                 <details class="staff-action-panel" data-staff-post="/mod/trash/{{ post.id }}/restore" data-staff-success="trash-item">
                     <summary class="btn btn-small btn-icon" title="Restore post" aria-label="Restore post">
                         {% include 'partials/icon.twig' with { name: 'restore', size: 16 } %}
@@ -120,6 +120,8 @@
                         </button>
                     </div>
                 </details>
+            {% endif %}
+            {% if is_mod_trash_board|default(false) and is_mod and post.is_trashed_archive|default(false) %}
                 <details class="staff-action-panel" data-staff-post="/mod/trash/{{ post.id }}/purge" data-staff-success="trash-item">
                     <summary class="btn btn-small btn-icon btn-danger" title="Delete permanently" aria-label="Delete permanently">
                         {% include 'partials/icon.twig' with { name: 'trash' } %}

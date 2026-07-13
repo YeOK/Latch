@@ -19,6 +19,10 @@
         <p class="muted">Self-deleted accounts are hard-purged after {{ deleted_retain_days }} days (daily cron). Posts remain; authors show as <code>[deleted]</code>.</p>
     {% endif %}
 
+    {% if search_error %}
+        <p class="flash flash-error">{{ search_error }}</p>
+    {% endif %}
+
     <div class="site-search-toolbar">
         {% include 'partials/search_field.html.twig' with {
             variant: 'inline',
@@ -211,9 +215,27 @@
         });
         var bulkBanBtn = document.querySelector('[data-bulk-ban-submit]');
         if (bulkBanBtn) {
-            bulkBanBtn.addEventListener('click', function () {
+            bulkBanBtn.addEventListener('click', function (event) {
+                event.preventDefault();
+                var panel = bulkBanBtn.closest('.staff-action-panel');
+                form.querySelectorAll('.bulk-ban-temp').forEach(function (el) {
+                    el.remove();
+                });
+                if (panel) {
+                    panel.querySelectorAll('select[name], input[name], textarea[name]').forEach(function (field) {
+                        if (!field.name || field.name === '_csrf' || field.type === 'button' || field.type === 'submit') {
+                            return;
+                        }
+                        var hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = field.name;
+                        hidden.value = field.value;
+                        hidden.className = 'bulk-ban-temp';
+                        form.appendChild(hidden);
+                    });
+                }
                 form.action = '/admin/users/bulk-ban';
-                form.submit();
+                form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
             });
         }
     })();

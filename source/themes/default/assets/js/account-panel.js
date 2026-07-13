@@ -793,4 +793,49 @@
             bindConfirmForms(main);
         }
     }
+
+    function navigatePanelUrl(url) {
+        if (!url) {
+            return false;
+        }
+
+        var parsed;
+        try {
+            parsed = new URL(url, window.location.href);
+        } catch (error) {
+            window.location.href = url;
+            return true;
+        }
+
+        if (parsed.origin !== window.location.origin) {
+            window.location.href = url;
+            return true;
+        }
+
+        var target = parsed.pathname + parsed.search;
+        if (isPanelPath(parsed.pathname)) {
+            if (isOpen) {
+                loadUrl(target, false);
+                return true;
+            }
+            if (document.body.classList.contains('page-admin')) {
+                loadInPlaceAdmin(target, false);
+                return true;
+            }
+            if (document.body.classList.contains('page-profile')) {
+                loadInPlaceProfile(target);
+                return true;
+            }
+        }
+
+        window.location.href = url;
+        return true;
+    }
+
+    window.LatchAccountPanel = {
+        navigate: navigatePanelUrl,
+        reloadAdmin: function (url) {
+            return navigatePanelUrl(url || window.location.pathname + window.location.search);
+        },
+    };
 })();

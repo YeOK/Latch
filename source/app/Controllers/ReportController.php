@@ -14,11 +14,19 @@ namespace Latch\Controllers;
 use Latch\Core\Application;
 use Latch\Core\Cache;
 use Latch\Core\Response;
+use Latch\Support\StaffActionResponder;
 
 final class ReportController
 {
+    use StaffActionResponder;
+
     public function __construct(private readonly Application $app)
     {
+    }
+
+    protected function staffApp(): Application
+    {
+        return $this->app;
     }
 
     public function reportPost(array $params): void
@@ -44,30 +52,32 @@ final class ReportController
             Response::redirect('/login');
         }
 
+        $redirect = $this->redirectBack($targetType, $targetId);
+
         if ($this->app->reports()->countRecentByReporter((int) $user['id']) >= 5) {
-            $this->app->session()->flash('error', 'You have submitted too many reports. Try again later.');
-            Response::redirect($this->app->request()->safeRedirectFromReferer(
-                $this->app->request()->header('Referer', '/'),
-                $this->app->siteUrl(),
-            ));
+            $this->finishStaffAction(
+                false,
+                'You have submitted too many reports. Try again later.',
+                $this->app->request()->safeRedirectFromReferer(
+                    $this->app->request()->header('Referer', '/'),
+                    $this->app->siteUrl(),
+                ),
+            );
         }
 
         $reasonCode = (string) $this->app->request()->input('reason_code', '');
         if (!$this->app->reportReasons()->isValidCode($reasonCode)) {
-            $this->app->session()->flash('error', 'Please select a report reason.');
-            Response::redirect($this->redirectBack($targetType, $targetId));
+            $this->finishStaffAction(false, 'Please select a report reason.', $redirect);
         }
 
         $reasonDetail = trim((string) $this->app->request()->input('reason_detail', ''));
         $detailError = $this->app->inputValidator()->reportDetailError($reasonDetail);
         if ($detailError !== null) {
-            $this->app->session()->flash('error', $detailError);
-            Response::redirect($this->redirectBack($targetType, $targetId));
+            $this->finishStaffAction(false, $detailError, $redirect);
         }
 
         if ($this->app->reports()->hasOpenReportByReporter((int) $user['id'], $targetType, $targetId)) {
-            $this->app->session()->flash('error', 'You already have an open report for this content.');
-            Response::redirect($this->redirectBack($targetType, $targetId));
+            $this->finishStaffAction(false, 'You already have an open report for this content.', $redirect);
         }
 
         $post = null;
@@ -85,8 +95,7 @@ final class ReportController
                 Response::notFound('User not found');
             }
             if ((int) $user['id'] === $targetId) {
-                $this->app->session()->flash('error', 'You cannot report yourself.');
-                Response::redirect('/profile');
+                $this->finishStaffAction(false, 'You cannot report yourself.', '/profile');
             }
         } else {
             Response::notFound('Invalid report target');
@@ -143,8 +152,7 @@ final class ReportController
         $message = $quarantineApplied
             ? 'Report submitted. The post has been hidden pending staff review.'
             : 'Report submitted. Moderators will review it.';
-        $this->app->session()->flash('success', $message);
-        Response::redirect($this->redirectBack($targetType, $targetId));
+        $this->finishStaffAction(true, $message, $redirect);
     }
 
     private function redirectBack(string $targetType, int $targetId): string
@@ -155,6 +163,18 @@ final class ReportController
             return $post !== null ? '/topic/' . $post['topic_id'] . '#post-' . $targetId : '/';
         }
 
-        return '/admin/users';
+        $referer = $this->app->request()->safeRedirectFromReferer(
+            $this->app->request()->header('Referer', '/'),
+            $this->app->siteUrl(),
+        );
+        if (str_starts_with($referer, '/admin/users/')) {
+            return $referer;
+        }
+
+        if ($this->app->auth()->isAdmin()) {
+            return '/admin/users/' . $targetId;
+        }
+
+        return '/';
     }
 }

@@ -218,14 +218,38 @@ final class ModerationTrashService
      */
     public function purgeTrashedPost(int $postId): ?array
     {
+        return $this->purgeArchivePost($postId);
+    }
+
+    /**
+     * Permanently delete a post in the moderation trash board, including orphaned
+     * archive rows that were never marked with trashed_at.
+     *
+     * @return array<string, int>|null
+     */
+    public function purgeArchivePost(int $postId): ?array
+    {
         $post = $this->posts->findById($postId);
-        if ($post === null || !$this->posts->isTrashed($postId)) {
+        if ($post === null || ($post['deleted_at'] ?? null) !== null) {
             return null;
         }
 
         $archiveTopicId = (int) $post['topic_id'];
+        $topic = $this->topics->findById($archiveTopicId);
+        if ($topic === null || ($topic['deleted_at'] ?? null) !== null) {
+            return null;
+        }
+
+        $board = $this->boards->findById((int) $topic['board_id']);
+        if ($board === null || !$this->isTrashBoard($board)) {
+            return null;
+        }
+
         $restoreTopicId = (int) ($post['trash_restore_topic_id'] ?? 0);
-        if (!$this->posts->purgeFromTrash($postId)) {
+        $purged = $this->posts->isTrashed($postId)
+            ? $this->posts->purgeFromTrash($postId)
+            : $this->posts->softDeleteActive($postId);
+        if (!$purged) {
             return null;
         }
 
@@ -237,6 +261,26 @@ final class ModerationTrashService
             'restore_topic_id' => $restoreTopicId,
             'author_user_id' => (int) $post['user_id'],
         ];
+    }
+
+    public function countArchiveQueue(): int
+    {
+        $trashBoard = $this->trashBoard();
+        if ($trashBoard === null) {
+            return 0;
+        }
+
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT COUNT(*)
+             FROM posts p
+             INNER JOIN topics t ON t.id = p.topic_id
+             WHERE t.board_id = :board_id
+               AND t.deleted_at IS NULL
+               AND p.deleted_at IS NULL'
+        );
+        $stmt->execute(['board_id' => (int) $trashBoard['id']]);
+
+        return (int) $stmt->fetchColumn();
     }
 
     /**
@@ -258,11 +302,7 @@ final class ModerationTrashService
 
         $purged = [];
         foreach ($this->topics->activePostIds($archiveTopicId) as $postId) {
-            if (!$this->posts->isTrashed($postId)) {
-                continue;
-            }
-
-            $result = $this->purgeTrashedPost($postId);
+            $result = $this->purgeArchivePost($postId);
             if ($result !== null) {
                 $purged[] = $result;
             }

@@ -9,6 +9,26 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.6.0] — 2026-07-13
+
+### Added
+- **Forum UI cards** — home board panels, board detail view, and topic header use unified card styling with stats where applicable.
+- **Privacy analytics tests** — `PrivacyAnalyticsPluginTest` for audit, snippet rendering, and host validation.
+- **Plugin asset docs** — `docs/PLUGINS.md` documents serving assets via routes, `theme.assets` / `theme.scripts`, HTML templates, and client-mode behaviour.
+
+### Fixed
+- **Client-mode plugin assets** — `theme.assets` and `theme.scripts` still run for `guest_page: client` plugins; only content hooks (`home.before_boards`, `home.after_boards`, `layout.head`, `layout.footer`) use browser placeholders (`PluginCacheCoordinator`).
+- **Admin SPA actions** — board create/update, user search validation, and staff trash actions stay in the AJAX admin shell (`finishStaffAction` / `account-panel.js`).
+- **Moderation trash purge** — `purgeArchivePost` handles orphaned archive rows; maintenance dashboard uses `countArchiveQueue()`.
+- **Topic layout** — post list separated from header card so replies no longer appear nested inside the topic header.
+
+### Changed
+- **Latch-plugins catalog** — **git-release** 1.1.7 added (public GitHub release card); requires this core version for client-mode `theme.assets`.
+
+### Tests
+- **PluginCacheCoordinator** — regression test that client-mode plugins still collect `theme.assets`.
+- **GitReleasePluginTest** — cache, stale fallback, and purge coverage (Latch-plugins catalog).
+
 ## [0.4.5.3] — 2026-07-12
 
 ### Added

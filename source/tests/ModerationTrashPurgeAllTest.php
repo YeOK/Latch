@@ -111,4 +111,44 @@ final class ModerationTrashPurgeAllTest extends TestCase
         $this->assertSame(0, $result['purged_posts']);
         $this->assertSame(0, $result['purged_topics']);
     }
+
+    public function testPurgeArchivePostDeletesOrphanedModTrashRow(): void
+    {
+        $this->db->pdo()->exec(
+            "INSERT INTO topics (id, board_id, user_id, title, slug, created_at, last_post_at) VALUES
+             (30, 2, 1, 'test', 'test', '2026-01-04T00:00:00+00:00', '2026-01-04T00:00:00+00:00');
+             INSERT INTO posts (id, topic_id, user_id, body, created_at) VALUES
+             (102, 30, 1, 'Orphan', '2026-01-04T00:00:00+00:00');"
+        );
+
+        $queueBefore = $this->trash->countArchiveQueue();
+        $this->assertGreaterThan(0, $queueBefore);
+        $this->assertFalse($this->posts->isTrashed(102));
+
+        $result = $this->trash->purgeArchivePost(102);
+        $this->assertNotNull($result);
+        $this->assertSame(30, $result['archive_topic_id']);
+        $this->assertSame(0, $result['restore_topic_id']);
+
+        $post = $this->posts->findById(102);
+        $this->assertNotNull($post['deleted_at'] ?? null);
+        $this->assertSame($queueBefore - 1, $this->trash->countArchiveQueue());
+    }
+
+    public function testPurgeTrashTopicDeletesOrphanedArchiveTopic(): void
+    {
+        $this->db->pdo()->exec(
+            "INSERT INTO topics (id, board_id, user_id, title, slug, created_at, last_post_at) VALUES
+             (31, 2, 1, 'test', 'test-orphan', '2026-01-05T00:00:00+00:00', '2026-01-05T00:00:00+00:00');
+             INSERT INTO posts (id, topic_id, user_id, body, created_at) VALUES
+             (103, 31, 1, 'Orphan', '2026-01-05T00:00:00+00:00');"
+        );
+
+        $result = $this->trash->purgeTrashTopic(31);
+        $this->assertNotNull($result);
+        $this->assertCount(1, $result['purged']);
+
+        $topic = $this->db->pdo()->query('SELECT deleted_at FROM topics WHERE id = 31')->fetch();
+        $this->assertNotNull($topic['deleted_at'] ?? null);
+    }
 }

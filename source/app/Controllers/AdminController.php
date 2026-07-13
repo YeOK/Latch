@@ -101,7 +101,7 @@ final class AdminController
         $this->app->render('admin/maintenance.html.twig', [
             'site_lock' => SiteLock::read($storagePath),
             'site_lock_cli_hint' => SiteLock::cliUnlockHint(),
-            'mod_trash_count' => $this->app->posts()->countTrashed(),
+            'mod_trash_count' => $this->app->moderationTrash()->countArchiveQueue(),
             'mod_trash_board_path' => $trashBoard !== null
                 ? '/board/' . (string) $trashBoard['slug']
                 : $this->app->moderationTrash()->trashBoardPath(),
@@ -385,14 +385,12 @@ final class AdminController
         }
 
         $search = trim((string) $this->app->request()->input('q', ''));
-        $searchError = $this->app->inputValidator()->searchQueryError($search);
-        if ($searchError !== null) {
-            $this->app->session()->flash('error', $searchError);
-            Response::redirect('/admin/users');
-        }
+        $searchError = $search !== '' ? $this->app->inputValidator()->searchQueryError($search) : null;
 
         $page = max(1, (int) $this->app->request()->input('page', 1));
-        $result = $this->app->users()->listAdmin($filter, $search, $page);
+        $result = $searchError !== null
+            ? ['users' => [], 'page' => 1, 'per_page' => 50, 'total' => 0]
+            : $this->app->users()->listAdmin($filter, $search, $page);
 
         $users = $this->app->enrichUsersWithAvatars($result['users']);
         $staff = $filter === 'staff' ? [] : $this->app->enrichUsersWithAvatars($this->app->users()->listStaff());
@@ -402,6 +400,7 @@ final class AdminController
             'staff' => $staff,
             'filter' => $filter,
             'search' => $search,
+            'search_error' => $searchError,
             'page' => $result['page'],
             'per_page' => $result['per_page'],
             'total' => $result['total'],
@@ -743,8 +742,7 @@ final class AdminController
 
         $boardError = $this->boardInputError($name, $description);
         if ($boardError !== null) {
-            $this->app->session()->flash('error', $boardError);
-            Response::redirect('/admin/boards');
+            $this->finishStaffAction(false, $boardError, '/admin/boards');
         }
 
         $board = $this->app->boards()->create($name, $description, $aclRead, $aclTopic, $aclReply);
@@ -768,8 +766,7 @@ final class AdminController
             (int) $board['id'],
             $this->app->request()->ip(),
         );
-        $this->app->session()->flash('success', 'Board "' . $board['name'] . '" created.');
-        Response::redirect('/admin/boards');
+        $this->finishStaffAction(true, 'Board "' . $board['name'] . '" created.', '/admin/boards');
     }
 
     public function updateBoard(array $params): void
@@ -795,19 +792,16 @@ final class AdminController
 
         $boardError = $this->boardInputError($name, $description);
         if ($boardError !== null) {
-            $this->app->session()->flash('error', $boardError);
-            Response::redirect('/admin/boards');
+            $this->finishStaffAction(false, $boardError, '/admin/boards');
         }
 
         $slug = Str::slug($slugInput);
         if ($slug === '') {
-            $this->app->session()->flash('error', 'URL slug is required.');
-            Response::redirect('/admin/boards');
+            $this->finishStaffAction(false, 'URL slug is required.', '/admin/boards');
         }
 
         if ($this->app->boards()->isSlugTaken($slug, $id)) {
-            $this->app->session()->flash('error', 'That URL slug is already used by another board.');
-            Response::redirect('/admin/boards');
+            $this->finishStaffAction(false, 'That URL slug is already used by another board.', '/admin/boards');
         }
 
         $oldSlug = (string) $board['slug'];
@@ -840,8 +834,7 @@ final class AdminController
         if ($slug !== $oldSlug) {
             $message .= ' Old links to /board/' . $oldSlug . ' will no longer work.';
         }
-        $this->app->session()->flash('success', $message);
-        Response::redirect('/admin/boards');
+        $this->finishStaffAction(true, $message, '/admin/boards');
     }
 
     public function deleteBoard(array $params): void
@@ -859,8 +852,7 @@ final class AdminController
         }
 
         if ($this->app->boards()->count() <= 1) {
-            $this->app->session()->flash('error', 'You cannot delete the last board.');
-            Response::redirect('/admin/boards');
+            $this->finishStaffAction(false, 'You cannot delete the last board.', '/admin/boards');
         }
 
         $topicCount = $this->app->boards()->countTopics($id);
@@ -876,8 +868,7 @@ final class AdminController
             $this->app->request()->ip(),
             ['name' => $board['name'], 'topic_count' => $topicCount],
         );
-        $this->app->session()->flash('success', 'Board "' . $board['name'] . '" removed.');
-        Response::redirect('/admin/boards');
+        $this->finishStaffAction(true, 'Board "' . $board['name'] . '" removed.', '/admin/boards');
     }
 
     public function moveBoard(array $params): void
@@ -896,8 +887,7 @@ final class AdminController
 
         $direction = (string) $this->app->request()->input('direction', '');
         if (!$this->app->boards()->move($id, $direction)) {
-            $this->app->session()->flash('error', 'Could not reorder board.');
-            Response::redirect('/admin/boards');
+            $this->finishStaffAction(false, 'Could not reorder board.', '/admin/boards');
         }
 
         $this->app->bustSiteCache();
@@ -909,8 +899,7 @@ final class AdminController
             $this->app->request()->ip(),
             ['direction' => $direction],
         );
-        $this->app->session()->flash('success', 'Board order updated.');
-        Response::redirect('/admin/boards');
+        $this->finishStaffAction(true, 'Board order updated.', '/admin/boards');
     }
 
     public function settings(array $params = []): void
@@ -1557,7 +1546,10 @@ final class AdminController
             $parsed = $viewer->parseRequestFilters($this->logRequestInput());
         } catch (LogViewerException $e) {
             if (str_contains($e->getMessage(), 'required')) {
-                Response::redirect('/admin/logs');
+                $this->app->session()->flash('error', 'Select a log source to view.');
+                $this->logsIndex();
+
+                return;
             }
 
             Response::notFound($e->getMessage());
@@ -2593,9 +2585,12 @@ final class AdminController
             ['url' => $url, 'events' => $events],
         );
 
-        $this->app->session()->flash('success', 'Webhook created. Copy the signing secret now — it will not be shown again.');
         $this->app->session()->flash('webhook_secret', $secret);
-        Response::redirect('/admin/webhooks');
+        $this->finishStaffAction(
+            true,
+            'Webhook created. Copy the signing secret now — it will not be shown again.',
+            '/admin/webhooks',
+        );
     }
 
     public function deleteWebhook(array $params): void

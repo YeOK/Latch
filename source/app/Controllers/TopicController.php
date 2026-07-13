@@ -116,6 +116,8 @@ final class TopicController
             ? (string) ($firstPost['created_at'] ?? '')
             : (string) ($topic['created_at'] ?? '');
 
+        $board = $this->app->enrichBoardWithIcon($board);
+
         $this->app->render('topic/show.html.twig', [
             'topic' => $topic,
             'board' => $board,
@@ -414,7 +416,8 @@ final class TopicController
             $posts[$i]['restore_board_name'] = (string) ($restoreBoard['name'] ?? '');
             $posts[$i]['restore_board_slug'] = (string) ($restoreBoard['slug'] ?? '');
             $posts[$i]['restore_topic_title'] = (string) ($restoreTopic['title'] ?? '');
-            $posts[$i]['is_trashed_archive'] = ($post['trashed_at'] ?? null) !== null;
+            $posts[$i]['is_trashed_archive'] = true;
+            $posts[$i]['is_restorable_archive'] = ($post['trashed_at'] ?? null) !== null && $restoreTopicId > 0;
         }
 
         return $posts;

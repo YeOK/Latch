@@ -125,8 +125,19 @@ final class BoardController
             $canonicalPath .= '?' . http_build_query($query);
         }
 
+        $board = $this->app->enrichBoardWithIcon($board);
+        $summary = $this->app->topics()->activitySummariesForBoards([(int) $board['id']], $isMod)[(int) $board['id']] ?? [
+            'topic_count' => 0,
+            'post_count' => 0,
+            'last_activity_at' => null,
+        ];
+        $board['topic_count'] = $summary['topic_count'];
+        $board['post_count'] = $summary['post_count'];
+        $board['last_activity_at'] = $summary['last_activity_at'];
+
         $this->app->render('board/show.html.twig', [
             'board' => $board,
+            'total' => $total,
             'topics' => $topics,
             'topic_list_html' => $topicListHtml,
             'page' => $page,
@@ -352,6 +363,11 @@ final class BoardController
 
     private function guardCreateTopic(array $board): void
     {
+        if ($this->app->moderationTrash()->isTrashBoard($board)) {
+            $this->app->session()->flash('error', 'You cannot start new topics in this board.');
+            Response::redirect('/board/' . $board['slug']);
+        }
+
         if ($this->app->boards()->canCreateTopic(
             $board,
             true,

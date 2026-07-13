@@ -520,10 +520,17 @@ final class PostRepository
 
     public function softDelete(int $id): void
     {
+        $this->softDeleteActive($id);
+    }
+
+    public function softDeleteActive(int $id): bool
+    {
         $stmt = $this->db->pdo()->prepare(
             'UPDATE posts SET deleted_at = :deleted_at WHERE id = :id AND deleted_at IS NULL'
         );
         $stmt->execute(['deleted_at' => gmdate('c'), 'id' => $id]);
+
+        return $stmt->rowCount() > 0;
     }
 
     public function trash(int $id, int $staffUserId, int $topicId, int $boardId): bool

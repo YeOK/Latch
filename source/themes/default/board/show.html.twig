@@ -2,106 +2,143 @@
 
 {% block title %}{{ board.name }} — {{ site.name }}{% endblock %}
 
+{% block main_class %} page-board{% endblock %}
+
 {% block content %}
-    <section class="page-header">
-        <div class="page-header-row">
-            <div>
-                <p class="breadcrumb"><a href="/">{{ trans('common.boards') }}</a> / {{ board.name }}</p>
-                <h1>{{ board.name }}</h1>
-                {% if filter_tag %}
-                    <p class="muted">{{ trans('board.filtered_by') }} <a class="tag-pill" href="/tag/{{ filter_tag.slug }}">#{{ filter_tag.name }}</a> · <a href="/board/{{ board.slug }}">{{ trans('board.clear_filter') }}</a></p>
-                {% endif %}
-                {% if board.description %}<p class="muted">{{ board.description }}</p>{% endif %}
-                {% if not can_create_topic|default(false) %}
-                    <p class="muted">{{ trans('board.cannot_create') }}{% if can_reply|default(true) %}{{ trans('board.cannot_create_reply') }}{% endif %}.</p>
-                {% elseif not can_reply|default(true) %}
-                    <p class="muted">{{ trans('board.read_only') }}</p>
-                {% endif %}
-
+    <article class="board-view">
+        <div class="board-view__accent" aria-hidden="true"></div>
+        <div class="board-view__inner">
+            <div class="board-view__brand">
+                <span class="board-view__icon board-icon" aria-hidden="true">{{ board.icon_svg|default('')|raw }}</span>
             </div>
-            {% if user and can_create_topic|default(false) %}
-                <a class="btn btn-primary btn-icon board-new-topic-btn"
-                   href="/board/{{ board.slug }}/new"
-                   title="{{ trans('board.new_topic') }}"
-                   aria-label="{{ trans('board.new_topic') }}">
-                    {% include 'partials/icon.twig' with { name: 'plus', size: 18 } %}
-                </a>
-            {% endif %}
-        </div>
-    </section>
+            <div class="board-view__content">
+                <header class="board-view__header">
+                    <p class="board-view__eyebrow"><a href="/">{{ trans('common.boards') }}</a> / {{ board.name }}</p>
+                    <div class="board-view__title-row">
+                        <h1 class="board-view__title">{{ board.name }}</h1>
+                        {% if user and can_create_topic|default(false) %}
+                            <a class="btn btn-primary board-view__new-topic"
+                               href="/board/{{ board.slug }}/new"
+                               title="{{ trans('board.new_topic') }}"
+                               aria-label="{{ trans('board.new_topic') }}">
+                                {% include 'partials/icon.twig' with { name: 'plus', size: 18 } %}
+                                <span>{{ trans('board.new_topic') }}</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                    {% if filter_tag %}
+                        <p class="board-view__notice muted">{{ trans('board.filtered_by') }} <a class="tag-pill" href="/tag/{{ filter_tag.slug }}">#{{ filter_tag.name }}</a> · <a href="/board/{{ board.slug }}">{{ trans('board.clear_filter') }}</a></p>
+                    {% endif %}
+                    {% if board.description %}
+                        <p class="board-view__description">{{ board.description }}</p>
+                    {% endif %}
+                    {% if not can_create_topic|default(false) %}
+                        <p class="board-view__notice muted">{{ trans('board.cannot_create') }}{% if can_reply|default(true) %}{{ trans('board.cannot_create_reply') }}{% endif %}.</p>
+                    {% elseif not can_reply|default(true) %}
+                        <p class="board-view__notice muted">{{ trans('board.read_only') }}</p>
+                    {% endif %}
+                </header>
 
-    {% if topics is empty %}
-        {% if board.slug == 'mod-trash' %}
-            <p class="empty">{{ trans('board.mod_trash_empty') }}</p>
-        {% else %}
-            <p class="empty">{{ trans('home.no_topics_yet') }}{% if user and can_create_topic|default(false) %} <a href="/board/{{ board.slug }}/new">{{ trans('board.start_one') }}</a>.{% endif %}</p>
-        {% endif %}
-    {% else %}
-        {% set unread_topic_count = topics|filter(t => t.is_unread is defined and t.is_unread)|length %}
-        {% if unread_topic_count > 0 %}
-            {% set new_badge = '<span class="badge badge-unread">' ~ trans('common.new') ~ '</span>' %}
-            <p class="board-unread-summary muted">{{ trans(unread_topic_count == 1 ? 'board.unread_summary_one' : 'board.unread_summary_many', { count: unread_topic_count, badge: new_badge })|raw }}</p>
-        {% endif %}
+                <dl class="board-view__stats">
+                    <div class="board-view__stat">
+                        <dt class="board-view__stat-label">{{ trans('home.topics') }}</dt>
+                        <dd class="board-view__stat-value">{{ board.topic_count|default(total|default(0)) }}</dd>
+                    </div>
+                    <div class="board-view__stat">
+                        <dt class="board-view__stat-label">{{ trans('home.posts') }}</dt>
+                        <dd class="board-view__stat-value">{{ board.post_count|default(0) }}</dd>
+                    </div>
+                    <div class="board-view__stat board-view__stat--activity">
+                        <dt class="board-view__stat-label">{{ trans('home.last_activity') }}</dt>
+                        <dd class="board-view__stat-value board-view__stat-value--activity">
+                            {% if board.last_activity_at %}
+                                <time datetime="{{ board.last_activity_at }}">{{ board.last_activity_at|format_datetime }}</time>
+                            {% else %}
+                                <span class="muted">{{ trans('home.no_posts_yet') }}</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
 
-        <div class="board-topic-toolbar">
-            {% if is_mod and board.slug != 'mod-trash' %}
-                {% include 'partials/board_mod_toolbar.html.twig' with {
-                    board: board,
-                    page: page,
-                    filter_tag: filter_tag|default(null),
-                    topic_sort: topic_sort|default('activity'),
-                    topic_sort_options: topic_sort_options
-                } %}
-            {% else %}
-                <div class="board-list-controls">
-                    <label class="board-topic-sort">
-                        <select class="field-control board-topic-sort-select" id="board-topic-sort" aria-label="{{ trans('board.sort_topics') }}">
-                            {% for sort_key, sort_label in topic_sort_options %}
-                                <option value="{{ sort_key }}"{% if topic_sort|default('activity') == sort_key %} selected{% endif %}>{{ sort_label }}</option>
-                            {% endfor %}
-                        </select>
-                    </label>
-                </div>
-            {% endif %}
-        </div>
-        <script nonce="{{ csp_nonce }}">
-        (function () {
-            var select = document.getElementById('board-topic-sort');
-            if (!select) return;
-            select.addEventListener('change', function () {
-                var url = new URL(window.location.href);
-                if (select.value === 'activity') {
-                    url.searchParams.delete('sort');
-                } else {
-                    url.searchParams.set('sort', select.value);
-                }
-                url.searchParams.delete('page');
-                window.location.assign(url.pathname + url.search);
-            });
-        })();
-        </script>
+                {% if topics is empty %}
+                    {% if board.slug == 'mod-trash' %}
+                        <p class="board-view__empty muted">{{ trans('board.mod_trash_empty') }}</p>
+                    {% else %}
+                        <p class="board-view__empty muted">{{ trans('home.no_topics_yet') }}{% if user and can_create_topic|default(false) %} <a href="/board/{{ board.slug }}/new">{{ trans('board.start_one') }}</a>.{% endif %}</p>
+                    {% endif %}
+                {% else %}
+                    {% set unread_topic_count = topics|filter(t => t.is_unread is defined and t.is_unread)|length %}
+                    {% if unread_topic_count > 0 %}
+                        {% set new_badge = '<span class="badge badge-unread">' ~ trans('common.new') ~ '</span>' %}
+                        <p class="board-view__unread muted">{{ trans(unread_topic_count == 1 ? 'board.unread_summary_one' : 'board.unread_summary_many', { count: unread_topic_count, badge: new_badge })|raw }}</p>
+                    {% endif %}
 
-        {% if topic_list_html is defined and topic_list_html %}
-            {{ topic_list_html|raw }}
-        {% else %}
-            {% include 'partials/topic_list.html.twig' with {
-                topics: topics,
-                topic_mod_selectable: is_mod and board.slug != 'mod-trash'
-            } %}
-        {% endif %}
+                    <div class="board-view__toolbar board-topic-toolbar">
+                        {% if is_mod and board.slug != 'mod-trash' %}
+                            {% include 'partials/board_mod_toolbar.html.twig' with {
+                                board: board,
+                                page: page,
+                                filter_tag: filter_tag|default(null),
+                                topic_sort: topic_sort|default('activity'),
+                                topic_sort_options: topic_sort_options
+                            } %}
+                        {% else %}
+                            <div class="board-list-controls">
+                                <label class="board-topic-sort">
+                                    <select class="field-control board-topic-sort-select" id="board-topic-sort" aria-label="{{ trans('board.sort_topics') }}">
+                                        {% for sort_key, sort_label in topic_sort_options %}
+                                            <option value="{{ sort_key }}"{% if topic_sort|default('activity') == sort_key %} selected{% endif %}>{{ sort_label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </label>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <script nonce="{{ csp_nonce }}">
+                    (function () {
+                        var select = document.getElementById('board-topic-sort');
+                        if (!select) return;
+                        select.addEventListener('change', function () {
+                            var url = new URL(window.location.href);
+                            if (select.value === 'activity') {
+                                url.searchParams.delete('sort');
+                            } else {
+                                url.searchParams.set('sort', select.value);
+                            }
+                            url.searchParams.delete('page');
+                            window.location.assign(url.pathname + url.search);
+                        });
+                    })();
+                    </script>
 
-        {% if total_pages > 1 %}
-            <nav class="pagination">
-                {% if page > 1 %}
-                    <a href="/board/{{ board.slug }}?page={{ page - 1 }}{% if filter_tag %}&amp;tag={{ filter_tag.slug }}{% endif %}{% if topic_sort|default('activity') != 'activity' %}&amp;sort={{ topic_sort }}{% endif %}">{{ trans('common.previous') }}</a>
+                    <div class="board-view__topics-wrap">
+                        {% if topic_list_html is defined and topic_list_html %}
+                            {{ topic_list_html|raw }}
+                        {% else %}
+                            {% include 'partials/topic_list.html.twig' with {
+                                topics: topics,
+                                topic_mod_selectable: is_mod and board.slug != 'mod-trash'
+                            } %}
+                        {% endif %}
+                    </div>
+
+                    {% if total_pages > 1 %}
+                        <footer class="board-view__footer">
+                            <nav class="pagination board-view__pagination">
+                                {% if page > 1 %}
+                                    <a href="/board/{{ board.slug }}?page={{ page - 1 }}{% if filter_tag %}&amp;tag={{ filter_tag.slug }}{% endif %}{% if topic_sort|default('activity') != 'activity' %}&amp;sort={{ topic_sort }}{% endif %}">{{ trans('common.previous') }}</a>
+                                {% endif %}
+                                <span>{{ trans('common.page_of', { page: page, total: total_pages }) }}</span>
+                                {% if page < total_pages %}
+                                    <a href="/board/{{ board.slug }}?page={{ page + 1 }}{% if filter_tag %}&amp;tag={{ filter_tag.slug }}{% endif %}{% if topic_sort|default('activity') != 'activity' %}&amp;sort={{ topic_sort }}{% endif %}">{{ trans('common.next') }}</a>
+                                {% endif %}
+                            </nav>
+                        </footer>
+                    {% endif %}
                 {% endif %}
-                <span>{{ trans('common.page_of', { page: page, total: total_pages }) }}</span>
-                {% if page < total_pages %}
-                    <a href="/board/{{ board.slug }}?page={{ page + 1 }}{% if filter_tag %}&amp;tag={{ filter_tag.slug }}{% endif %}{% if topic_sort|default('activity') != 'activity' %}&amp;sort={{ topic_sort }}{% endif %}">{{ trans('common.next') }}</a>
-                {% endif %}
-            </nav>
-        {% endif %}
-    {% endif %}
+            </div>
+        </div>
+    </article>
 {% endblock %}
 
 {% block scripts %}

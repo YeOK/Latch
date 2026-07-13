@@ -20,6 +20,17 @@
         }, 4000);
     }
 
+    function followStaffRedirect(url) {
+        if (!url) {
+            return false;
+        }
+        if (window.LatchAccountPanel && window.LatchAccountPanel.navigate(url)) {
+            return true;
+        }
+        window.location.href = url;
+        return true;
+    }
+
     function showStaffFeedback(panel, message, isError) {
         if (document.body.classList.contains('page-admin')) {
             var adminFlash = document.getElementById('admin-spa-flash');
@@ -266,14 +277,8 @@
     }
 
     function handleUsersRowUnban(panel) {
-        var row = panel.closest('tr');
-        if (!row) {
+        if (window.LatchAccountPanel && window.LatchAccountPanel.reloadAdmin()) {
             return;
-        }
-        row.classList.remove('row-muted');
-        var statusCell = row.querySelector('[data-user-status]');
-        if (statusCell) {
-            statusCell.textContent = 'Active';
         }
         window.location.reload();
     }
@@ -310,7 +315,7 @@
             }
         }
         if (data.redirect) {
-            window.location.href = data.redirect;
+            followStaffRedirect(data.redirect);
         }
     }
 
@@ -320,7 +325,7 @@
 
         if (mode === 'trash-item') {
             if (data.redirect) {
-                window.location.href = data.redirect;
+                followStaffRedirect(data.redirect);
                 return;
             }
 
@@ -406,7 +411,7 @@
         }
 
         if (data.redirect) {
-            window.location.href = data.redirect;
+            followStaffRedirect(data.redirect);
         }
     }
 

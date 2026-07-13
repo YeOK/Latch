@@ -1,39 +1,43 @@
 <article class="sc-board-card" aria-labelledby="sc-board-{{ board.slug }}-title">
-    <a href="/board/{{ board.slug }}" class="sc-board-card-link">
-        <span class="sc-board-card-icon board-icon" aria-hidden="true">{{ board.icon_svg|raw }}</span>
-        <span class="sc-board-card-body">
-            <h2 id="sc-board-{{ board.slug }}-title" class="sc-board-card-title">
-                {{ board.name }}
-                {% if board.unread_count is defined and board.unread_count > 0 %}
-                    <span class="sc-board-card-unread" title="{{ board.unread_count == 1 ? trans('home.unread_topic', { count: board.unread_count }) : trans('home.unread_topics', { count: board.unread_count }) }}">{{ board.unread_count }}</span>
+    <div class="sc-board-card__accent" aria-hidden="true"></div>
+    <div class="sc-board-card__inner">
+        <a href="/board/{{ board.slug }}" class="sc-board-card-link">
+            <span class="sc-board-card-icon board-icon" aria-hidden="true">{{ board.icon_svg|raw }}</span>
+            <span class="sc-board-card-body">
+                <p class="sc-board-card-eyebrow">{{ trans('home.title') }}</p>
+                <h2 id="sc-board-{{ board.slug }}-title" class="sc-board-card-title">
+                    {{ board.name }}
+                    {% if board.unread_count is defined and board.unread_count > 0 %}
+                        <span class="sc-board-card-unread" title="{{ board.unread_count == 1 ? trans('home.unread_topic', { count: board.unread_count }) : trans('home.unread_topics', { count: board.unread_count }) }}">{{ board.unread_count }}</span>
+                    {% endif %}
+                </h2>
+                {% if board.description %}
+                    <p class="sc-board-card-desc">{{ board.description }}</p>
                 {% endif %}
-            </h2>
-            {% if board.description %}
-                <p class="sc-board-card-desc">{{ board.description }}</p>
-            {% endif %}
-            <span class="sc-board-card-meta">
-                <span>{{ board.topic_count|default(0) }} {{ trans('home.topics') }}</span>
-                <span>{{ board.post_count|default(0) }} {{ trans('home.posts') }}</span>
-                {% if board.last_activity_at %}
-                    <time datetime="{{ board.last_activity_at }}">{{ board.last_activity_at|format_datetime }}</time>
-                {% endif %}
+                <span class="sc-board-card-meta">
+                    <span>{{ board.topic_count|default(0) }} {{ trans('home.topics') }}</span>
+                    <span>{{ board.post_count|default(0) }} {{ trans('home.posts') }}</span>
+                    {% if board.last_activity_at %}
+                        <time datetime="{{ board.last_activity_at }}">{{ board.last_activity_at|format_datetime }}</time>
+                    {% endif %}
+                </span>
             </span>
-        </span>
-        <span class="sc-board-card-chevron" aria-hidden="true">
-            {% include 'partials/icon.twig' with { name: 'chevron-right' } %}
-        </span>
-    </a>
+            <span class="sc-board-card-chevron" aria-hidden="true">
+                {% include 'partials/icon.twig' with { name: 'chevron-right' } %}
+            </span>
+        </a>
 
-    {% if board.recent_topics is defined and board.recent_topics is not empty %}
-        <ul class="sc-board-card-topics" role="list">
-            {% for topic in board.recent_topics|slice(0, 3) %}
-                <li>
-                    <a href="/topic/{{ topic.id }}" class="sc-board-card-topic{% if topic.is_unread is defined and topic.is_unread %} is-unread{% endif %}">
-                        {% if topic.is_pinned %}<span class="badge">{{ trans('common.pinned') }}</span>{% endif %}
-                        <span>{{ topic.title }}</span>
-                    </a>
-                </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+        {% if board.recent_topics is defined and board.recent_topics is not empty %}
+            <ul class="sc-board-card-topics" role="list">
+                {% for topic in board.recent_topics|slice(0, 3) %}
+                    <li>
+                        <a href="/topic/{{ topic.id }}" class="sc-board-card-topic{% if topic.is_unread is defined and topic.is_unread %} is-unread{% endif %}">
+                            {% if topic.is_pinned %}<span class="badge">{{ trans('common.pinned') }}</span>{% endif %}
+                            <span>{{ topic.title }}</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
 </article>
