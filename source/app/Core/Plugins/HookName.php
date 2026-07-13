@@ -38,6 +38,7 @@ final class HookName
     public const AVATAR_RESOLVE = 'avatar.resolve';
     public const LAYOUT_FOOTER = 'layout.footer';
     public const LAYOUT_HEAD = 'layout.head';
+    public const HOME_BEFORE_BOARDS = 'home.before_boards';
     public const HOME_AFTER_BOARDS = 'home.after_boards';
     public const TOPIC_ACTIONS = 'topic.actions';
     public const PROFILE_FORM = 'profile.form';
@@ -71,6 +72,7 @@ final class HookName
             self::AVATAR_RESOLVE,
             self::LAYOUT_FOOTER,
             self::LAYOUT_HEAD,
+            self::HOME_BEFORE_BOARDS,
             self::HOME_AFTER_BOARDS,
             self::TOPIC_ACTIONS,
             self::PROFILE_FORM,

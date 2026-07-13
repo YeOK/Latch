@@ -96,7 +96,8 @@ final class PluginSystemTest extends TestCase
 
     public function testHookNameRegistryListsAllKnownHooks(): void
     {
-        $this->assertCount(28, HookName::all());
+        $this->assertCount(29, HookName::all());
+        $this->assertContains(HookName::HOME_BEFORE_BOARDS, HookName::all());
         $this->assertContains(HookName::POST_FORMAT_LINK, HookName::all());
         $this->assertContains(HookName::CSP_FRAME_SRC, HookName::all());
         $this->assertContains(HookName::TOPIC_ACTIONS, HookName::all());

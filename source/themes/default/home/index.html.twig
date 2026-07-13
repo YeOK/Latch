@@ -37,6 +37,9 @@
             <p class="empty">{{ trans('home.no_boards') }}</p>
         {% endif %}
     {% else %}
+        {% for html in plugin_home_before_boards_html|default([]) %}
+            {{ html|raw }}
+        {% endfor %}
         <div class="board-panels">
             {% if board_panel_html is defined and board_panel_html is not empty %}
                 {% for html in board_panel_html %}

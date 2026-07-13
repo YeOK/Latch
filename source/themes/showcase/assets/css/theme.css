@@ -208,6 +208,15 @@
     color: var(--sc-accent);
 }
 
+/* Home plugins above board list (e.g. git-release) */
+.theme-showcase .sc-home-plugins-before-boards {
+    margin-bottom: 1.25rem;
+}
+
+.theme-showcase .sc-home-plugins-before-boards .latch-git-release {
+    margin-top: 0;
+}
+
 /* Board grid */
 .theme-showcase .sc-board-grid {
     display: grid;

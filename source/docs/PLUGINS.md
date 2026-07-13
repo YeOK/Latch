@@ -68,6 +68,7 @@ Declare every hook you use in `plugin.json` → `hooks`.
 | `board.icons` | dispatch | live | During boot; `($boardIconRegistry)` | Call `$registry->register($key, $svg)` |
 | `theme.assets` | collect | live | Each page render; `($app)` | CSS URL string(s) → `<link>` in layout |
 | `layout.footer` | collect | live | Each page render; `($app)` | HTML snippet(s) above footer meta |
+| `home.before_boards` | collect | live | Home page; `($app)` | HTML before board list |
 | `home.after_boards` | collect | live | Home page; `($app)` | HTML after board list |
 | `post.before_save` | dispatch | live | Before topic/reply/edit persist; `($ctx)` | Mutate `$ctx->body` or `$ctx->reject($reason)` |
 | `post.after_save` | dispatch | live | After successful save; `($ctx)` | Side effects (webhooks, analytics) |
@@ -92,7 +93,7 @@ Declare every hook you use in `plugin.json` → `hooks`.
 | `avatar.resolve` | filter | live | Avatar URL build; `($url, $email, $size)` | Final avatar URL string |
 | `locale.translations` | filter | live | Translator boot; `($strings, $locale)` | Merged translation array for active locale |
 
-Twig globals from collect hooks: `plugin_theme_assets`, `plugin_theme_scripts`, `plugin_head_html`, `plugin_footer_html`, `plugin_home_after_boards_html`, `plugin_admin_menu_items`, `plugin_composer_toolbar`.
+Twig globals from collect hooks: `plugin_theme_assets`, `plugin_theme_scripts`, `plugin_head_html`, `plugin_footer_html`, `plugin_home_before_boards_html`, `plugin_home_after_boards_html`, `plugin_admin_menu_items`, `plugin_composer_toolbar`.
 
 Per-page collect hooks (passed from controllers): `plugin_topic_actions` (topic view), `plugin_profile_form_html` (profile).
 

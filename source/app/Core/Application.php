@@ -1908,6 +1908,7 @@ final class Application implements PluginCollectContext
             'plugin_theme_scripts' => $this->pluginCacheCoordinator->collect($this, HookName::THEME_SCRIPTS),
             'plugin_head_html' => $this->pluginCacheCoordinator->collect($this, HookName::LAYOUT_HEAD),
             'plugin_footer_html' => $this->pluginCacheCoordinator->collect($this, HookName::LAYOUT_FOOTER),
+            'plugin_home_before_boards_html' => $this->pluginCacheCoordinator->collect($this, HookName::HOME_BEFORE_BOARDS),
             'plugin_home_after_boards_html' => $this->pluginCacheCoordinator->collect($this, HookName::HOME_AFTER_BOARDS),
             'plugin_admin_menu_items' => $this->pluginCacheCoordinator->collect($this, HookName::ADMIN_MENU),
             'plugin_composer_toolbar' => $this->pluginCacheCoordinator->collect($this, HookName::EDITOR_COMPOSE),

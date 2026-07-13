@@ -59,6 +59,13 @@
             <p class="empty">{{ trans('home.no_boards') }}</p>
         {% endif %}
     {% else %}
+        {% if plugin_home_before_boards_html is defined and plugin_home_before_boards_html is not empty %}
+            <div class="sc-home-plugins-before-boards">
+                {% for html in plugin_home_before_boards_html %}
+                    {{ html|raw }}
+                {% endfor %}
+            </div>
+        {% endif %}
         <section class="sc-board-grid" aria-label="{{ trans('common.boards') }}">
             {% if board_panel_html is defined and board_panel_html is not empty %}
                 {% for html in board_panel_html %}
