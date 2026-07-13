@@ -320,7 +320,10 @@ final class PostFormatter
 
             $standaloneUrl = $this->parseStandaloneUrlParagraph($paragraph);
             if ($standaloneUrl !== null) {
-                $out[] = '<p>' . $this->safeLink($standaloneUrl['url'], $standaloneUrl['label'], true) . '</p>';
+                $linkHtml = $this->safeLink($standaloneUrl['url'], $standaloneUrl['label'], true);
+                $out[] = $this->isBlockLevelHtml($linkHtml)
+                    ? $linkHtml
+                    : '<p>' . $linkHtml . '</p>';
                 continue;
             }
 
@@ -519,6 +522,13 @@ final class PostFormatter
         }
 
         return $safeLabel;
+    }
+
+    private function isBlockLevelHtml(string $html): bool
+    {
+        $trimmed = ltrim($html);
+
+        return preg_match('/^<(aside|div|section|article|figure)\b/i', $trimmed) === 1;
     }
 
     /**

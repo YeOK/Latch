@@ -11,7 +11,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.4.6.0
+Version:        0.4.6.1
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -62,6 +62,11 @@ if [ ! -f vendor/autoload.php ]; then
     echo "vendor/autoload.php missing after composer install" >&2
     exit 1
 fi
+
+%check
+cd source
+php vendor/bin/phpunit -c phpunit-smoke.xml.dist --testsuite smoke
+php vendor/bin/phpunit -c phpunit-security.xml.dist --testsuite security
 
 %install
 install -d %{buildroot}%{latch_datadir}
@@ -201,6 +206,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Mon Jul 13 2026 YeOK <yeokky@gmail.com> - 0.4.6.1-1
+- Release gate CI; member topic visibility fix; link-preview HTML; plugin audit cache resilience; git-release 1.1.9
+
 * Mon Jul 13 2026 YeOK <yeokky@gmail.com> - 0.4.6.0-1
 - Client-mode plugin theme.assets fix; forum UI cards; admin SPA staff actions; plugin asset docs
 

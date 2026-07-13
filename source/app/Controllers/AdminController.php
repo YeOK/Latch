@@ -2155,6 +2155,10 @@ final class AdminController
             ['slug' => $slug],
         );
 
+        $this->app->invalidatePluginCache($slug);
+        $storagePath = (string) $this->app->config()->get('paths.storage');
+        SiteMaintenance::clearCaches($this->app->cache(), $storagePath);
+
         $this->app->session()->flash('success', 'Plugin settings saved.');
         $this->finishStaffAction(true, 'Plugin settings saved.', $redirect);
     }

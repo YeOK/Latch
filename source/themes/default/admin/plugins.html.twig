@@ -149,7 +149,7 @@
                                                             <li>
                                                                 <code>{{ finding.code }}</code>
                                                                 {% if finding.file %}
-                                                                    — <code>{{ finding.file }}{% if finding.line %}:{{ finding.line }}{% endif %}</code>
+                                                                    — <code>{{ finding.file }}{% if finding.line is defined and finding.line %}:{{ finding.line }}{% endif %}</code>
                                                                 {% endif %}
                                                                 <span class="muted">{{ finding.message }}</span>
                                                             </li>
@@ -163,7 +163,7 @@
                                                             <li>
                                                                 <code>{{ finding.code }}</code>
                                                                 {% if finding.file %}
-                                                                    — <code>{{ finding.file }}{% if finding.line %}:{{ finding.line }}{% endif %}</code>
+                                                                    — <code>{{ finding.file }}{% if finding.line is defined and finding.line %}:{{ finding.line }}{% endif %}</code>
                                                                 {% endif %}
                                                                 <span class="muted">{{ finding.message }}</span>
                                                             </li>

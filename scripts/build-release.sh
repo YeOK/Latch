@@ -38,8 +38,8 @@ VERSION="$(tr -d '[:space:]' < "${REPO_ROOT}/VERSION")"
 STAGE="${DIST}/latch-${VERSION}-stage"
 ARCHIVE="${DIST}/latch-${VERSION}.tar.gz"
 
-echo "==> Check version sync (VERSION, app.version, latch.spec)"
-"${SCRIPT_DIR}/check-versions.sh"
+echo "==> Release gate (tests, security, smoke, plugin audits)"
+"${SCRIPT_DIR}/release-gate.sh"
 
 if [[ -f "${REPO_ROOT}/CHANGELOG.md" ]]; then
     UNRELEASED_BULLETS="$(awk '
@@ -111,6 +111,8 @@ rsync -a \
     --exclude='scripts/post-security-news.php' \
     --exclude='scripts/update-roadmap-post.php' \
     --exclude='source/plugins/md-import/' \
+    --exclude='source/plugins/git-release/' \
+    --exclude='source/plugins/link-preview/' \
     --exclude='scripts/latch-logs.sh' \
     --exclude='scripts/setup-api-test-client.sh' \
     --exclude='scripts/install-latch-security.sh' \

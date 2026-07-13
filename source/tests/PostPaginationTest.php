@@ -68,6 +68,11 @@ final class PostPaginationTest extends TestCase
         $this->assertSame(5, $this->posts->countVisibleByTopic(10));
     }
 
+    public function testCountVisibleByTopicForLoggedInMember(): void
+    {
+        $this->assertSame(5, $this->posts->countVisibleByTopic(10, 1, false));
+    }
+
     public function testListByTopicCursorFirstPage(): void
     {
         $page = $this->posts->listByTopicCursor(10, null, false, false, 2, null);

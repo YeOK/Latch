@@ -53,6 +53,19 @@ final class PluginAuditServiceTest extends TestCase
         $this->assertSame($first['report']->criticalCount(), $second['report']->criticalCount());
     }
 
+    public function testSurvivesUnwritableCacheDirectory(): void
+    {
+        @chmod($this->cacheDir, 0555);
+        $manifest = $this->writePlugin('no-cache-write');
+
+        $result = $this->service->getOrScan($manifest, false);
+
+        $this->assertFalse($result['from_cache']);
+        $this->assertTrue($result['report']->passed());
+
+        @chmod($this->cacheDir, 0775);
+    }
+
     public function testIgnoredPluginsAreExcludedFromDiscovery(): void
     {
         $this->writePlugin('visible');

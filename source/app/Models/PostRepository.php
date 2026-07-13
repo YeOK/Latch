@@ -333,7 +333,6 @@ final class PostRepository
                 $sql .= ' OR (p.approval_status = :pending AND p.user_id = :viewer_user_id)';
                 $params['pending'] = self::APPROVAL_PENDING;
                 $params['viewer_user_id'] = $viewerUserId;
-                $params['viewer_vote_user_id'] = $viewerUserId;
             }
             $sql .= ')';
         }

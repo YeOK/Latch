@@ -164,6 +164,22 @@ final class PostFormatterTest extends TestCase
         $this->assertStringContainsString('<a href="https://example.test/page"', $html);
     }
 
+    public function testStandalonePluginLinkCardIsNotWrappedInParagraph(): void
+    {
+        $formatter = new PostFormatter();
+        $formatter->setLinkFormatter(
+            static fn (string $html, string $url, string $label, bool $standalone): string => $standalone
+                ? '<aside class="link-onebox"><a href="' . $url . '">card</a></aside>'
+                : $html,
+        );
+
+        $html = $formatter->format('https://example.test/article');
+
+        $this->assertStringContainsString('<aside class="link-onebox">', $html);
+        $this->assertStringNotContainsString('<p><aside', $html);
+        $this->assertStringNotContainsString('</aside></p>', $html);
+    }
+
     public function testInlineBareHttpsUrlIsNotAutolinked(): void
     {
         $html = $this->formatter->format('Visit https://example.test/page today.');

@@ -9,6 +9,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.6.1] — 2026-07-13
+
+### Added
+- **Release gate** — `scripts/release-gate.sh` and GitHub Actions workflow; guest/member/admin HTTP smoke roles; RPM `%check` runs smoke + security PHPUnit.
+
+### Fixed
+- **Member topic 500** — `PostRepository::topicVisibilitySql()` no longer binds stray PDO params into COUNT queries.
+- **Link-preview HTML** — block-level plugin link cards are not wrapped in `<p>`.
+- **Admin → Plugins** — plugin audit cache write failures are logged instead of fatal.
+
+### Changed
+- **Latch-plugins** — **git-release** 1.1.9 (`min_latch_version` 0.4.6, cache dir filesystem permission).
+
 ## [0.4.6.0] — 2026-07-13
 
 ### Added

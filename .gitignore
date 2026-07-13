@@ -41,7 +41,9 @@ dist/
 PLAN.md
 deploy
 deploy/
-.github/
+!.github/
+!.github/workflows/
+!.github/workflows/**
 docs/COPR.md
 scripts/sync-latch.sh
 scripts/publish-latch-server.sh

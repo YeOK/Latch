@@ -41,8 +41,13 @@ final class PluginAuditService
         }
 
         $report = $this->auditor->auditPath($manifest->pluginDir);
-        $this->cache->put($manifest->slug, $fingerprint, $report);
         $scannedAt = gmdate('c');
+
+        try {
+            $this->cache->put($manifest->slug, $fingerprint, $report);
+        } catch (\Throwable $e) {
+            error_log('Plugin audit cache write failed for ' . $manifest->slug . ': ' . $e->getMessage());
+        }
 
         return [
             'report' => $report,
