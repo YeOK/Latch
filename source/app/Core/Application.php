@@ -556,6 +556,7 @@ final class Application implements PluginCollectContext
         $this->router->get('/admin/plugins/:slug/settings', $this->bind($admin, 'pluginSettings'));
         $this->router->post('/admin/plugins/:slug/settings', $this->bind($admin, 'savePluginSettings'));
         $this->router->post('/admin/plugins/catalog/install', $this->bind($admin, 'installCatalogPlugin'));
+        $this->router->post('/admin/plugins/:slug/update', $this->bind($admin, 'updateCatalogPlugin'));
         $this->router->post('/admin/plugins/:slug/enable', $this->bind($admin, 'enablePlugin'));
         $this->router->post('/admin/plugins/:slug/disable', $this->bind($admin, 'disablePlugin'));
         $this->router->post('/admin/plugins/:slug/remove', $this->bind($admin, 'removePlugin'));

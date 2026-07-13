@@ -79,6 +79,54 @@ final class PluginCatalogInstallerTest extends TestCase
         $this->assertFalse($registry->isEnabled('example'));
     }
 
+    public function testUpdatesInstalledPluginAndPreservesEnabledState(): void
+    {
+        $source = dirname(__DIR__) . '/docs/plugins/example';
+        $zipBytesV1 = $this->zipDirectory($source, '1.0.0');
+        $zipBytesV2 = $this->zipDirectory($source, '1.0.1');
+        $entryV1 = PluginCatalogEntry::fromArray([
+            'slug' => 'example',
+            'name' => 'Example plugin',
+            'version' => '1.0.0',
+            'min_latch_version' => '0.3.0',
+            'summary' => 'Reference plugin',
+            'hooks' => ['bootstrap', 'route.register'],
+        ]);
+        $entryV2 = PluginCatalogEntry::fromArray([
+            'slug' => 'example',
+            'name' => 'Example plugin',
+            'version' => '1.0.1',
+            'min_latch_version' => '0.3.0',
+            'summary' => 'Reference plugin',
+            'hooks' => ['bootstrap', 'route.register'],
+        ]);
+
+        $http = new StubPluginHttpClient([
+            $entryV1->releaseZipUrl('YeOK/Latch-plugins', 'v1.0.0') => [
+                'status' => 200,
+                'body' => $zipBytesV1,
+            ],
+            $entryV2->releaseZipUrl('YeOK/Latch-plugins', 'v1.0.1') => [
+                'status' => 200,
+                'body' => $zipBytesV2,
+            ],
+        ]);
+
+        $installer = $this->catalogInstaller($http);
+        $installer->install($entryV1, 'v1.0.0');
+
+        $registry = new PluginRegistry($this->pluginsPath, $this->settings);
+        $registry->setEnabledSlugs(['example']);
+        $this->assertTrue($registry->isEnabled('example'));
+
+        $result = $installer->update($entryV2, 'v1.0.1');
+
+        $this->assertSame('1.0.1', $result['manifest']->version);
+        $this->assertSame('1.0.0', $result['previous_version']);
+        $this->assertTrue($result['was_enabled']);
+        $this->assertTrue($registry->isEnabled('example'));
+    }
+
     public function testRollsBackWhenAuditFails(): void
     {
         $source = dirname(__DIR__) . '/docs/plugins/badexample';
@@ -123,18 +171,27 @@ final class PluginCatalogInstallerTest extends TestCase
         );
     }
 
-    private function zipDirectory(string $sourceDir): string
+    private function zipDirectory(string $sourceDir, string $version = '1.0.0'): string
     {
         if (!class_exists(ZipArchive::class)) {
             $this->markTestSkipped('php-zip extension not available');
         }
 
-        $zipPath = $this->root . '/fixture.zip';
+        $stage = $this->root . '/stage-' . bin2hex(random_bytes(4));
+        mkdir($stage, 0775, true);
+        $pluginStage = $stage . '/' . basename($sourceDir);
+        $this->copyTree($sourceDir, $pluginStage);
+        $manifestPath = $pluginStage . '/plugin.json';
+        $manifest = json_decode((string) file_get_contents($manifestPath), true, 512, JSON_THROW_ON_ERROR);
+        $manifest['version'] = $version;
+        file_put_contents($manifestPath, json_encode($manifest, JSON_THROW_ON_ERROR));
+
+        $zipPath = $this->root . '/fixture-' . $version . '.zip';
         $zip = new ZipArchive();
         $this->assertTrue($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE));
 
         $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($sourceDir, \FilesystemIterator::SKIP_DOTS),
+            new \RecursiveDirectoryIterator($pluginStage, \FilesystemIterator::SKIP_DOTS),
         );
 
         foreach ($iterator as $file) {
@@ -142,16 +199,42 @@ final class PluginCatalogInstallerTest extends TestCase
                 continue;
             }
 
-            $relative = ltrim(str_replace($sourceDir, '', $file->getPathname()), '/\\');
-            $zip->addFile($file->getPathname(), basename($sourceDir) . '/' . $relative);
+            $relative = ltrim(str_replace($pluginStage, '', $file->getPathname()), '/\\');
+            $zip->addFile($file->getPathname(), basename($pluginStage) . '/' . $relative);
         }
 
         $zip->close();
+        $this->deleteTree($stage);
 
         $bytes = file_get_contents($zipPath);
         $this->assertIsString($bytes);
 
         return $bytes;
+    }
+
+    private function copyTree(string $source, string $destination): void
+    {
+        if (!is_dir($destination) && !mkdir($destination, 0775, true) && !is_dir($destination)) {
+            throw new \RuntimeException('Could not create directory: ' . $destination);
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST,
+        );
+
+        foreach ($iterator as $item) {
+            $relative = ltrim(str_replace($source, '', $item->getPathname()), '/\\');
+            $target = $destination . '/' . $relative;
+            if ($item->isDir()) {
+                if (!is_dir($target) && !mkdir($target, 0775, true) && !is_dir($target)) {
+                    throw new \RuntimeException('Could not create directory: ' . $target);
+                }
+                continue;
+            }
+
+            copy($item->getPathname(), $target);
+        }
     }
 
     private function deleteTree(string $dir): void

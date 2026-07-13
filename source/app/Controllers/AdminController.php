@@ -1864,11 +1864,27 @@ final class AdminController
         $registry = $this->app->plugins();
         $auditService = $this->pluginAuditService();
         $latchVersion = $this->app->latchVersion();
+        $catalog = $this->pluginCatalog();
+        $catalogData = $catalog->load();
         $rows = [];
+        $updatesCount = 0;
 
         foreach ($registry->listWithStatus() as $row) {
             $manifest = $row['manifest'];
             $auditResult = $auditService->getOrScan($manifest, false);
+            $catalogUpdate = null;
+
+            if ($catalogData !== null) {
+                $updateEntry = $catalog->findUpdateEntry($manifest->slug, $manifest->version);
+                if ($updateEntry !== null) {
+                    ++$updatesCount;
+                    $catalogUpdate = [
+                        'version' => $updateEntry->version,
+                        'compatible' => $updateEntry->isCompatibleWith($latchVersion),
+                        'release' => $catalogData['release'],
+                    ];
+                }
+            }
 
             $rows[] = [
                 'manifest' => $manifest,
@@ -1876,6 +1892,7 @@ final class AdminController
                 'compatible' => $manifest->isCompatibleWith($latchVersion),
                 'has_settings' => $manifest->hasSettingsUi(),
                 'audit' => $this->auditRowForTemplate($auditResult['report'], $auditResult['scanned_at'], $auditResult['from_cache']),
+                'catalog_update' => $catalogUpdate,
             ];
         }
 
@@ -1883,8 +1900,6 @@ final class AdminController
             static fn (array $row): string => $row['manifest']->slug,
             $rows,
         );
-        $catalog = $this->pluginCatalog();
-        $catalogData = $catalog->load();
         $catalogRows = [];
         $catalogError = null;
 
@@ -1918,6 +1933,7 @@ final class AdminController
             'active_tab' => $activeTab,
             'installed_count' => count($rows),
             'catalog_count' => count($catalogRows),
+            'updates_count' => $updatesCount,
         ]);
     }
 
@@ -1997,6 +2013,107 @@ final class AdminController
         $this->finishStaffAction(
             true,
             "Installed {$manifest->name} v{$manifest->version} (disabled). Enable it when ready.",
+            $this->pluginsAdminUrl('installed'),
+        );
+    }
+
+    public function updateCatalogPlugin(array $params = []): void
+    {
+        $this->app->auth()->requireAdmin();
+        $this->validateStaffCsrf();
+
+        $slug = trim((string) ($params['slug'] ?? ''));
+        if ($slug === '' || !preg_match('/^[a-z0-9][a-z0-9_-]*$/', $slug)) {
+            $this->finishStaffAction(false, 'Invalid plugin slug.', $this->pluginsAdminUrl('installed'));
+        }
+
+        $installed = $this->findPluginManifest($slug);
+        if ($installed === null) {
+            $this->finishStaffAction(false, 'Plugin not found.', $this->pluginsAdminUrl('installed'));
+        }
+
+        $catalog = $this->pluginCatalog();
+        $catalogData = $catalog->load(true);
+        if ($catalogData === null) {
+            $this->finishStaffAction(false, 'Could not load the plugin catalog.', $this->pluginsAdminUrl('installed'));
+        }
+
+        $entry = $catalog->findUpdateEntry($slug, $installed->version, true);
+        if ($entry === null) {
+            $this->finishStaffAction(
+                false,
+                'No catalog update available for this plugin.',
+                $this->pluginsAdminUrl('installed'),
+            );
+        }
+
+        $latchVersion = $this->app->latchVersion();
+        if (!$entry->isCompatibleWith($latchVersion)) {
+            $this->finishStaffAction(
+                false,
+                "Plugin requires Latch >= {$entry->minLatchVersion}.",
+                $this->pluginsAdminUrl('installed'),
+            );
+        }
+
+        if (version_compare($latchVersion, $catalogData['latch_min_version'], '<')) {
+            $this->finishStaffAction(
+                false,
+                "Catalog requires Latch >= {$catalogData['latch_min_version']}.",
+                $this->pluginsAdminUrl('installed'),
+            );
+        }
+
+        try {
+            $result = $this->pluginCatalogInstaller()->update($entry, $catalogData['release']);
+        } catch (\Throwable $e) {
+            $message = trim($e->getMessage());
+            if ($message === '') {
+                $message = 'Plugin update failed.';
+            }
+
+            $this->finishStaffAction(false, $message, $this->pluginsAdminUrl('installed'));
+        }
+
+        $manifest = $result['manifest'];
+        if ($result['was_enabled']) {
+            try {
+                $this->app->pluginDatabaseManager()->migrate($manifest);
+            } catch (\Throwable $e) {
+                error_log('Plugin database migration failed for ' . $slug . ': ' . $e->getMessage());
+                $this->finishStaffAction(
+                    false,
+                    'Plugin updated but database migration failed. Check server logs.',
+                    $this->pluginsAdminUrl('installed'),
+                );
+            }
+        }
+
+        $actor = $this->app->auth()->user();
+        $this->app->auditLog()->record(
+            (int) ($actor['id'] ?? 0),
+            'plugin.update',
+            'plugin',
+            null,
+            $this->app->request()->ip(),
+            [
+                'slug' => $manifest->slug,
+                'version' => $manifest->version,
+                'previous_version' => $result['previous_version'],
+                'source' => 'catalog',
+                'release' => $catalogData['release'],
+            ],
+        );
+
+        $this->app->invalidatePluginCache($slug);
+
+        $storagePath = (string) $this->app->config()->get('paths.storage');
+        SiteMaintenance::clearCaches($this->app->cache(), $storagePath);
+
+        $this->finishStaffAction(
+            true,
+            "Updated {$manifest->name} v{$result['previous_version']} → v{$manifest->version}."
+                . ($result['was_enabled'] ? ' Plugin remains enabled.' : ''),
             $this->pluginsAdminUrl('installed'),
         );
     }

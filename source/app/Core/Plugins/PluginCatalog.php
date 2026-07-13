@@ -64,6 +64,16 @@ final class PluginCatalog
         return $parsed;
     }
 
+    public function findUpdateEntry(string $slug, string $installedVersion, bool $forceRefresh = false): ?PluginCatalogEntry
+    {
+        $entry = $this->findEntry($slug, $forceRefresh);
+        if ($entry === null) {
+            return null;
+        }
+
+        return version_compare($entry->version, $installedVersion, '>') ? $entry : null;
+    }
+
     public function findEntry(string $slug, bool $forceRefresh = false): ?PluginCatalogEntry
     {
         $slug = trim($slug);

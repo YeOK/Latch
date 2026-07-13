@@ -90,6 +90,23 @@ final class PluginCatalogTest extends TestCase
         $this->assertSame('word-filter', $available[0]->slug);
     }
 
+    public function testFindUpdateEntryWhenCatalogVersionIsNewer(): void
+    {
+        file_put_contents($this->cacheFile, json_encode([
+            'catalog_url' => PluginCatalog::DEFAULT_CATALOG_URL,
+            'fetched_at' => time(),
+            'data' => json_decode($this->sampleCatalogJson(), true),
+        ], JSON_THROW_ON_ERROR));
+
+        $catalog = new PluginCatalog($this->cacheFile);
+        $entry = $catalog->findUpdateEntry('forum-stats', '0.9.0');
+
+        $this->assertNotNull($entry);
+        $this->assertSame('1.0.0', $entry->version);
+        $this->assertNull($catalog->findUpdateEntry('forum-stats', '1.0.0'));
+        $this->assertNull($catalog->findUpdateEntry('missing', '0.1.0'));
+    }
+
     public function testReleaseZipUrl(): void
     {
         $catalog = new PluginCatalog($this->cacheFile);

@@ -165,6 +165,7 @@ Latch CLI
   php bin/latch plugin list [--all]  List plugins ( --all includes ignored)
   php bin/latch plugin audit <path|slug>  Security scan (alias for plugin-audit)
   php bin/latch plugin install <path>  Copy directory or .zip into plugins/{slug}/ (audit gate)
+  php bin/latch plugin update <slug> [--from <dir|zip>]  Replace installed plugin from catalog or local source
   php bin/latch plugin remove <slug> --confirm  Disable and delete installed plugin
   php bin/latch plugin enable <slug> [--force]  Enable after audit pass
   php bin/latch plugin disable <slug>  Disable a plugin
@@ -2258,6 +2259,33 @@ function plugin_registry_from_config(Config $config): \Latch\Core\Plugins\Plugin
     );
 }
 
+function plugin_catalog_from_config(Config $config): \Latch\Core\Plugins\PluginCatalog
+{
+    $storagePath = (string) $config->get('paths.storage');
+
+    return new \Latch\Core\Plugins\PluginCatalog(
+        $storagePath . '/cache/plugin-catalog.json',
+        (string) ($config->get('plugin_catalog.catalog_url') ?? \Latch\Core\Plugins\PluginCatalog::DEFAULT_CATALOG_URL),
+        (string) ($config->get('plugin_catalog.release_repo') ?? \Latch\Core\Plugins\PluginCatalog::DEFAULT_RELEASE_REPO),
+        (int) ($config->get('plugin_catalog.cache_ttl_seconds') ?? 3600),
+    );
+}
+
+function plugin_catalog_installer_from_config(Config $config): \Latch\Core\Plugins\PluginCatalogInstaller
+{
+    $storagePath = (string) $config->get('paths.storage');
+    $pluginsPath = (string) $config->get('paths.plugins');
+    $catalog = plugin_catalog_from_config($config);
+
+    return new \Latch\Core\Plugins\PluginCatalogInstaller(
+        new \Latch\Core\Plugins\PluginInstaller($pluginsPath, $storagePath),
+        plugin_audit_service_from_config($config),
+        plugin_registry_from_config($config),
+        new \Latch\Core\Plugins\PluginReleaseDownloader($catalog->releaseRepo()),
+        $storagePath,
+    );
+}
+
 function latch_cli_database(Config $config): Database
 {
     try {
@@ -2419,6 +2447,122 @@ function run_plugin(array $argv): void
         } else {
             fwrite(STDOUT, "Enable when ready: php bin/latch plugin enable {$manifest->slug}\n");
         }
+
+        return;
+    }
+
+    if ($action === 'update') {
+        if ($slug === '') {
+            fwrite(STDERR, "Usage: php bin/latch plugin update <slug> [--from <directory|zip>]\n");
+            exit(1);
+        }
+
+        if (plugin_is_ignored_by_slug($config, $slug)) {
+            fwrite(STDERR, "Plugin is ignored. Run: php bin/latch plugin unignore {$slug}\n");
+            exit(1);
+        }
+
+        $manifest = plugin_find_manifest($config, $slug);
+        if ($manifest === null) {
+            fwrite(STDERR, "Plugin not found: {$slug}\n");
+            exit(1);
+        }
+
+        $fromSource = isset($opts['from']) ? trim((string) $opts['from']) : '';
+        $pluginsPath = (string) $config->get('paths.plugins');
+        $storagePath = (string) $config->get('paths.storage');
+        $installer = new \Latch\Core\Plugins\PluginInstaller($pluginsPath, $storagePath);
+        $registry = plugin_registry_from_config($config);
+        $wasEnabled = $registry->isEnabled($slug);
+        $previousVersion = $manifest->version;
+
+        if ($fromSource !== '') {
+            try {
+                $upgrade = $installer->upgradeFromSource($fromSource, $slug);
+            } catch (\Throwable $e) {
+                fwrite(STDERR, $e->getMessage() . "\n");
+                exit(1);
+            }
+
+            try {
+                $auditService->forget($slug);
+                $result = $auditService->getOrScan($upgrade->manifest, true);
+                $report = $result['report'];
+            } catch (\Throwable $e) {
+                $upgrade->rollback();
+                fwrite(STDERR, $e->getMessage() . "\n");
+                exit(1);
+            }
+
+            if (!$report->passed()) {
+                $upgrade->rollback();
+                $auditService->forget($slug);
+                fwrite(STDERR, $report->toHuman());
+                fwrite(STDERR, "Update rolled back — fix critical audit findings and retry.\n");
+                exit(1);
+            }
+
+            $upgrade->commit();
+            $manifest = $upgrade->manifest;
+        } else {
+            $catalog = plugin_catalog_from_config($config);
+            $catalogData = $catalog->load(true);
+            if ($catalogData === null) {
+                fwrite(STDERR, "Could not load the plugin catalog. Use --from <dir|zip> or check outbound HTTPS.\n");
+                exit(1);
+            }
+
+            $entry = $catalog->findUpdateEntry($slug, $manifest->version, true);
+            if ($entry === null) {
+                fwrite(STDERR, "No catalog update for {$slug} (installed v{$manifest->version}).\n");
+                exit(1);
+            }
+
+            if (!$entry->isCompatibleWith($latchVersion)) {
+                fwrite(STDERR, "Plugin {$slug} requires Latch >= {$entry->minLatchVersion} (running {$latchVersion})\n");
+                exit(1);
+            }
+
+            if (version_compare($latchVersion, $catalogData['latch_min_version'], '<')) {
+                fwrite(STDERR, "Catalog requires Latch >= {$catalogData['latch_min_version']} (running {$latchVersion})\n");
+                exit(1);
+            }
+
+            try {
+                $updateResult = plugin_catalog_installer_from_config($config)->update($entry, $catalogData['release']);
+            } catch (\Throwable $e) {
+                fwrite(STDERR, $e->getMessage() . "\n");
+                exit(1);
+            }
+
+            $manifest = $updateResult['manifest'];
+            $previousVersion = $updateResult['previous_version'];
+            $wasEnabled = $updateResult['was_enabled'];
+        }
+
+        if ($wasEnabled) {
+            $dbManager = new \Latch\Core\Plugins\PluginDatabaseManager(
+                $storagePath,
+                \Latch\Core\Database::sqliteOptionsFromConfig($config),
+            );
+
+            try {
+                $applied = $dbManager->migrate($manifest);
+                if ($applied > 0) {
+                    fwrite(STDOUT, "Applied {$applied} plugin database migration(s).\n");
+                }
+            } catch (\Throwable $e) {
+                fwrite(STDERR, 'Plugin database migration failed: ' . $e->getMessage() . "\n");
+                exit(1);
+            }
+        }
+
+        plugin_bust_cache_after_toggle($config, $slug);
+        fwrite(STDOUT, "Updated plugin: {$slug} v{$previousVersion} → v{$manifest->version}\n");
+        if ($wasEnabled) {
+            fwrite(STDOUT, "Plugin remains enabled.\n");
+        }
+        fwrite(STDOUT, "Guest page and Twig cache cleared.\n");
 
         return;
     }

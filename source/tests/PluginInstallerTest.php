@@ -111,20 +111,72 @@ final class PluginInstallerTest extends TestCase
         $this->installer->removeInstalled('missing');
     }
 
-    private function makeSourcePlugin(string $slug): string
+    public function testUpgradeReplacesCodeAndPreservesStorage(): void
+    {
+        $source = $this->makeSourcePlugin('upgrade-me', '1.0.0', 'VersionOne');
+        $this->installer->installFromSource($source);
+        mkdir($this->storagePath . '/plugins/upgrade-me', 0775, true);
+        file_put_contents($this->storagePath . '/plugins/upgrade-me/settings.json', '{"enabled":true}');
+
+        $updatedSource = $this->makeSourcePlugin('upgrade-me', '1.0.1', 'VersionTwo');
+        $upgrade = $this->installer->upgradeFromSource($updatedSource, 'upgrade-me');
+        $upgrade->commit();
+
+        $this->assertSame('1.0.1', $upgrade->manifest->version);
+        $this->assertStringContainsString(
+            'VersionTwo',
+            (string) file_get_contents($this->pluginsPath . '/upgrade-me/src/Plugin.php'),
+        );
+        $this->assertSame(
+            '{"enabled":true}',
+            (string) file_get_contents($this->storagePath . '/plugins/upgrade-me/settings.json'),
+        );
+    }
+
+    public function testUpgradeRollsBackOnAuditFailurePath(): void
+    {
+        $source = $this->makeSourcePlugin('rollback-me', '1.0.0', 'KeepMe');
+        $this->installer->installFromSource($source);
+
+        $updatedSource = $this->makeSourcePlugin('rollback-me', '1.0.1', 'Broken');
+        $upgrade = $this->installer->upgradeFromSource($updatedSource, 'rollback-me');
+        $upgrade->rollback();
+
+        $manifest = PluginManifest::fromDirectory($this->pluginsPath . '/rollback-me');
+        $this->assertSame('1.0.0', $manifest->version);
+        $this->assertStringContainsString(
+            'KeepMe',
+            (string) file_get_contents($this->pluginsPath . '/rollback-me/src/Plugin.php'),
+        );
+    }
+
+    public function testUpgradeRejectsMissingInstall(): void
+    {
+        $source = $this->makeSourcePlugin('missing-install');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Plugin not installed');
+        $this->installer->upgradeFromSource($source, 'missing-install');
+    }
+
+    private function makeSourcePlugin(string $slug, string $version = '1.0.0', string $marker = 'CopyMe'): string
     {
         $parent = $this->root . '/sources';
-        mkdir($parent, 0775, true);
+        if (!is_dir($parent)) {
+            mkdir($parent, 0775, true);
+        }
         $dir = $parent . '/' . $slug;
-        mkdir($dir . '/src', 0775, true);
+        if (!is_dir($dir . '/src')) {
+            mkdir($dir . '/src', 0775, true);
+        }
         file_put_contents($dir . '/plugin.json', json_encode([
             'name' => 'Test ' . $slug,
             'slug' => $slug,
-            'version' => '1.0.0',
+            'version' => $version,
             'min_latch_version' => '0.3.0',
             'hooks' => ['bootstrap'],
         ], JSON_THROW_ON_ERROR));
-        file_put_contents($dir . '/src/Plugin.php', "<?php\n// CopyMe\n");
+        file_put_contents($dir . '/src/Plugin.php', "<?php\n// {$marker}\n");
 
         return $dir;
     }

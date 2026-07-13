@@ -31,63 +31,119 @@ final class PluginInstaller
      */
     public function installFromSource(string $source): PluginManifest
     {
-        $source = trim($source);
-        if ($source === '') {
-            throw new InvalidArgumentException('Install source path is required');
+        $resolved = $this->resolvePluginSource($source);
+        $manifest = $resolved['manifest'];
+        $targetDir = $this->targetDirectory($manifest->slug);
+
+        if (is_dir($targetDir)) {
+            throw new RuntimeException("Plugin already installed: {$manifest->slug} ({$targetDir})");
         }
 
-        if (preg_match('#^https?://#i', $source)) {
-            throw new InvalidArgumentException('Remote URLs are not supported in v1 — use a local directory or .zip file');
+        if (!is_dir($this->pluginsPath) && !mkdir($this->pluginsPath, 0775, true) && !is_dir($this->pluginsPath)) {
+            throw new RuntimeException(
+                'Could not create plugins directory: ' . $this->pluginsPath
+                . ' — run sudo latch fix-perms (RPM: plugins/ must be owned by the web server)',
+            );
         }
 
-        $resolved = $this->resolveSourcePath($source);
-        if (!is_file($resolved) && !is_dir($resolved)) {
-            throw new InvalidArgumentException("Install source not found: {$source}");
-        }
-
-        $tempDir = null;
         try {
-            if (is_file($resolved) && str_ends_with(strtolower($resolved), '.zip')) {
-                $tempDir = $this->extractZipToTemp($resolved);
-                $pluginDir = $this->resolvePluginRoot($tempDir);
-            } elseif (is_dir($resolved)) {
-                $pluginDir = $this->resolvePluginRoot($resolved);
-            } else {
-                throw new InvalidArgumentException('Install source must be a directory or .zip file');
-            }
-
-            $manifest = PluginManifest::fromDirectory($pluginDir);
-            if ($manifest->ignored) {
-                throw new InvalidArgumentException("Plugin {$manifest->slug} is marked ignored — remove ignored flag before install");
-            }
-
-            $targetDir = $this->targetDirectory($manifest->slug);
-            if (is_dir($targetDir)) {
-                throw new RuntimeException("Plugin already installed: {$manifest->slug} ({$targetDir})");
-            }
-
-            if (!is_dir($this->pluginsPath) && !mkdir($this->pluginsPath, 0775, true) && !is_dir($this->pluginsPath)) {
-                throw new RuntimeException(
-                    'Could not create plugins directory: ' . $this->pluginsPath
-                    . ' — run sudo latch fix-perms (RPM: plugins/ must be owned by the web server)',
-                );
-            }
-
-            $this->copyDirectory($pluginDir, $targetDir);
+            $this->copyDirectory($resolved['pluginDir'], $targetDir);
             PluginStoragePermissions::ensureWritable($targetDir);
 
             return PluginManifest::fromDirectory($targetDir);
         } catch (\Throwable $e) {
-            if (isset($targetDir) && is_dir($targetDir)) {
+            if (is_dir($targetDir)) {
                 $this->deleteDirectory($targetDir);
             }
 
             throw $e;
         } finally {
-            if ($tempDir !== null) {
-                $this->deleteDirectory($tempDir);
+            if ($resolved['tempDir'] !== null) {
+                $this->deleteDirectory($resolved['tempDir']);
             }
         }
+    }
+
+    /**
+     * Replace an installed plugin tree from a local directory or .zip archive.
+     * Caller must commit() or rollback() the result after audit.
+     */
+    public function upgradeFromSource(string $source, ?string $expectedSlug = null): PluginUpgradeResult
+    {
+        $resolved = $this->resolvePluginSource($source);
+        $manifest = $resolved['manifest'];
+        $slug = $manifest->slug;
+
+        if ($expectedSlug !== null && $expectedSlug !== $slug) {
+            throw new InvalidArgumentException("Update source slug {$slug} does not match expected {$expectedSlug}");
+        }
+
+        $targetDir = $this->targetDirectory($slug);
+        if (!is_dir($targetDir)) {
+            throw new RuntimeException("Plugin not installed: {$slug} — use plugin install");
+        }
+
+        $backupDir = $this->snapshotInstalled($slug);
+
+        try {
+            $this->deleteDirectory($targetDir);
+            $this->copyDirectory($resolved['pluginDir'], $targetDir);
+            PluginStoragePermissions::ensureWritable($targetDir);
+
+            return new PluginUpgradeResult(
+                PluginManifest::fromDirectory($targetDir),
+                $this,
+                $slug,
+                $backupDir,
+            );
+        } catch (\Throwable $e) {
+            $this->restoreFromSnapshot($slug, $backupDir);
+            $this->discardSnapshot($backupDir);
+
+            throw $e;
+        } finally {
+            if ($resolved['tempDir'] !== null) {
+                $this->deleteDirectory($resolved['tempDir']);
+            }
+        }
+    }
+
+    public function snapshotInstalled(string $slug): string
+    {
+        $slug = trim($slug);
+        if ($slug === '' || !preg_match('/^[a-z0-9][a-z0-9_-]*$/', $slug)) {
+            throw new InvalidArgumentException('Invalid plugin slug');
+        }
+
+        $targetDir = $this->targetDirectory($slug);
+        if (!is_dir($targetDir)) {
+            throw new InvalidArgumentException("Plugin not installed: {$slug}");
+        }
+
+        $backupDir = sys_get_temp_dir() . '/latch-plugin-backup-' . $slug . '-' . bin2hex(random_bytes(8));
+        $this->copyDirectory($targetDir, $backupDir);
+
+        return $backupDir;
+    }
+
+    public function restoreFromSnapshot(string $slug, string $backupDir): void
+    {
+        if (!is_dir($backupDir)) {
+            throw new RuntimeException('Plugin upgrade backup missing — cannot roll back');
+        }
+
+        $targetDir = $this->targetDirectory($slug);
+        if (is_dir($targetDir)) {
+            $this->deleteDirectory($targetDir);
+        }
+
+        $this->copyDirectory($backupDir, $targetDir);
+        PluginStoragePermissions::ensureWritable($targetDir);
+    }
+
+    public function discardSnapshot(string $backupDir): void
+    {
+        $this->deleteDirectory($backupDir);
     }
 
     public function removeInstalled(string $slug, bool $purgeStorage = false): void
@@ -121,6 +177,47 @@ final class PluginInstaller
     public function targetDirectory(string $slug): string
     {
         return rtrim($this->pluginsPath, '/') . '/' . $slug;
+    }
+
+    /**
+     * @return array{pluginDir: string, manifest: PluginManifest, tempDir: ?string}
+     */
+    private function resolvePluginSource(string $source): array
+    {
+        $source = trim($source);
+        if ($source === '') {
+            throw new InvalidArgumentException('Install source path is required');
+        }
+
+        if (preg_match('#^https?://#i', $source)) {
+            throw new InvalidArgumentException('Remote URLs are not supported in v1 — use a local directory or .zip file');
+        }
+
+        $resolved = $this->resolveSourcePath($source);
+        if (!is_file($resolved) && !is_dir($resolved)) {
+            throw new InvalidArgumentException("Install source not found: {$source}");
+        }
+
+        $tempDir = null;
+        if (is_file($resolved) && str_ends_with(strtolower($resolved), '.zip')) {
+            $tempDir = $this->extractZipToTemp($resolved);
+            $pluginDir = $this->resolvePluginRoot($tempDir);
+        } elseif (is_dir($resolved)) {
+            $pluginDir = $this->resolvePluginRoot($resolved);
+        } else {
+            throw new InvalidArgumentException('Install source must be a directory or .zip file');
+        }
+
+        $manifest = PluginManifest::fromDirectory($pluginDir);
+        if ($manifest->ignored) {
+            throw new InvalidArgumentException("Plugin {$manifest->slug} is marked ignored — remove ignored flag before install");
+        }
+
+        return [
+            'pluginDir' => $pluginDir,
+            'manifest' => $manifest,
+            'tempDir' => $tempDir,
+        ];
     }
 
     private function resolveSourcePath(string $source): string
