@@ -37,4 +37,18 @@ final class RequestHttpsTest extends TestCase
 
         $this->assertTrue(Request::detectHttps($config, $server));
     }
+
+    public function testQueryReadsGetWithoutPost(): void
+    {
+        $_GET['tab'] = 'catalog';
+        $_POST['tab'] = 'installed';
+
+        $request = new Request();
+
+        $this->assertSame('catalog', $request->query('tab'));
+        $this->assertSame('installed', $request->input('tab'));
+        $this->assertSame('installed', $request->query('missing', 'installed'));
+
+        unset($_GET['tab'], $_POST['tab']);
+    }
 }

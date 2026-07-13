@@ -42,6 +42,15 @@ final class Request
         return $_POST[$key] ?? $_GET[$key] ?? $default;
     }
 
+    /**
+     * Query-string (GET) parameter. Alias kept for admin/plugin routes that
+     * read ?tab= and similar without mixing POST body values.
+     */
+    public function query(string $key, mixed $default = null): mixed
+    {
+        return $_GET[$key] ?? $default;
+    }
+
     public function cookie(string $name, ?string $default = null): ?string
     {
         $value = $_COOKIE[$name] ?? $default;
