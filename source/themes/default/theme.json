@@ -4,6 +4,10 @@
     "author": "Latch",
     "description": "Modern default theme with light and dark palettes",
     "supports_color_modes": true,
+    "branding": {
+        "theme_color_light": "#2f6fed",
+        "theme_color_dark": "#1a212b"
+    },
     "assets": {
         "css": ["css/theme.css"],
         "js": ["js/theme.js", "js/editor.js"]

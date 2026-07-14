@@ -4,6 +4,10 @@
     "author": "Latch",
     "description": "Demo pack: custom layout shell, home/board/topic templates, partials, CSS, and JS — not just color tokens",
     "supports_color_modes": true,
+    "branding": {
+        "theme_color_light": "#6d28d9",
+        "theme_color_dark": "#0f1419"
+    },
     "assets": {
         "css": ["css/theme.css"],
         "js": ["js/showcase.js"]

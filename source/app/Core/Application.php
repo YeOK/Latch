@@ -1892,6 +1892,7 @@ final class Application implements PluginCollectContext
             'csp_nonce' => $this->cspNonce,
             'csrf_token' => $this->csrf->token(),
             'asset_version' => $this->assetVersion(),
+            'theme_branding' => $this->themeRegistry()->branding($this->activeTheme()),
             'members_only' => $membersOnly,
             'allow_registration' => $this->allowRegistration(),
             'gdpr_enabled' => $this->gdprEnabled(),

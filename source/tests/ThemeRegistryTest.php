@@ -30,6 +30,10 @@ final class ThemeRegistryTest extends TestCase
         file_put_contents($this->root . '/modern/theme.json', json_encode([
             'name' => 'Modern Pack',
             'version' => '2.0.0',
+            'branding' => [
+                'theme_color_light' => '#0d9488',
+                'theme_color_dark' => '#0f1419',
+            ],
         ], JSON_THROW_ON_ERROR));
     }
 
@@ -65,6 +69,26 @@ final class ThemeRegistryTest extends TestCase
             ThemeRegistry::assetVersionSalt('default'),
             ThemeRegistry::assetVersionSalt('modern'),
         );
+    }
+
+    public function testBrandingReadsManifestAndFallsBackToDefaults(): void
+    {
+        $registry = new ThemeRegistry($this->root);
+
+        $this->assertSame([
+            'theme_color_light' => '#2f6fed',
+            'theme_color_dark' => '#1a212b',
+        ], $registry->branding('default'));
+
+        $this->assertSame([
+            'theme_color_light' => '#0d9488',
+            'theme_color_dark' => '#0f1419',
+        ], $registry->branding('modern'));
+
+        $this->assertSame([
+            'theme_color_light' => '#2f6fed',
+            'theme_color_dark' => '#1a212b',
+        ], $registry->branding('missing'));
     }
 
     private function removeTree(string $path): void

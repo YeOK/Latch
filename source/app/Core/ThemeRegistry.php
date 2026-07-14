@@ -115,6 +115,34 @@ final class ThemeRegistry
         return $this->readManifest($root . '/' . $id);
     }
 
+    /**
+     * Browser chrome colors for favicon / PWA meta (from theme.json branding, with defaults).
+     *
+     * @return array{theme_color_light: string, theme_color_dark: string}
+     */
+    public function branding(string $id): array
+    {
+        $defaults = [
+            'theme_color_light' => '#2f6fed',
+            'theme_color_dark' => '#1a212b',
+        ];
+
+        $manifest = $this->manifest($id);
+        if ($manifest === null) {
+            return $defaults;
+        }
+
+        $branding = $manifest['branding'] ?? null;
+        if (!is_array($branding)) {
+            return $defaults;
+        }
+
+        return [
+            'theme_color_light' => $this->normalizeHexColor($branding['theme_color_light'] ?? null) ?? $defaults['theme_color_light'],
+            'theme_color_dark' => $this->normalizeHexColor($branding['theme_color_dark'] ?? null) ?? $defaults['theme_color_dark'],
+        ];
+    }
+
     private function isValidId(string $id): bool
     {
         return $id !== ''
@@ -155,5 +183,24 @@ final class ThemeRegistry
     private function labelFromId(string $id): string
     {
         return ucwords(str_replace(['-', '_'], ' ', $id));
+    }
+
+    private function normalizeHexColor(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $value = strtolower(trim($value));
+        if (preg_match('/^#([0-9a-f]{3}|[0-9a-f]{6})$/', $value, $matches) !== 1) {
+            return null;
+        }
+
+        $hex = $matches[1];
+        if (strlen($hex) === 3) {
+            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+        }
+
+        return '#' . $hex;
     }
 }

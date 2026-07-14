@@ -4,6 +4,10 @@
     "author": "Latch",
     "description": "Alternate theme pack — teal accent, rounded cards; proves theme engine + asset fallback",
     "supports_color_modes": true,
+    "branding": {
+        "theme_color_light": "#0d9488",
+        "theme_color_dark": "#0f1419"
+    },
     "assets": {
         "css": ["css/theme.css"],
         "js": ["js/theme.js", "js/editor.js"]
