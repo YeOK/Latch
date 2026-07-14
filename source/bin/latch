@@ -1520,8 +1520,8 @@ function run_install(array $argv): void
     $settings->set('site_tagline', 'Run the room — not a datacenter');
     $settings->set(
         'footer_about',
-        "Fast, secure, self-hosted forum software. MIT-licensed — PHP 8.2+, SQLite, Twig themes, and built-in moderation tools.\n\n"
-        . 'Designed for simple ops: one database file, WAL mode, guest caching, and fail2ban-ready auth.',
+        "Self-hosted forum software for operators who want to run the room — not a datacenter. One PHP app, one SQLite file; your posts, plugins, and backups stay on your disk.\n\n"
+        . 'MIT-licensed, with a plugin catalog, guest caching, WAL-safe backups, and bin/latch for install, migrate, restore, and health checks.',
     );
     $settings->setBool('members_only', false);
     $settings->setBool('allow_registration', true);
