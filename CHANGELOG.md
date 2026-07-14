@@ -12,7 +12,7 @@ Work in progress on `main` — not tagged or released yet. Fold into the next ve
 ## [0.4.6.1] — 2026-07-13
 
 ### Added
-- **Release gate** — `scripts/release-gate.sh` and GitHub Actions workflow; guest/member/admin HTTP smoke roles; RPM `%check` runs smoke + security PHPUnit.
+- **Release gate** — `scripts/release-gate.sh` and GitHub Actions workflow; guest/member/admin HTTP smoke roles; PHPUnit runs locally/CI (not in COPR `%check`).
 
 ### Fixed
 - **Member topic 500** — `PostRepository::topicVisibilitySql()` no longer binds stray PDO params into COUNT queries.

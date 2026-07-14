@@ -4,6 +4,7 @@
 # COPR: spec path packaging/latch.spec (maintainer notes: deploy/copr-setup.md, local only)
 # COPR project setting: enable internet/network for mock builds.
 # %build runs composer install --no-dev (vendor/ is not in git; composer.lock is source of truth).
+# Tests (PHPUnit + Latch-plugins catalog) run locally via scripts/release-gate.sh before tag/push — not in %%check.
 
 %global latch_datadir %{_datadir}/latch
 %global latch_libdir %{_localstatedir}/lib/latch
@@ -12,7 +13,7 @@
 
 Name:           latch
 Version:        0.4.6.1
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
 License:        MIT
@@ -25,7 +26,6 @@ BuildRequires:  php-mbstring
 BuildRequires:  php-pdo
 BuildRequires:  php-xml
 BuildRequires:  composer
-BuildRequires:  git
 BuildRequires:  rsync
 
 Requires:       httpd
@@ -63,30 +63,6 @@ if [ ! -f vendor/autoload.php ]; then
     echo "vendor/autoload.php missing after composer install" >&2
     exit 1
 fi
-
-%check
-# Plugin tests resolve catalog from LATCH_PLUGINS_CATALOG (see tests/CatalogPath.php).
-CATALOG_DIR="%{_builddir}/Latch-plugins"
-if [ ! -f "${CATALOG_DIR}/catalog.json" ]; then
-    git clone --depth 1 https://github.com/YeOK/Latch-plugins.git "${CATALOG_DIR}"
-fi
-export LATCH_PLUGINS_CATALOG="${CATALOG_DIR}"
-cd source
-# %build uses --no-dev (production vendor); phpunit is require-dev — install it for %check only (%install already ran).
-if command -v composer >/dev/null 2>&1; then
-    composer install --optimize-autoloader --no-interaction
-elif [ -f composer.phar ]; then
-    php composer.phar install --optimize-autoloader --no-interaction
-else
-    echo "composer not found; cannot run %%check" >&2
-    exit 1
-fi
-if [ ! -f vendor/bin/phpunit ]; then
-    echo "vendor/bin/phpunit missing after composer install" >&2
-    exit 1
-fi
-php vendor/bin/phpunit -c phpunit-smoke.xml.dist --testsuite smoke
-php vendor/bin/phpunit -c phpunit-security.xml.dist --testsuite security
 
 %install
 install -d %{buildroot}%{latch_datadir}
@@ -226,6 +202,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Mon Jul 13 2026 YeOK <yeokky@gmail.com> - 0.4.6.1-4
+- Drop RPM %%check; PHPUnit runs locally via release-gate before tag/push (needs Latch-plugins sibling)
+
 * Mon Jul 13 2026 YeOK <yeokky@gmail.com> - 0.4.6.1-3
 - COPR %%check: clone Latch-plugins catalog for PHPUnit (LATCH_PLUGINS_CATALOG)
 
