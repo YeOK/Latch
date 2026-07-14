@@ -1517,7 +1517,7 @@ function run_install(array $argv): void
     }
 
     $settings->set('site_name', $siteName);
-    $settings->set('site_tagline', 'Fast, secure discussions');
+    $settings->set('site_tagline', 'Run the room — not a datacenter');
     $settings->set(
         'footer_about',
         "Fast, secure, self-hosted forum software. MIT-licensed — PHP 8.2+, SQLite, Twig themes, and built-in moderation tools.\n\n"

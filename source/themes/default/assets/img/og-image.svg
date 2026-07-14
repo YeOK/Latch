@@ -13,6 +13,6 @@
     <circle cx="96" cy="90" r="4"/>
   </g>
   <text x="430" y="300" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="108" font-weight="700" fill="#1a1f2e">Latch</text>
-  <text x="432" y="380" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="40" fill="#5c667a">Fast, secure discussions</text>
+  <text x="432" y="380" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="34" fill="#5c667a">Run the room — not a datacenter</text>
   <text x="432" y="430" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="28" fill="#2f6fed">forum.example.com</text>
 </svg>

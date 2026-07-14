@@ -19,7 +19,7 @@ return [
     ],
     'site' => [
         'name' => 'Latch',
-        'tagline' => 'Fast, secure discussions',
+        'tagline' => 'Run the room — not a datacenter',
         'url' => 'http://localhost',
     ],
     'forum' => [
