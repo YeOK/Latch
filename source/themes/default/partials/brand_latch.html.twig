@@ -3,16 +3,11 @@
 {% set gradient_id = is_footer ? 'latch-brand-gradient-footer' : 'latch-brand-gradient' %}
 <a href="/" class="{% if is_footer %}footer-brand-link{% else %}header-brand{% endif %}">
     <span class="{% if is_footer %}footer-brand-mark{% else %}header-brand-mark{% endif %}" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 70" class="{% if is_footer %}footer-brand-svg{% else %}header-brand-svg{% endif %}" focusable="false">
-            <defs>
-                <linearGradient id="{{ gradient_id }}" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="var(--accent)" />
-                    <stop offset="100%" stop-color="var(--accent-hover)" />
-                </linearGradient>
-            </defs>
-            <g transform="translate(5, 8)">
-                <path fill="url(#{{ gradient_id }})" d="M35 15 C24 15 15 24 15 35 C15 46 24 55 35 55 L50 55 L50 43 L35 43 C31 43 27 39 27 35 C27 31 31 27 35 27 L50 27 L50 15 Z" />
-                <path fill="url(#{{ gradient_id }})" opacity="0.85" d="M42 25 L42 37 L57 37 C61 37 65 41 65 45 C65 49 61 53 57 53 L42 53 L42 65 L57 65 C68 65 77 56 77 45 C77 34 68 25 57 25 Z" />
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="{% if is_footer %}footer-brand-svg{% else %}header-brand-svg{% endif %}" focusable="false">
+            <rect width="32" height="32" rx="7" fill="var(--accent)" />
+            <g fill="#ffffff" transform="translate(16 16) scale(0.5) translate(-46 -40)">
+                <path d="M35 15 C24 15 15 24 15 35 C15 46 24 55 35 55 L50 55 L50 43 L35 43 C31 43 27 39 27 35 C27 31 31 27 35 27 L50 27 L50 15 Z" />
+                <path d="M42 25 L42 37 L57 37 C61 37 65 41 65 45 C65 49 61 53 57 53 L42 53 L42 65 L57 65 C68 65 77 56 77 45 C77 34 68 25 57 25 Z" />
             </g>
         </svg>
     </span>

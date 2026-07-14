@@ -2,8 +2,12 @@
 <link rel="icon" href="{{ brand.favicon_url }}" type="{{ brand.favicon_mime|default('image/svg+xml') }}" sizes="any">
 <link rel="apple-touch-icon" href="{{ brand.favicon_url }}">
 {% else %}
-<link rel="icon" href="/assets/img/latch-mark.svg?v={{ asset_version }}" type="image/svg+xml" sizes="any">
-<link rel="icon" href="/assets/img/latch-mark-dark.svg?v={{ asset_version }}" type="image/svg+xml" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/assets/img/latch-favicon-16.png?v={{ asset_version }}" type="image/png" sizes="16x16">
+<link rel="icon" href="/assets/img/latch-favicon-32.png?v={{ asset_version }}" type="image/png" sizes="32x32">
+<link rel="icon" href="/assets/img/latch-favicon.svg?v={{ asset_version }}" type="image/svg+xml" sizes="any">
+<link rel="icon" href="/assets/img/latch-favicon-dark-16.png?v={{ asset_version }}" type="image/png" sizes="16x16" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/assets/img/latch-favicon-dark-32.png?v={{ asset_version }}" type="image/png" sizes="32x32" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/assets/img/latch-favicon-dark.svg?v={{ asset_version }}" type="image/svg+xml" media="(prefers-color-scheme: dark)">
 <link rel="apple-touch-icon" href="/assets/img/latch-apple-touch-icon.svg?v={{ asset_version }}">
 {% endif %}
 <meta name="theme-color" content="#2f6fed" media="(prefers-color-scheme: light)">

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-hidden="true">
+  <rect width="32" height="32" rx="5" fill="#2f6fed" />
+  <g fill="#ffffff" transform="translate(16 16) scale(0.52) translate(-46 -40)">
+    <path d="M35 15 C24 15 15 24 15 35 C15 46 24 55 35 55 L50 55 L50 43 L35 43 C31 43 27 39 27 35 C27 31 31 27 35 27 L50 27 L50 15 Z" />
+    <path d="M42 25 L42 37 L57 37 C61 37 65 41 65 45 C65 49 61 53 57 53 L42 53 L42 65 L57 65 C68 65 77 56 77 45 C77 34 68 25 57 25 Z" />
+  </g>
+</svg>
