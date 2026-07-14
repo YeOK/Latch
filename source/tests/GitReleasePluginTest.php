@@ -15,6 +15,8 @@ use Latch\Core\Plugins\PluginAuditor;
 use Latch\Plugins\GitRelease\GithubReleases;
 use Latch\Plugins\GitRelease\HttpTransport;
 use Latch\Plugins\GitRelease\ReleaseCache;
+use Latch\Plugins\GitRelease\ReleaseWidget;
+use Latch\Plugins\GitRelease\Settings;
 use PHPUnit\Framework\TestCase;
 
 final class GitReleasePluginTest extends TestCase
@@ -156,6 +158,32 @@ MD;
         $this->assertStringContainsString('Forum UI cards', $result['body_excerpt']);
         $this->assertStringNotContainsString('Unreleased', $result['body_excerpt']);
         $this->assertStringNotContainsString('Keep a Changelog', $result['body_excerpt']);
+    }
+
+    public function testReleaseWidgetUsesThemeAwareLatchIcon(): void
+    {
+        $transport = $this->createMock(HttpTransport::class);
+        $transport->expects($this->once())
+            ->method('get')
+            ->willReturn(json_encode([
+                'tag_name' => 'v1.0.0',
+                'name' => 'Latch 1.0.0',
+                'html_url' => 'https://github.com/YeOK/Latch/releases/tag/v1.0.0',
+                'published_at' => '2026-07-01T00:00:00Z',
+                'prerelease' => false,
+                'body' => 'Release notes',
+            ], JSON_THROW_ON_ERROR));
+
+        $settings = Settings::fromStored([
+            'github_repo' => 'YeOK/Latch',
+            'heading' => 'Latest release',
+            'max_age_seconds' => '300',
+        ]);
+
+        $html = (new ReleaseWidget(new GithubReleases($transport)))->renderHtml($settings);
+
+        $this->assertStringContainsString('fill="var(--accent, #2f6fed)"', $html);
+        $this->assertStringNotContainsString('fill="#24292f"', $html);
     }
 
     public function testReleaseCachePurgeAllRemovesEntries(): void
