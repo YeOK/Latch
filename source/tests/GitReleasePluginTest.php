@@ -114,6 +114,50 @@ final class GitReleasePluginTest extends TestCase
         rmdir($cacheDir);
     }
 
+    public function testLatestReleaseExtractsKeepAChangelogSectionForTag(): void
+    {
+        $changelogBody = <<<'MD'
+# Changelog
+
+All notable changes to Latch are documented here.
+
+## [Unreleased]
+
+Work in progress on `main`.
+
+## [0.4.6.0] — 2026-07-13
+
+### Added
+- **Forum UI cards** — home board panels and topic header card styling.
+
+### Fixed
+- **Client-mode plugin assets** — theme.assets still run for guest_page client plugins.
+MD;
+
+        $payload = json_encode([
+            'tag_name' => 'v0.4.6.0',
+            'name' => 'Latch 0.4.6.0',
+            'html_url' => 'https://github.com/YeOK/Latch/releases/tag/v0.4.6.0',
+            'published_at' => '2026-07-13T12:00:00Z',
+            'prerelease' => false,
+            'body' => $changelogBody,
+        ], JSON_THROW_ON_ERROR);
+
+        $transport = $this->createMock(HttpTransport::class);
+        $transport->expects($this->once())
+            ->method('get')
+            ->with('https://api.github.com/repos/YeOK/Latch/releases/latest')
+            ->willReturn($payload);
+
+        $github = new GithubReleases($transport);
+        $result = $github->latestRelease('YeOK/Latch', 300);
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('Forum UI cards', $result['body_excerpt']);
+        $this->assertStringNotContainsString('Unreleased', $result['body_excerpt']);
+        $this->assertStringNotContainsString('Keep a Changelog', $result['body_excerpt']);
+    }
+
     public function testReleaseCachePurgeAllRemovesEntries(): void
     {
         $cacheDir = sys_get_temp_dir() . '/git-release-cache-' . bin2hex(random_bytes(4));

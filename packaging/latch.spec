@@ -12,8 +12,8 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.4.6.1
-Release:        4%{?dist}
+Version:        0.4.6.2
+Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
 License:        MIT
@@ -202,6 +202,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Tue Jul 14 2026 YeOK <yeokky@gmail.com> - 0.4.6.2-1
+- CSP font-src fix; SecurityHeaders and git-release excerpt regression tests
+
 * Mon Jul 13 2026 YeOK <yeokky@gmail.com> - 0.4.6.1-4
 - Drop RPM %%check; PHPUnit runs locally via release-gate before tag/push (needs Latch-plugins sibling)
 

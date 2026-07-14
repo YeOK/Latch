@@ -79,18 +79,33 @@ final class SecurityHeaders
             }
         }
 
-        header(
-            'Content-Security-Policy: default-src \'self\'; '
+        header('Content-Security-Policy: ' . self::contentSecurityPolicy(
+            $scriptSrc,
+            $imgSrc,
+            $connectSrc,
+            $frameSrc,
+        ));
+    }
+
+    /**
+     * @internal Test seam — full CSP directive string (no header name).
+     */
+    public static function contentSecurityPolicy(
+        string $scriptSrc,
+        string $imgSrc,
+        string $connectSrc,
+        string $frameSrc,
+    ): string {
+        return 'default-src \'self\'; '
             . "script-src {$scriptSrc} https://challenges.cloudflare.com; "
             . 'style-src \'self\'; '
             . "img-src {$imgSrc}; "
             . "connect-src {$connectSrc}; "
-            . "font-src \'self\'; "
+            . 'font-src \'self\'; '
             . "frame-src {$frameSrc}; "
             . 'form-action \'self\'; '
             . 'frame-ancestors \'none\'; '
-            . 'base-uri \'self\''
-        );
+            . 'base-uri \'self\'';
     }
 
     /**

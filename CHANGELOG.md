@@ -9,6 +9,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.6.2] — 2026-07-14
+
+### Fixed
+- **CSP `font-src`** — Content-Security-Policy no longer emits escaped `\'self\'` for `font-src` (Lighthouse console error).
+
+### Tests
+- **SecurityHeadersTest** — regression for valid `font-src 'self'` token.
+- **GitReleasePluginTest** — Keep a Changelog excerpt extraction for git-release widget.
+
 ## [0.4.6.1] — 2026-07-13
 
 ### Added

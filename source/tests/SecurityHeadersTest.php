@@ -37,4 +37,18 @@ final class SecurityHeadersTest extends TestCase
 
         $this->assertSame($html, SecurityHeaders::rewriteHtmlNonces($html, 'not-a-nonce'));
     }
+
+    public function testContentSecurityPolicyFontSrcUsesValidSelfToken(): void
+    {
+        $nonce = 'a' . str_repeat('b', 31);
+        $csp = SecurityHeaders::contentSecurityPolicy(
+            scriptSrc: "'self' 'nonce-{$nonce}'",
+            imgSrc: "'self' https://www.gravatar.com https://secure.gravatar.com data:",
+            connectSrc: "'self'",
+            frameSrc: 'https://challenges.cloudflare.com',
+        );
+
+        $this->assertStringContainsString("font-src 'self'", $csp);
+        $this->assertStringNotContainsString("font-src \\'self\\'", $csp);
+    }
 }
