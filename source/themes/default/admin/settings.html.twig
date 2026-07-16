@@ -313,9 +313,30 @@
         </label>
         <p class="muted">Social sign-in can create accounts even when manual registration is disabled. Admins with 2FA enabled still complete TOTP after OAuth. See <code>docs/OIDC.md</code>.</p>
 
+        <h2>Security mode</h2>
+        <p class="muted">Standard is the default posture. High enables login Turnstile and mandatory 2FA for moderators (plus registration Turnstile when keys are configured). Administrators always require 2FA.</p>
+        <label>
+            Security mode
+            <select name="security_mode">
+                <option value="standard"{% if security_mode == 'standard' %} selected{% endif %}>Standard</option>
+                <option value="high"{% if security_mode == 'high' %} selected{% endif %}>High</option>
+            </select>
+        </label>
+        <p class="muted">Turnstile status: {% if turnstile_configured %}<strong>configured</strong>{% else %}<strong>not configured</strong> — add keys to <code>config/local.php</code> (<code>security.turnstile_site_key</code> / <code>security.turnstile_secret_key</code>){% endif %}.</p>
+        <label class="checkbox">
+            <input type="checkbox" name="login_turnstile_enabled" value="1"{% if login_turnstile_enabled %} checked{% endif %}{% if not turnstile_configured %} disabled{% endif %}>
+            Require Cloudflare Turnstile on login
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="totp_required_mod" value="1"{% if totp_required_mod %} checked{% endif %}>
+            Require two-factor authentication for moderators
+        </label>
+        {% if security_mode == 'high' %}
+            <p class="muted">High mode is active — the options above are enforced even when unchecked.</p>
+        {% endif %}
+
         <h2>Registration protection</h2>
-        <p class="muted">Honeypot, Cloudflare Turnstile (“human check”), and per-IP signup limits. Turnstile keys are set in <code>config/local.php</code> (<code>security.turnstile_site_key</code> / <code>security.turnstile_secret_key</code>).</p>
-        <p class="muted">Turnstile status: {% if turnstile_configured %}<strong>configured</strong>{% else %}<strong>not configured</strong> — add keys to enable the widget{% endif %}.</p>
+        <p class="muted">Honeypot, Cloudflare Turnstile (“human check”), and per-IP signup limits.</p>
         <label class="checkbox">
             <input type="checkbox" name="registration_honeypot_enabled" value="1"{% if registration_honeypot_enabled %} checked{% endif %}>
             Honeypot on registration form

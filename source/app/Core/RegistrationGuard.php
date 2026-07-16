@@ -21,7 +21,7 @@ final class RegistrationGuard
     public function __construct(
         private readonly SettingRepository $settings,
         private readonly RateLimiter $rateLimiter,
-        private readonly Turnstile $turnstile,
+        private readonly SecurityPolicy $securityPolicy,
         private readonly SecurityLog $securityLog,
         private readonly Request $request,
     ) {
@@ -43,24 +43,17 @@ final class RegistrationGuard
 
     public function turnstileRequired(): bool
     {
-        return $this->settings->getBool('registration_turnstile_enabled', true)
-            && $this->turnstile->isConfigured();
+        return $this->securityPolicy->registrationTurnstileRequired();
     }
 
     public function turnstileSiteKey(): string
     {
-        return $this->turnstile->siteKey();
+        return $this->securityPolicy->turnstileSiteKey();
     }
 
     public function turnstileValid(): bool
     {
-        if (!$this->turnstileRequired()) {
-            return true;
-        }
-
-        $token = (string) $this->request->input('cf-turnstile-response', '');
-
-        return $this->turnstile->verify($token, $this->request->ip());
+        return $this->securityPolicy->registrationTurnstileValid();
     }
 
     public function tooManyAttempts(int $maxAttempts = 3, int $windowMinutes = 60): bool

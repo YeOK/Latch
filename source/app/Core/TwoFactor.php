@@ -18,6 +18,7 @@ final class TwoFactor
 {
     public function __construct(
         private readonly Config $config,
+        private readonly SecurityPolicy $securityPolicy,
         private readonly UserRepository $users,
         private readonly RecoveryCodeRepository $recoveryCodes,
         private readonly SecretCipher $cipher,
@@ -32,12 +33,7 @@ final class TwoFactor
 
     public function isMandatory(array $user): bool
     {
-        $roles = $this->config->get('security.totp_required_roles', ['admin']);
-        if (!is_array($roles)) {
-            $roles = ['admin'];
-        }
-
-        return in_array($user['role'] ?? '', $roles, true);
+        return in_array((string) ($user['role'] ?? ''), $this->securityPolicy->totpRequiredRoles(), true);
     }
 
     public function mustEnroll(array $user): bool

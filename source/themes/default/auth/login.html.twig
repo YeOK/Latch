@@ -15,6 +15,11 @@
                 {{ trans('auth.password') }}
                 <input type="password" name="password" required autocomplete="current-password">
             </label>
+            {% if login_turnstile_required %}
+                <div class="turnstile-wrap">
+                    <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>
+                </div>
+            {% endif %}
             <button type="submit" class="btn btn-primary">{{ trans('auth.sign_in') }}</button>
         </form>
         {% include 'partials/oidc_buttons.html.twig' %}
@@ -23,4 +28,10 @@
             <a href="/register">{{ trans('auth.create_account') }}</a>
         </p>
     </section>
+{% endblock %}
+
+{% block scripts %}
+    {% if login_turnstile_required %}
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    {% endif %}
 {% endblock %}

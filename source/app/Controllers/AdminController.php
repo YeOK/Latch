@@ -13,6 +13,7 @@ namespace Latch\Controllers;
 
 use Latch\Core\Application;
 use Latch\Core\Auth;
+use Latch\Core\SecurityPolicy;
 use Latch\Core\Cache;
 use Latch\Core\Plugins\PluginAuditFinding;
 use Latch\Core\Plugins\PluginAuditReport;
@@ -933,8 +934,10 @@ final class AdminController
             'spam_approval_queue_enabled' => $this->app->settings()->getBool('spam_approval_queue_enabled', true),
             'registration_honeypot_enabled' => $this->app->settings()->getBool('registration_honeypot_enabled', true),
             'registration_turnstile_enabled' => $this->app->settings()->getBool('registration_turnstile_enabled', true),
-            'turnstile_configured' => (string) $this->app->config()->get('security.turnstile_site_key', '') !== ''
-                && (string) $this->app->config()->get('security.turnstile_secret_key', '') !== '',
+            'security_mode' => $this->app->securityPolicy()->mode(),
+            'login_turnstile_enabled' => $this->app->settings()->getBool('login_turnstile_enabled', false),
+            'totp_required_mod' => $this->app->settings()->getBool('totp_required_mod', false),
+            'turnstile_configured' => $this->app->securityPolicy()->turnstileConfigured(),
             'post_edit_window_minutes' => $this->app->postEditWindowMinutes(),
             'active_theme' => $this->app->activeTheme(),
             'installed_themes' => $this->app->themeRegistry()->installed(),
@@ -1078,11 +1081,27 @@ final class AdminController
             'registration_honeypot_enabled',
             $this->app->request()->input('registration_honeypot_enabled') === '1',
         );
-        if ((string) $this->app->config()->get('security.turnstile_site_key', '') !== '') {
-            $this->app->settings()->setBool(
-                'registration_turnstile_enabled',
-                $this->app->request()->input('registration_turnstile_enabled') === '1',
-            );
+        $securityMode = strtolower(trim((string) $this->app->request()->input('security_mode', SecurityPolicy::MODE_STANDARD)));
+        if ($securityMode !== SecurityPolicy::MODE_HIGH) {
+            $securityMode = SecurityPolicy::MODE_STANDARD;
+        }
+        $this->app->settings()->set('security_mode', $securityMode);
+
+        $loginTurnstile = $this->app->request()->input('login_turnstile_enabled') === '1';
+        $totpRequiredMod = $this->app->request()->input('totp_required_mod') === '1';
+        if ($securityMode === SecurityPolicy::MODE_HIGH) {
+            $loginTurnstile = true;
+            $totpRequiredMod = true;
+        }
+        $this->app->settings()->setBool('login_turnstile_enabled', $loginTurnstile);
+        $this->app->settings()->setBool('totp_required_mod', $totpRequiredMod);
+
+        if ($this->app->securityPolicy()->turnstileConfigured()) {
+            $registrationTurnstile = $this->app->request()->input('registration_turnstile_enabled') === '1';
+            if ($securityMode === SecurityPolicy::MODE_HIGH) {
+                $registrationTurnstile = true;
+            }
+            $this->app->settings()->setBool('registration_turnstile_enabled', $registrationTurnstile);
         }
 
         $this->app->settings()->setBool('gdpr_enabled', $this->app->request()->input('gdpr_enabled') === '1');

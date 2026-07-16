@@ -18,6 +18,7 @@ use Latch\Core\Database;
 use Latch\Core\InputValidator;
 use Latch\Core\RateLimiter;
 use Latch\Core\RegistrationGuard;
+use Latch\Core\SecurityPolicy;
 use Latch\Core\Request;
 use Latch\Core\SecurityLog;
 use Latch\Core\Turnstile;
@@ -99,7 +100,7 @@ final class OidcAuthorizationTest extends TestCase
             new RegistrationGuard(
                 $settings,
                 new RateLimiter($db),
-                new Turnstile('', ''),
+                new SecurityPolicy($settings, $config, new Turnstile('', ''), $request),
                 new SecurityLog($logPath),
                 $request,
             ),

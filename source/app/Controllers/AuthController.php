@@ -33,7 +33,11 @@ final class AuthController
             Response::redirect('/login/2fa');
         }
 
-        $this->app->render('auth/login.html.twig');
+        $policy = $this->app->securityPolicy();
+        $this->app->render('auth/login.html.twig', [
+            'login_turnstile_required' => $policy->loginTurnstileRequired(),
+            'turnstile_site_key' => $policy->turnstileSiteKey(),
+        ]);
     }
 
     public function login(array $params = []): void
@@ -44,6 +48,12 @@ final class AuthController
 
         if (!$this->app->csrf()->validate($this->app->request()->input('_csrf'))) {
             $this->app->session()->flash('error', 'Invalid form token. Please try again.');
+            $this->renderLoginFailure();
+            return;
+        }
+
+        if (!$this->app->securityPolicy()->loginTurnstileValid()) {
+            $this->app->session()->flash('error', 'Human verification failed. Please try again.');
             $this->renderLoginFailure();
             return;
         }
@@ -479,6 +489,10 @@ final class AuthController
     private function renderLoginFailure(): void
     {
         // Return 200 on failure so fail2ban can detect brute-force attempts.
-        $this->app->render('auth/login.html.twig');
+        $policy = $this->app->securityPolicy();
+        $this->app->render('auth/login.html.twig', [
+            'login_turnstile_required' => $policy->loginTurnstileRequired(),
+            'turnstile_site_key' => $policy->turnstileSiteKey(),
+        ]);
     }
 }

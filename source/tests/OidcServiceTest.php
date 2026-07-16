@@ -20,6 +20,7 @@ use Latch\Core\Oidc\OidcProviderProfile;
 use Latch\Core\Oidc\OidcService;
 use Latch\Core\RateLimiter;
 use Latch\Core\RegistrationGuard;
+use Latch\Core\SecurityPolicy;
 use Latch\Core\Request;
 use Latch\Core\SecurityLog;
 use Latch\Core\Turnstile;
@@ -93,7 +94,7 @@ final class OidcServiceTest extends TestCase
             new RegistrationGuard(
                 $this->settings,
                 new RateLimiter($this->db),
-                new Turnstile('', ''),
+                new SecurityPolicy($this->settings, $this->config, new Turnstile('', ''), $request),
                 new SecurityLog($logPath),
                 $request,
             ),

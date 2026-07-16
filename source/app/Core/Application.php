@@ -119,6 +119,7 @@ final class Application implements PluginCollectContext
     private Locale $locale;
     private ?Translator $translatorInstance = null;
     private AvatarUrl $avatarUrl;
+    private SecurityPolicy $securityPolicy;
     private TwoFactor $twoFactor;
     private TagRepository $tags;
     private TopicTags $topicTags;
@@ -222,13 +223,6 @@ final class Application implements PluginCollectContext
             new MailQueueRepository($this->db),
         );
         $recoveryCodes = new RecoveryCodeRepository($this->db);
-        $this->twoFactor = new TwoFactor(
-            $this->config,
-            $this->users,
-            $recoveryCodes,
-            new SecretCipher($this->config),
-            new Totp(),
-        );
         $this->topicTags = new TopicTags();
         $this->tags = new TagRepository($this->db, $this->topicTags);
         $this->postFormatter = new PostFormatter();
@@ -246,10 +240,24 @@ final class Application implements PluginCollectContext
             (string) $this->config->get('security.turnstile_site_key', ''),
             (string) $this->config->get('security.turnstile_secret_key', ''),
         );
+        $this->securityPolicy = new SecurityPolicy(
+            $this->settings,
+            $this->config,
+            $this->turnstile,
+            $this->request,
+        );
+        $this->twoFactor = new TwoFactor(
+            $this->config,
+            $this->securityPolicy,
+            $this->users,
+            $recoveryCodes,
+            new SecretCipher($this->config),
+            new Totp(),
+        );
         $this->registrationGuard = new RegistrationGuard(
             $this->settings,
             $this->rateLimiter,
-            $this->turnstile,
+            $this->securityPolicy,
             $this->securityLog,
             $this->request,
         );
@@ -301,7 +309,7 @@ final class Application implements PluginCollectContext
             $this->registrationGuard,
         );
 
-        $this->auth = new Auth($this->session, $this->users, $this->userSessions, $this->request, $this->csrf);
+        $this->auth = new Auth($this->session, $this->users, $this->userSessions, $this->request, $this->csrf, $this->twoFactor);
         $this->reputation = new ReputationService($this->db, $this->users, $this->settings);
         $this->moderationTrash = new ModerationTrashService(
             $this->db,
@@ -983,6 +991,11 @@ final class Application implements PluginCollectContext
     public function mailQueue(): MailQueueService
     {
         return $this->mailQueue;
+    }
+
+    public function securityPolicy(): SecurityPolicy
+    {
+        return $this->securityPolicy;
     }
 
     public function twoFactor(): TwoFactor

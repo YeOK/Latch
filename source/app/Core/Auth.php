@@ -30,6 +30,7 @@ final class Auth
         private readonly UserSessionRepository $userSessions,
         private readonly Request $request,
         private readonly Csrf $csrf,
+        private readonly ?TwoFactor $twoFactor = null,
     ) {
     }
 
@@ -208,11 +209,7 @@ final class Auth
             Response::forbidden('Admin access required.');
         }
 
-        $user = $this->user();
-        if ($user !== null && ($user['totp_enabled_at'] ?? null) === null) {
-            $this->session->flash('error', 'Administrators must enable two-factor authentication.');
-            Response::redirect('/profile/2fa');
-        }
+        $this->requireMandatoryTwoFactorEnrolled();
     }
 
     public function requireMod(): void
@@ -220,6 +217,21 @@ final class Auth
         $this->requireLogin();
         if (!$this->isMod()) {
             Response::forbidden('Moderator access required.');
+        }
+
+        $this->requireMandatoryTwoFactorEnrolled();
+    }
+
+    private function requireMandatoryTwoFactorEnrolled(): void
+    {
+        $user = $this->user();
+        if ($user === null || $this->twoFactor === null) {
+            return;
+        }
+
+        if ($this->twoFactor->isMandatory($user) && !$this->twoFactor->isEnabled($user)) {
+            $this->session->flash('error', 'Two-factor authentication is required for your role.');
+            Response::redirect('/profile/2fa');
         }
     }
 
