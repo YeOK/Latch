@@ -9,6 +9,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+### Added
+- **Cloudflare operator guide** — `docs/CLOUDFLARE.md` (Free plan, Tunnel, Turnstile, IP trust; links to official Cloudflare docs).
+- **Board icon keyword registration** — plugins can call `BoardIconRegistry::registerKeywords()` for auto-suggest (pairs with catalog **board-icon-pack**).
+
 ## [0.4.7.0] — 2026-07-17
 
 ### Added
