@@ -12,7 +12,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.4.6.2
+Version:        0.4.7.0
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -202,6 +202,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Fri Jul 17 2026 YeOK <yeokky@gmail.com> - 0.4.7.0-1
+- Security mode (Standard/High); per-theme favicons and theme-color; app-icon branding; tagline refresh
+
 * Tue Jul 14 2026 YeOK <yeokky@gmail.com> - 0.4.6.2-1
 - CSP font-src fix; SecurityHeaders and git-release excerpt regression tests
 

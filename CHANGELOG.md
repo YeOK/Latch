@@ -9,6 +9,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.7.0] — 2026-07-17
+
+### Added
+- **Security mode** — Admin → Settings: **Standard** or **High**. High enables login Turnstile, registration Turnstile (when keys are configured), and mandatory 2FA for moderators. Individual toggles remain selectable; High enforces and syncs them on save.
+- **Per-theme branding meta** — `theme.json` `branding.theme_color_light` / `theme_color_dark` drive browser `theme-color` meta; Modern ships teal favicon/apple-touch assets that override default via the asset fallback chain.
+
+### Changed
+- **App-icon brand mark** — favicons and header mark use solid accent square + white Latch L for tab and toolbar readability.
+- **Default tagline** — *Run the room — not a datacenter*; install seed `footer_about` refreshed to match.
+
+### Tests
+- **SecurityPolicyTest** — Standard vs High mode, Turnstile gating without keys, mod 2FA roles.
+- **ThemeRegistryTest** — branding colour normalisation and defaults.
+- **GitReleasePluginTest** — widget uses theme-aware Latch icon (`var(--accent)`).
+
+### Latch-plugins
+- **git-release** 1.2.1 — theme-aware Latch app icon (pairs with this core release).
+
 ## [0.4.6.2] — 2026-07-14
 
 ### Fixed
