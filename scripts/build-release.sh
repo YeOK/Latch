@@ -96,6 +96,11 @@ rsync -a \
     --exclude='source/tests/api/config.local.php' \
     --exclude='source/tests/api/user-token.local.json' \
     --exclude='source/tests/api/pkce.local.json' \
+    --exclude='source/tests/smoke/config.local.php' \
+    --exclude='source/sqlite:' \
+    --exclude='source/sqlite:*/' \
+    --exclude='source/storage/plugins/*' \
+    --exclude='source/storage/database/*' \
     --exclude='PLAN.md' \
     --exclude='docs/design/' \
     --exclude='docs/RELEASE-v0.3.0.md' \
