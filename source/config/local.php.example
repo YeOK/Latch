@@ -14,6 +14,11 @@ return [
     'security' => [
         // Generate: php -r "echo base64_encode(random_bytes(32));"
         'encryption_key' => 'REPLACE_WITH_BASE64_32_BYTE_KEY',
+        // Optional Cloudflare Turnstile (dashboard → Turnstile). Same keys for register + login.
+        // Enable widgets in Admin → Settings (or Security mode → High). See docs/CLOUDFLARE.md.
+        // 'turnstile_site_key' => '',
+        // 'turnstile_secret_key' => '',
+        // 'trust_cloudflare' => true, // default; set false if not behind Cloudflare
     ],
     // Optional social sign-in (enable per provider in Admin → Settings)
     'oidc' => [

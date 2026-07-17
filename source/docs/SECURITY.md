@@ -96,6 +96,8 @@ Common security log `event` values: `login_fail`, `login_success`, `login_banned
 
 ## Client IP behind Cloudflare
 
+Operator walkthrough (Tunnel, Turnstile, Free plan): **[CLOUDFLARE.md](CLOUDFLARE.md)**.
+
 `Latch\Core\Request::ip()` uses `REMOTE_ADDR` by default. Behind Cloudflare + a local reverse proxy, Apache often sees `127.0.0.1` / `::1` instead of the visitor.
 
 When a request includes **`CF-Ray`** (set by Cloudflare edge), Latch trusts **`CF-Connecting-IP`** for rate limits, audit logs, and `security.log`. Spoofing is mitigated by requiring `CF-Ray`; also **firewall the origin** so only Cloudflare IP ranges can reach port 80.

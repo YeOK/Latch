@@ -69,7 +69,7 @@ php bin/latch install \
 
 Typical layout: install under `/var/www/latch` (or your vhost path), web root at `source/public`, database and logs in `storage/`.
 
-1. **DNS & TLS** — point your domain at the origin. A reverse proxy (Cloudflare, Caddy, nginx) can terminate HTTPS; Apache/nginx on the host can listen on port 80 or behind the proxy.
+1. **DNS & TLS** — point your domain at the origin. A reverse proxy (Cloudflare, Caddy, nginx) can terminate HTTPS; Apache/nginx on the host can listen on port 80 or behind the proxy. Cloudflare Free (proxy, Tunnel, Turnstile): [CLOUDFLARE.md](CLOUDFLARE.md).
 2. **First deploy** — copy or extract the release tree to the server, then:
 
 ```bash

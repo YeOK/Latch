@@ -16,6 +16,8 @@ Guest page cache is optional (admin **Settings → Enable guest page cache**). F
 
 ## Cloudflare (recommended pattern)
 
+Full operator guide (Free plan, Tunnel, Turnstile): **[CLOUDFLARE.md](CLOUDFLARE.md)**.
+
 Use **Cache Rules** (or Page Rules on older plans). Order matters — most specific first.
 
 ### 1. Bypass dynamic routes
@@ -92,6 +94,7 @@ Do **not** cache HTML at the edge for members-only forums or when every page req
 
 ## Related
 
+- [CLOUDFLARE.md](CLOUDFLARE.md) — Free plan, Tunnel, Turnstile, origin trust
 - [PERFORMANCE.md](PERFORMANCE.md) — query hot paths, SQLite scale, fragment cache
 - [INSTALL.md](INSTALL.md) — TLS, vhost, cron
 - [SECURITY.md](SECURITY.md) — headers, sensitive paths
