@@ -45,10 +45,15 @@ final class BoardIconRegistry
     /** @var array<string, string> */
     private array $svgByKey = [];
 
+    /** @var array<string, list<string>> */
+    private array $keywordMap;
+
     private string $packPath;
 
     public function __construct(Config $config, ?string $activeTheme = null)
     {
+        $this->keywordMap = self::KEYWORD_MAP;
+
         $themesPath = (string) $config->get('paths.themes');
         $active = $activeTheme ?? (string) $config->get('theme.active', 'default');
         $activePack = $themesPath . '/' . $active . '/assets/img/board-icons';
@@ -76,6 +81,36 @@ final class BoardIconRegistry
     }
 
     /**
+     * Add or replace keyword hints used by {@see suggestKey()} for plugin icon packs.
+     *
+     * @param list<string> $keywords
+     */
+    public function registerKeywords(string $key, array $keywords): void
+    {
+        $key = $this->normalizeKey($key);
+        if ($key === '' || !$this->has($key)) {
+            throw new RuntimeException('Board icon keywords require a registered icon key.');
+        }
+
+        $normalized = [];
+        foreach ($keywords as $keyword) {
+            if (!is_string($keyword)) {
+                continue;
+            }
+            $token = $this->normalizeKey($keyword);
+            if ($token !== '') {
+                $normalized[] = $token;
+            }
+        }
+
+        if ($normalized === []) {
+            return;
+        }
+
+        $this->keywordMap[$key] = array_values(array_unique($normalized));
+    }
+
+    /**
      * @return list<string>
      */
     public function keys(): array
@@ -87,7 +122,7 @@ final class BoardIconRegistry
     {
         $haystack = $this->normalizeKey($slug) . ' ' . $this->normalizeKey($name);
 
-        foreach (self::KEYWORD_MAP as $key => $keywords) {
+        foreach ($this->keywordMap as $key => $keywords) {
             foreach ($keywords as $keyword) {
                 if (str_contains($haystack, $this->normalizeKey($keyword))) {
                     return $this->has($key) ? $key : self::DEFAULT_KEY;
