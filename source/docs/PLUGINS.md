@@ -65,7 +65,7 @@ Declare every hook you use in `plugin.json` → `hooks`.
 |------|-------|--------|-------------|-----------------|
 | `bootstrap` | dispatch | live | After routes and `route.register`; `($app)` | — |
 | `route.register` | dispatch | live | During boot; `($router, $app)` | Register routes on `$router` |
-| `board.icons` | dispatch | live | During boot; `($boardIconRegistry)` | Call `$registry->register($key, $svg)` |
+| `board.icons` | dispatch | live | During boot; `($boardIconRegistry)` | Call `$registry->register($key, $svg)`; optional `$registry->registerKeywords($key, $keywords)` (Latch 0.4.7+) for name/slug auto-suggest |
 | `theme.assets` | collect | live | Each page render; `($app)` | CSS URL string(s) → `<link>` in layout |
 | `layout.footer` | collect | live | Each page render; `($app)` | HTML snippet(s) above footer meta |
 | `home.before_boards` | collect | live | Home page; `($app)` | HTML before board list |
@@ -89,8 +89,8 @@ Declare every hook you use in `plugin.json` → `hooks`.
 | `layout.head` | collect | live | Each page render; `($app)` | HTML snippet(s) in `<head>` (analytics, meta) |
 | `topic.actions` | collect | live | Topic page only; `($app, $topic, $board)` | HTML beside topic header actions (share buttons) |
 | `profile.form` | collect | live | Profile page only; `($app, $user)` | Extra profile form fields |
-| `profile.before_save` | dispatch | live | Before profile save; `($ctx)` | Mutate `$ctx->bio` or `$ctx->reject($reason)` |
-| `avatar.resolve` | filter | live | Avatar URL build; `($url, $email, $size)` | Final avatar URL string |
+| `profile.before_save` | dispatch | live | Before profile save; `($ctx)` | Mutate `$ctx->bio`; optional `$ctx->avatarUrlInput` / `$ctx->updateAvatarUrl` / `$ctx->avatarUrl` (Latch 0.4.8+); or `$ctx->reject($reason)` |
+| `avatar.resolve` | filter | live | Avatar URL build; `($url, $email, $size)` | Final avatar URL string (override Gravatar) |
 | `locale.translations` | filter | live | Translator boot; `($strings, $locale)` | Merged translation array for active locale |
 
 Twig globals from collect hooks: `plugin_theme_assets`, `plugin_theme_scripts`, `plugin_head_html`, `plugin_footer_html`, `plugin_home_before_boards_html`, `plugin_home_after_boards_html`, `plugin_admin_menu_items`, `plugin_composer_toolbar`.
@@ -291,13 +291,18 @@ $hooks->add(HookName::TOPIC_ACTIONS, static function (Application $app, array $t
 ### `profile.form` + `profile.before_save` (avatar-url)
 
 ```php
-$hooks->add(HookName::PROFILE_FORM, static fn (): string =>
-    '<label>Custom avatar URL <input type="url" name="avatar_url" …></label>'
-);
+$hooks->add(HookName::PROFILE_FORM, static function (Application $app, array $user): string {
+    $current = htmlspecialchars((string) ($user['avatar_url'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return '<label>Custom avatar URL <input type="url" name="avatar_url" value="' . $current . '"></label>';
+});
 $hooks->add(HookName::PROFILE_BEFORE_SAVE, static function (ProfileSaveContext $ctx): void {
-    // validate and persist plugin-owned avatar URL
+    // $ctx->avatarUrlInput is the raw form field when present (null if not submitted)
+    // Set $ctx->updateAvatarUrl = true and $ctx->avatarUrl = 'https://…' or null to clear
+    // Core persists users.avatar_url after hooks (Latch 0.4.8+)
 });
 ```
+
+See catalog plugin **avatar-url** for allowlist validation + `avatar.resolve` / `csp.img_src`.
 
 ### `post.format.image_host` + `csp.img_src`
 

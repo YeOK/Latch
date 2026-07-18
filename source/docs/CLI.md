@@ -301,7 +301,7 @@ If your login user is in the `apache` group and `storage/` is group-writable (`c
 
 ## Plugins (`plugin` / `plugin-audit`)
 
-Customize Latch **without editing core** — see `docs/PLUGINS.md`. Installed plugins live in `plugins/{slug}/`. Enabled slugs are stored in `settings.enabled_plugins` (JSON). **Admin UI:** `/admin/plugins` (audit status, enable/disable, settings when `settings_schema` is declared). Distributable plugins will publish to **[github.com/YeOK/Latch-plugins](https://github.com/YeOK/Latch-plugins)** (catalog repo; admin install from Releases is future work).
+Customize Latch **without editing core** — see `docs/PLUGINS.md`. Installed plugins live in `plugins/{slug}/`. Enabled slugs are stored in `settings.enabled_plugins` (JSON). **Admin UI:** `/admin/plugins` (audit status, enable/disable, settings when `settings_schema` is declared). Distributable plugins publish to **[github.com/YeOK/Latch-plugins](https://github.com/YeOK/Latch-plugins)**. Install from **Admin → Plugins → Catalog** or `plugin install` (dir/zip).
 
 ### Quick reference
 

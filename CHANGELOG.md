@@ -14,6 +14,9 @@ Work in progress on `main` — not tagged or released yet. Fold into the next ve
 - **Board icon keyword registration** — plugins can call `BoardIconRegistry::registerKeywords()` for auto-suggest (pairs with catalog **board-icon-pack**).
 - **Profile avatar URL hooks** — `ProfileSaveContext` avatar fields + `UserRepository::updateAvatarUrl()` for the **avatar-url** plugin (custom HTTPS avatars on allowlisted hosts).
 
+### Changed
+- **Docs** — PLUGINS.md hook notes for `board.icons` keywords and profile avatar fields; CLI catalog install wording; README status → 0.4.7.0.
+
 ## [0.4.7.0] — 2026-07-17
 
 ### Added

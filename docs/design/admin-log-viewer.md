@@ -5,8 +5,8 @@
 | **Author** | TBD |
 | **Date** | 2026-07-12 |
 | **Status** | Draft |
-| **Repo** | `/home/yeok/Documents/Latch-Git/source` (application tree) |
-| **Monorepo** | Packaging lives at `../packaging/` relative to `source/` (repo root: `/home/yeok/Documents/Latch-Git/`) |
+| **Repo** | Application tree under `source/` in the Latch monorepo |
+| **Monorepo** | Packaging lives at `../packaging/` relative to `source/` (repo root contains `source/`, `packaging/`, `scripts/`) |
 | **Target version** | 0.4.5.x (proposed) |
 
 ---
