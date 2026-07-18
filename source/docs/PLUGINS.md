@@ -382,7 +382,7 @@ if ($db !== null) {
 
 Reference: `docs/plugins/dbexample/` (install with `plugin install docs/plugins/dbexample`). For reject logging, see the `spam_log` schema in that README — used by the planned **spam-bridge** plugin.
 
-`bin/latch backup` archives all of `storage/`, including every `plugin.sqlite`.
+`bin/latch backup` writes a **split** archive: `core.tar.gz` (forum DB + `local.php`) and `plugins.tar.gz` (`storage/plugins/`, including every `plugin.sqlite` via WAL-safe copy). Restore with `php bin/latch restore --latest` (both), `--core-only` (leave plugins alone — useful when a plugin broke the site), or `--plugins-only`.
 
 ## Enable / disable
 

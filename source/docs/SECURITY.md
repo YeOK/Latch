@@ -158,14 +158,19 @@ php bin/latch backup
 php bin/latch db-check
 ```
 
-Creates a **WAL-safe** timestamped tarball of `latch.sqlite` and `config/local.php` under `storage/backups/` (mode `0750`). Run `db-check` after migrate, restore, or suspected corruption.
+Creates a **WAL-safe** timestamped outer tarball under `storage/backups/` (mode `0750`) with **separate** members:
+
+- `core.tar.gz` — `latch.sqlite` + `config/local.php`
+- `plugins.tar.gz` — `storage/plugins/` (plugin DBs + settings)
+
+Restore either half independently (`restore --core-only` / `--plugins-only`) so a bad plugin install can be escaped without replaying plugin state. Run `db-check` after migrate, restore, or suspected corruption.
 
 ## Corruption and restore
 
 1. **Lock** — `php bin/latch lock on` (blocks web/API; CLI still works)
 2. **Diagnose** — `php bin/latch db-check` (exit 1 = problems)
-3. **Restore** — `php bin/latch restore --latest` (lock required unless `--force`)
-4. **Verify** — restore runs db-check before success exit
+3. **Restore** — `php bin/latch restore --latest` (both parts), or `--core-only` if a plugin is the problem (lock required unless `--force`)
+4. **Verify** — restore runs db-check before success exit (when core is restored)
 5. **Unlock** — `php bin/latch lock off` only after db-check passes
 
 Pre-restore snapshots: `storage/backups/.pre-restore-*.sqlite` (latest symlink). Pruned to three timestamped files.

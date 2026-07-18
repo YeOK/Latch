@@ -14,7 +14,7 @@ sudo bash scripts/update.sh
 This runs:
 
 1. **Lock** — `php bin/latch lock on`
-2. **Backup** — WAL-safe tarball in `storage/backups/`
+2. **Backup** — WAL-safe split tarball (core + plugins) in `storage/backups/`
 3. **Composer** — `composer install --no-dev` when available
 4. **Update** — `php bin/latch update --skip-lock --skip-backup --assume-files-ready`
    - migrate (privilege-aware)

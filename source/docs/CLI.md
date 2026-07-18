@@ -14,7 +14,7 @@ php bin/latch help
 | `install` | First-time setup — database, config, admin user |
 | `migrate` | Apply SQLite schema migrations |
 | `audit` | Security self-check (permissions, headers, secrets) |
-| `backup` | WAL-safe tarball `latch.sqlite` + `config/local.php` |
+| `backup` | Split tarball: `core.tar.gz` + `plugins.tar.gz` (WAL-safe) |
 | `db-check` | SQLite `integrity_check` / `quick_check` + `foreign_key_check` (author orphans on `posts`/`topics`/`post_revisions` after account purge are expected) |
 | `restore` | List or restore from `storage/backups/` (lock required) |
 | `update` | Lock → backup → migrate → db-check → cron → audit → cache → unlock |
@@ -131,13 +131,34 @@ php bin/latch audit
 
 ## backup
 
-Creates a timestamped `.tar.gz` with the SQLite database and `config/local.php`.
+Creates a timestamped outer archive under `storage/backups/`:
 
-```bash
-php bin/latch backup
+```text
+latch-backup-YYYYMMDD-HHMMSS.tar.gz
+├── core.tar.gz       # storage/database/latch.sqlite + config/local.php
+└── plugins.tar.gz    # storage/plugins/* (WAL-safe plugin.sqlite + settings)
 ```
 
+Default backs up **both** parts. Use flags to take only one half:
+
+```bash
+php bin/latch backup                 # core + plugins
+php bin/latch backup --core-only     # forum DB + local.php only
+php bin/latch backup --plugins-only  # plugin storage only
+```
+
+Plugin SQLite files are copied with the same WAL-safe helper as core. Non-SQLite plugin files (e.g. `settings.json`) are included as-is. Sidecar `-wal` / `-shm` files are skipped.
+
 Prefer **`php bin/latch restore --latest`** (site lock required). See [UPGRADE.md](UPGRADE.md).
+
+**Bad plugin recovery:** restore **core only** so plugin state is left alone (then `plugin disable` / remove), or restore an older archive that predates the bad install:
+
+```bash
+php bin/latch lock on
+php bin/latch restore --latest --core-only
+php bin/latch plugin disable bad-slug
+php bin/latch lock off
+```
 
 ---
 
@@ -176,16 +197,27 @@ php bin/latch restore --latest
 php bin/latch restore --name=latch-backup-20260703-120000.tar.gz
 php bin/latch restore --archive=/path/to/backup.tar.gz
 php bin/latch restore --latest --with-config   # also restore local.php (disaster recovery)
+php bin/latch restore --latest --core-only     # forum DB only; leave storage/plugins alone
+php bin/latch restore --latest --plugins-only  # plugin storage only; leave latch.sqlite alone
 php bin/latch restore --latest --force         # skip lock gate (dangerous)
 ```
 
+| Flag | Effect |
+|------|--------|
+| `--core-only` | Restore `core.tar.gz` only (or legacy flat sqlite). **Does not** touch `storage/plugins/`. |
+| `--plugins-only` | Restore `plugins.tar.gz` only (replaces `storage/plugins/`). Core DB unchanged. |
+| `--with-config` | Also write `config/local.php` from the core archive |
+| *(default)* | Restore core + plugins when both members exist |
+
+Legacy archives (pre-split: flat `storage/database/latch.sqlite`) still restore as **core** only.
+
 | Exit | Meaning |
 |------|---------|
-| 0 | Restored and db-check passed |
+| 0 | Restored and db-check passed (when core restored) |
 | 1 | Restore or post-restore check failed |
 | 3 | Site not locked (use `lock on` or `--force`) |
 
-Post-restore **db-check is mandatory** — command does not exit 0 until integrity passes. Failed restore attempts rollback from `storage/backups/.pre-restore-latest.sqlite` when possible.
+Post-restore **db-check is mandatory when core is restored** — command does not exit 0 until integrity passes. Failed restore attempts rollback from `storage/backups/.pre-restore-latest.sqlite` when possible.
 
 ---
 

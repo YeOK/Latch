@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Latch\Tests;
 
 use Latch\Support\SiteLock;
+use Latch\Support\SiteMaintenance;
 use Latch\Support\SiteRestore;
 use Latch\Support\SqliteIntegrity;
 use PHPUnit\Framework\TestCase;
@@ -49,19 +50,20 @@ final class SiteRestoreTest extends TestCase
         $this->removeTree($this->root);
     }
 
-    public function testListBackupsReadsArchiveContents(): void
+    public function testListBackupsReadsLegacyArchiveContents(): void
     {
-        $archive = $this->createArchive('backup');
+        $archive = $this->createLegacyArchive('backup');
         $backups = SiteRestore::listBackups($this->storagePath);
 
         $this->assertCount(1, $backups);
         $this->assertSame(basename($archive), $backups[0]['name']);
+        $this->assertSame('legacy', $backups[0]['format']);
         $this->assertContains('storage/database/latch.sqlite', $backups[0]['contents']);
     }
 
     public function testRestoreRequiresLock(): void
     {
-        $archive = $this->createArchive('backup');
+        $archive = $this->createLegacyArchive('backup');
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionCode(3);
@@ -75,9 +77,9 @@ final class SiteRestoreTest extends TestCase
         ]);
     }
 
-    public function testRestoreLatestReplacesDatabase(): void
+    public function testRestoreLatestReplacesDatabaseLegacy(): void
     {
-        $archive = $this->createArchive('good');
+        $archive = $this->createLegacyArchive('good');
         SiteLock::enable($this->storagePath, 'test', 'phpunit');
 
         $pdo = new \PDO('sqlite:' . $this->dbPath);
@@ -99,7 +101,112 @@ final class SiteRestoreTest extends TestCase
         $this->assertTrue($check['ok']);
     }
 
-    private function createArchive(string $markerValue): string
+    public function testSplitBackupCoreOnlyLeavesPluginsUntouched(): void
+    {
+        $pluginPath = $this->storagePath . '/plugins/evil/settings.json';
+        mkdir(dirname($pluginPath), 0775, true);
+        file_put_contents($pluginPath, '{"evil":true}');
+        $pluginDb = $this->storagePath . '/plugins/evil/plugin.sqlite';
+        (new \PDO('sqlite:' . $pluginDb))->exec('CREATE TABLE t (id INTEGER); INSERT INTO t VALUES (1);');
+
+        $result = SiteMaintenance::createBackup(
+            $this->storagePath,
+            $this->dbPath,
+            $this->root . '/config/local.php',
+        );
+        $this->assertTrue($result['ok'], $result['message']);
+        $archive = (string) $result['path'];
+
+        // Simulate bad plugin state after backup
+        file_put_contents($pluginPath, '{"evil":"worse"}');
+        (new \PDO('sqlite:' . $this->dbPath))->exec('UPDATE marker SET value = "broken"');
+
+        SiteLock::enable($this->storagePath, 'test', 'phpunit');
+        $restore = SiteRestore::restore([
+            'storage_path' => $this->storagePath,
+            'source_root' => $this->root,
+            'db_path' => $this->dbPath,
+            'local_config_path' => $this->root . '/config/local.php',
+            'archive' => $archive,
+            'core_only' => true,
+        ]);
+
+        $this->assertTrue($restore['ok'], $restore['message']);
+        $this->assertSame(['core'], $restore['parts']);
+        $value = (string) (new \PDO('sqlite:' . $this->dbPath))->query('SELECT value FROM marker')->fetchColumn();
+        $this->assertSame('live', $value);
+        // Plugins left as-is (worse) so operator can disable without replaying backup plugin data
+        $this->assertSame('{"evil":"worse"}', (string) file_get_contents($pluginPath));
+    }
+
+    public function testSplitBackupFullRestoresPlugins(): void
+    {
+        $pluginPath = $this->storagePath . '/plugins/good/settings.json';
+        mkdir(dirname($pluginPath), 0775, true);
+        file_put_contents($pluginPath, '{"v":1}');
+        $pluginDb = $this->storagePath . '/plugins/good/plugin.sqlite';
+        (new \PDO('sqlite:' . $pluginDb))->exec('CREATE TABLE t (id INTEGER); INSERT INTO t VALUES (7);');
+
+        $result = SiteMaintenance::createBackup(
+            $this->storagePath,
+            $this->dbPath,
+            $this->root . '/config/local.php',
+        );
+        $this->assertTrue($result['ok'], $result['message']);
+
+        file_put_contents($pluginPath, '{"v":999}');
+        (new \PDO('sqlite:' . $pluginDb))->exec('DELETE FROM t; INSERT INTO t VALUES (0);');
+
+        SiteLock::enable($this->storagePath, 'test', 'phpunit');
+        $restore = SiteRestore::restore([
+            'storage_path' => $this->storagePath,
+            'source_root' => $this->root,
+            'db_path' => $this->dbPath,
+            'local_config_path' => $this->root . '/config/local.php',
+            'archive' => (string) $result['path'],
+        ]);
+
+        $this->assertTrue($restore['ok'], $restore['message']);
+        $this->assertEqualsCanonicalizing(['core', 'plugins'], $restore['parts']);
+        $this->assertSame('{"v":1}', (string) file_get_contents($pluginPath));
+        $id = (string) (new \PDO('sqlite:' . $pluginDb))->query('SELECT id FROM t')->fetchColumn();
+        $this->assertSame('7', $id);
+    }
+
+    public function testPluginsOnlyRestore(): void
+    {
+        $pluginPath = $this->storagePath . '/plugins/good/settings.json';
+        mkdir(dirname($pluginPath), 0775, true);
+        file_put_contents($pluginPath, '{"v":1}');
+
+        $result = SiteMaintenance::createBackup(
+            $this->storagePath,
+            $this->dbPath,
+            $this->root . '/config/local.php',
+        );
+        $this->assertTrue($result['ok'], $result['message']);
+
+        file_put_contents($pluginPath, '{"v":lost}');
+        (new \PDO('sqlite:' . $this->dbPath))->exec('UPDATE marker SET value = "must-stay"');
+
+        SiteLock::enable($this->storagePath, 'test', 'phpunit');
+        $restore = SiteRestore::restore([
+            'storage_path' => $this->storagePath,
+            'source_root' => $this->root,
+            'db_path' => $this->dbPath,
+            'local_config_path' => $this->root . '/config/local.php',
+            'archive' => (string) $result['path'],
+            'plugins_only' => true,
+        ]);
+
+        $this->assertTrue($restore['ok'], $restore['message']);
+        $this->assertSame(['plugins'], $restore['parts']);
+        $this->assertSame('{"v":1}', (string) file_get_contents($pluginPath));
+        $value = (string) (new \PDO('sqlite:' . $this->dbPath))->query('SELECT value FROM marker')->fetchColumn();
+        $this->assertSame('must-stay', $value);
+    }
+
+    private function createLegacyArchive(string $markerValue): string
     {
         $staging = $this->root . '/stage-' . bin2hex(random_bytes(3));
         mkdir($staging . '/storage/database', 0775, true);

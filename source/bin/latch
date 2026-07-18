@@ -80,7 +80,7 @@ match ($command) {
     'migrate' => run_migrate(),
     'audit' => run_audit(),
     'fix-perms' => run_fix_perms($argv),
-    'backup' => run_backup(),
+    'backup' => run_backup($argv),
     'cache-clear' => run_cache_clear(),
     'maintenance' => run_maintenance($argv),
     'lock' => run_lock($argv),
@@ -131,7 +131,7 @@ Latch CLI
   php bin/latch audit          Security + permissions self-check (install/upgrade gate)
   php bin/latch fix-perms      Fix storage/, plugins/, and config perms (sudo on RPM)
   php bin/latch fix-perms --web-user=www-data   Non-apache HTTP stacks (or WEB_USER=…)
-  php bin/latch backup         Tarball database + local config (WAL-safe)
+  php bin/latch backup         Split tarball: core.tar.gz + plugins.tar.gz (WAL-safe)
   php bin/latch db-check       SQLite integrity + foreign-key check
   php bin/latch restore        List or restore from storage/backups/
   php bin/latch update         Lock → backup → migrate → db-check → unlock
@@ -428,13 +428,18 @@ function run_restore(array $argv): void
 
         fwrite(STDOUT, $storagePath . "/backups/\n");
         foreach ($backups as $backup) {
-            $contents = '[' . implode(', ', $backup['contents']) . ']';
+            $parts = $backup['parts'] ?? [];
+            $label = $parts !== []
+                ? 'parts=[' . implode(', ', $parts) . ']'
+                : '[' . implode(', ', $backup['contents']) . ']';
+            $format = (string) ($backup['format'] ?? 'legacy');
             fwrite(STDOUT, sprintf(
-                "  %s  %s  %s  %s\n",
+                "  %s  %s  %s  %s  %s\n",
                 $backup['name'],
                 $backup['mtime_iso'],
                 SiteRestore::formatBytes($backup['size_bytes']),
-                $contents,
+                $format,
+                $label,
             ));
         }
         exit(0);
@@ -449,7 +454,12 @@ function run_restore(array $argv): void
         );
     } catch (\Throwable $e) {
         fwrite(STDERR, $e->getMessage() . "\n");
-        fwrite(STDERR, "Usage: php bin/latch restore list | restore --latest [--with-config] [--force]\n");
+        fwrite(STDERR, "Usage: php bin/latch restore list | restore --latest [--core-only|--plugins-only] [--with-config] [--force]\n");
+        exit(1);
+    }
+
+    if (isset($opts['core-only']) && isset($opts['plugins-only'])) {
+        fwrite(STDERR, "Use either --core-only or --plugins-only, not both.\n");
         exit(1);
     }
 
@@ -465,6 +475,8 @@ function run_restore(array $argv): void
             'with_config' => isset($opts['with-config']),
             'force' => isset($opts['force']),
             'dry_run' => isset($opts['dry-run']),
+            'core_only' => isset($opts['core-only']),
+            'plugins_only' => isset($opts['plugins-only']),
         ]);
     } catch (\Throwable $e) {
         $code = (int) $e->getCode();
@@ -918,9 +930,17 @@ function phpbb_custom_bbcode_strategies(): array
     return is_array($data) ? array_map('strval', $data) : [];
 }
 
-function run_backup(): void
+function run_backup(array $argv = []): void
 {
     require_pdo();
+
+    $opts = parse_cli_options($argv !== [] ? $argv : ($_SERVER['argv'] ?? []));
+    $coreOnly = isset($opts['core-only']);
+    $pluginsOnly = isset($opts['plugins-only']);
+    if ($coreOnly && $pluginsOnly) {
+        fwrite(STDERR, "Use either --core-only or --plugins-only, not both.\n");
+        exit(1);
+    }
 
     $config = new Config(LATCH_ROOT . '/config');
     $storagePath = (string) $config->get('paths.storage');
@@ -928,6 +948,10 @@ function run_backup(): void
         $storagePath,
         (string) $config->get('database.path'),
         LATCH_ROOT . '/config/local.php',
+        [
+            'core' => !$pluginsOnly,
+            'plugins' => !$coreOnly,
+        ],
     );
 
     if (!$result['ok']) {

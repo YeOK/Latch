@@ -7,6 +7,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Split backups** — `bin/latch backup` packs `core.tar.gz` (forum DB + `local.php`) and `plugins.tar.gz` (`storage/plugins/`, WAL-safe plugin SQLite) as separate members in one outer tarball. Restore supports `--core-only` / `--plugins-only` so a harmful plugin can be escaped without replaying plugin state. Legacy flat archives still restore. Flags: `backup --core-only` / `--plugins-only`.
+
+### Tests
+- **SiteMaintenanceBackupTest** / **SiteRestoreTest** — split archive layout, core-only and plugins-only restore.
+
 ## [0.5.0.0] — 2026-07-18
 
 Operator-grade security and setup milestone. Secrets stay in `local.php` (CLI walkthrough); staff sessions are hardened; tier-2 catalog plugins (avatar-url, board-icon-pack) are supported on core hooks from 0.4.8+.

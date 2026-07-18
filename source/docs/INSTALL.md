@@ -303,7 +303,7 @@ See **[UPGRADE.md](UPGRADE.md)** for rollback, `db-check`, and `restore --latest
 ```bash
 php bin/latch security-bootstrap   # set encryption_key if missing (also runs at end of install)
 php bin/latch audit          # security self-check (headers, permissions, debug leakage)
-php bin/latch backup         # WAL-safe tarball to storage/backups/
+php bin/latch backup         # WAL-safe split tarball (core + plugins) to storage/backups/
 php bin/latch db-check       # SQLite integrity after migrate/restore
 php bin/latch restore list   # list backups; restore --latest when locked
 php bin/latch cron daily     # scheduled DB prunes (also run by crontab)
