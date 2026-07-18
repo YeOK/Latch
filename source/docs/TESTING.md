@@ -234,9 +234,15 @@ On a staging copy with real data, verify backup and restore before tagging:
 ```bash
 php bin/latch lock on
 php bin/latch backup
-php bin/latch restore --latest
+php bin/latch restore list                    # expect format=split, parts=[core, plugins]
+php bin/latch restore --latest --dry-run
+php bin/latch restore --latest                # or --core-only to exercise plugin escape hatch
 php bin/latch db-check
 php bin/latch lock off
+
+# Fedora staging:
+# sudo latch backup && sudo latch restore list
+# sudo latch lock on && sudo latch restore --latest --core-only && sudo latch db-check && sudo latch lock off
 ```
 
 Optionally corrupt a copy and confirm `db-check` fails before restoring.
