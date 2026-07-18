@@ -7,6 +7,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.1.0] — 2026-07-18
+
+Solid backup/restore: plugin storage is included, core and plugins are separate members for safer recovery, and Fedora operators get a full runbook.
+
 ### Changed
 - **Split backups** — `bin/latch backup` packs `core.tar.gz` (forum DB + `local.php`) and `plugins.tar.gz` (`storage/plugins/`, WAL-safe plugin SQLite) as separate members in one outer tarball. Restore supports `--core-only` / `--plugins-only` so a harmful plugin can be escaped without replaying plugin state. Legacy flat archives still restore. Flags: `backup --core-only` / `--plugins-only`.
 - **Unique backup filenames** — archive names include a random suffix so multiple backups in the same second (e.g. core-only then plugins-only) never overwrite each other.

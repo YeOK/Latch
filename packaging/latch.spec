@@ -12,7 +12,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.5.0.0
+Version:        0.5.1.0
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -202,6 +202,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Sat Jul 18 2026 YeOK <yeokky@gmail.com> - 0.5.1.0-1
+- Split core/plugins backups; unique archive names; Fedora backup/restore docs
+
 * Sat Jul 18 2026 YeOK <yeokky@gmail.com> - 0.5.0.0-1
 - Staff session hardening; latch configure walkthrough; security/ops milestone
 

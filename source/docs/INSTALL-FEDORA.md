@@ -116,7 +116,7 @@ Copy archives **off the server** (rsync, object storage, another host). A backup
 ```bash
 # Example: off-site copy of the latest archive
 ls -lt /var/lib/latch/storage/backups/latch-backup-*.tar.gz | head -3
-sudo rsync -a /var/lib/latch/storage/backups/ backup-host:/backups/latch.network/
+sudo rsync -a /var/lib/latch/storage/backups/ backup-host:/backups/forum.example.com/
 ```
 
 `dnf upgrade latch` already runs a pre-upgrade backup via `%posttrans` (see [Upgrades](#upgrades)). Still keep independent off-site copies.
