@@ -68,13 +68,118 @@ Cloudflare (Free plan, Tunnel, Turnstile): [CLOUDFLARE.md](CLOUDFLARE.md).
 | Path | Purpose |
 |------|---------|
 | `/usr/share/latch/source/` | Application code (replaced on upgrade) |
-| `/var/lib/latch/storage/` | SQLite DB, backups, logs, cache (**preserved**) |
+| `/var/lib/latch/storage/` | Runtime state (**preserved** on upgrade) |
+| `/var/lib/latch/storage/database/latch.sqlite` | Forum database |
+| `/var/lib/latch/storage/plugins/` | Plugin DBs + settings (`plugin.sqlite`, `settings.json`) |
+| `/var/lib/latch/storage/backups/` | Split backup archives (`latch-backup-*.tar.gz`) |
 | `/etc/latch/local.php` | Secrets and site URL (**preserved**, `config(noreplace)`) |
 | `/usr/bin/latch` | CLI wrapper (runs as `apache` when needed) |
 
 Symlinks wire `source/config/local.php` → `/etc/latch/local.php` and `source/storage` → `/var/lib/latch/storage`.
 
 `latch-setup` creates `/etc/latch/local.php` with a random `security.encryption_key` before `bin/latch install`. Fresh tarball installs do the same via `install`; if you copied an old `local.php` without a key, run `sudo latch security-bootstrap`. If enrolled 2FA stops accepting codes after a key mismatch, see [CLI.md — totp](CLI.md#totp) (`sudo latch totp reset admin --confirm` as last resort).
+
+## Backups and restore (RPM)
+
+Always use **`sudo latch`** so files under `/var/lib/latch/storage/` are owned by `apache` (the web user). Do not run `php bin/latch backup` as root unless you then `chown` the archive.
+
+### What is backed up
+
+Each run writes one outer archive under `/var/lib/latch/storage/backups/`:
+
+```text
+latch-backup-YYYYMMDD-HHMMSS-<id>.tar.gz
+├── core.tar.gz       # latch.sqlite + /etc/latch/local.php (via symlink path)
+└── plugins.tar.gz    # storage/plugins/* (WAL-safe plugin.sqlite + settings)
+```
+
+| Member | Contents (Fedora paths) |
+|--------|-------------------------|
+| `core.tar.gz` | Forum DB + secrets file |
+| `plugins.tar.gz` | Everything under `/var/lib/latch/storage/plugins/` |
+
+Filenames include a random suffix so two backups in the same second never overwrite each other. Legacy flat archives (pre-split: only `storage/database/latch.sqlite`) still restore as **core**.
+
+Full CLI detail: [CLI.md — backup](CLI.md#backup) and [CLI.md — restore](CLI.md#restore).
+
+### Daily / ad-hoc backup
+
+```bash
+sudo latch backup                 # core + plugins (recommended)
+sudo latch backup --core-only     # forum DB + local.php only
+sudo latch backup --plugins-only  # plugin storage only
+sudo latch restore list           # name, size, format, parts=[core, plugins]
+```
+
+Copy archives **off the server** (rsync, object storage, another host). A backup that only lives next to the DB is not disaster recovery.
+
+```bash
+# Example: off-site copy of the latest archive
+ls -lt /var/lib/latch/storage/backups/latch-backup-*.tar.gz | head -3
+sudo rsync -a /var/lib/latch/storage/backups/ backup-host:/backups/latch.network/
+```
+
+`dnf upgrade latch` already runs a pre-upgrade backup via `%posttrans` (see [Upgrades](#upgrades)). Still keep independent off-site copies.
+
+### Full restore (same host)
+
+```bash
+sudo latch lock on
+sudo latch restore list
+sudo latch restore --latest --with-config   # or --name=latch-backup-….tar.gz
+sudo latch db-check
+sudo latch search-reindex                   # if search looks stale
+sudo latch lock off
+```
+
+**`--with-config`** rewrites `/etc/latch/local.php` from the core archive (`encryption_key`, site URL, OIDC secrets, Turnstile keys). Skip it only when you intentionally keep the current secrets file.
+
+Mail transport config (msmtp system files) is **not** in backups — reconfigure separately. See [EMAIL.md](EMAIL.md).
+
+### Bad plugin recovery (keep forum, drop plugin state)
+
+If a catalog plugin (or its SQLite/settings) is breaking the site:
+
+```bash
+sudo latch lock on
+sudo latch restore --latest --core-only     # forum DB only; does NOT touch plugins/
+sudo latch plugin disable bad-slug          # or: plugin remove bad-slug --confirm
+# Optional: wipe that plugin's storage only
+#   sudo rm -rf /var/lib/latch/storage/plugins/bad-slug
+sudo latch lock off
+```
+
+To put plugin data back from an older good archive without touching the forum DB:
+
+```bash
+sudo latch lock on
+sudo latch restore --name=latch-backup-….tar.gz --plugins-only
+sudo latch lock off
+```
+
+### Disaster recovery (clean host)
+
+```bash
+sudo dnf copr enable yeok/latch
+sudo dnf install latch httpd php-fpm
+
+# Copy your off-site archive onto the server:
+sudo install -d -o apache -g apache /var/lib/latch/storage/backups
+sudo cp latch-backup-YYYYMMDD-HHMMSS-*.tar.gz /var/lib/latch/storage/backups/
+sudo chown apache:apache /var/lib/latch/storage/backups/latch-backup-*.tar.gz
+
+sudo latch lock on
+sudo latch restore --latest --with-config   # restores core + plugins when both present
+sudo latch db-check
+sudo latch search-reindex
+sudo latch doctor
+sudo latch lock off
+
+sudo systemctl enable --now httpd php-fpm
+sudo systemctl enable --now latch-cron-hourly.timer latch-cron-daily.timer latch-cron-weekly.timer
+```
+
+After restore, re-run **`sudo latch configure --show`** (or `configure`) if you need to verify Turnstile/mail without printing secrets. Plugin code itself is not in the backup — reinstall from **Admin → Plugins → Catalog** or `sudo latch plugin install …` if `/usr/share/latch/source/plugins/` is empty for a slug.
 
 ## Upgrades
 
@@ -87,61 +192,50 @@ sudo dnf upgrade latch
 The RPM **`%posttrans`** hook runs the same sequence as `scripts/update.sh`:
 
 1. Site lock  
-2. WAL-safe backup  
+2. WAL-safe **split** backup (core + plugins → `/var/lib/latch/storage/backups/`)  
 3. `bin/latch update` (migrate, db-check, cron, audit)  
 4. Unlock  
 
 Daily cron includes **plugin security audits** (cached under `storage/cache/plugin-audits/`). Optional SQLite PRAGMA tuning: [INSTALL.md](INSTALL.md#sqlite-tuning-optional).
 
-If upgrade fails, the site stays locked. Roll back with [UPGRADE.md](UPGRADE.md) (`restore --latest --with-config`).
-
-## Disaster recovery (clean host)
+If upgrade fails, the site stays locked. Roll back:
 
 ```bash
-sudo dnf copr enable yeok/latch
-sudo dnf install latch httpd php-fpm
-
-# Copy your backup archive onto the server, e.g.:
-sudo install -d -o apache -g apache /var/lib/latch/storage/backups
-sudo cp latch-backup-YYYYMMDD-HHMMSS.tar.gz /var/lib/latch/storage/backups/
-
-sudo latch lock on
-sudo latch restore --latest --with-config
+sudo latch lock status
+sudo latch restore list
+sudo latch restore --latest --with-config   # full; or --core-only if plugins look wrong
 sudo latch db-check
-sudo latch search-reindex
 sudo latch lock off
-
-sudo systemctl enable --now httpd latch-cron-hourly.timer latch-cron-daily.timer latch-cron-weekly.timer
 ```
 
-**Use `--with-config`** so `encryption_key`, OIDC secrets, and site URL are restored with the database.
-
-Reconfigure mail separately (`deploy/msmtp.conf` is not in backups). See [EMAIL.md](EMAIL.md).
+See [UPGRADE.md](UPGRADE.md) for general (tarball) wording.
 
 ## Migrating from `/var/www/latch` (tarball/rsync)
 
 One-time cutover for an existing install:
 
-1. **Backup:** `php bin/latch backup` (or copy `storage/backups/`).
+1. **Backup:** `cd /var/www/latch/source && php bin/latch backup` (or copy `storage/backups/`). Prefer a fresh split backup so plugin DBs travel with core.
 2. Install RPM on the same host (or staging first).
 3. Stop traffic (site lock or maintenance page).
 4. Copy state:
-   - `storage/` → `/var/lib/latch/storage/`
+   - `storage/` → `/var/lib/latch/storage/` (includes `database/`, `plugins/`, `backups/`)
    - `config/local.php` → `/etc/latch/local.php`
 5. Fix ownership: `sudo chown -R apache:apache /var/lib/latch/storage`
 6. `sudo chmod 640 /etc/latch/local.php && sudo chown root:apache /etc/latch/local.php`
 7. Point Apache at `/usr/share/latch/source/public` (RPM vhost).
-8. `sudo latch` or `sudo -u apache php /usr/share/latch/source/bin/latch doctor`
+8. `sudo latch doctor` (or `sudo -u apache php /usr/share/latch/source/bin/latch doctor`)
 9. Retire manual rsync deploy; use `dnf upgrade` for updates.
 
 ## Operator commands
 
-Use **`sudo latch`** for commands that write under `/var/lib/latch/storage/` (database, plugin settings, audit cache). The wrapper runs PHP as `apache`; plain `php bin/latch` as root or as your login user often causes permission errors on `plugin enable` and plugin settings saves.
+Use **`sudo latch`** for commands that write under `/var/lib/latch/storage/` (database, plugin settings, audit cache, **backups**). The wrapper runs PHP as `apache`; plain `php bin/latch` as root or as your login user often causes permission errors on `plugin enable` and plugin settings saves.
 
 ```bash
 sudo latch doctor
 sudo latch backup
+sudo latch backup --core-only
 sudo latch restore list
+sudo latch restore --latest --core-only   # bad-plugin escape hatch
 sudo latch lock on
 sudo latch plugin install ./forum-stats-1.0.0.zip
 sudo latch plugin enable forum-stats
@@ -223,4 +317,7 @@ More: [SECURITY.md — Admin log viewer](SECURITY.md#admin-log-viewer), [CLI.md 
 ## Related docs
 
 - [INSTALL.md](INSTALL.md) — generic install (tarball, git)  
-- [UPGRADE.md](UPGRADE.md) — rollback and manual update sequence
+- [UPGRADE.md](UPGRADE.md) — rollback and manual update sequence  
+- [CLI.md](CLI.md#backup) — split backup / restore flags  
+- [SECURITY.md](SECURITY.md#backups) — backup posture and corruption steps  
+- [PLUGINS.md](PLUGINS.md) — plugin storage and catalog

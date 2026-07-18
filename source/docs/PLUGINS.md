@@ -384,6 +384,8 @@ Reference: `docs/plugins/dbexample/` (install with `plugin install docs/plugins/
 
 `bin/latch backup` writes a **split** archive: `core.tar.gz` (forum DB + `local.php`) and `plugins.tar.gz` (`storage/plugins/`, including every `plugin.sqlite` via WAL-safe copy). Restore with `php bin/latch restore --latest` (both), `--core-only` (leave plugins alone — useful when a plugin broke the site), or `--plugins-only`.
 
+**Fedora/RHEL:** `sudo latch backup` / `sudo latch restore --latest --core-only`. Plugin storage is `/var/lib/latch/storage/plugins/`. Operator runbook: [INSTALL-FEDORA.md — Backups](INSTALL-FEDORA.md#backups-and-restore-rpm).
+
 ## Enable / disable
 
 Enabled slugs are stored in settings as JSON: `enabled_plugins` → `["example"]`.

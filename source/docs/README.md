@@ -7,7 +7,7 @@ Operator and developer reference under `source/docs/`. Published to the forum Do
 | Document | Topic |
 |----------|-------|
 | [INSTALL.md](INSTALL.md) | Fresh install and requirements |
-| [INSTALL-FEDORA.md](INSTALL-FEDORA.md) | Fedora COPR RPM |
+| [INSTALL-FEDORA.md](INSTALL-FEDORA.md) | Fedora COPR RPM — paths, configure, **backups/restore**, fail2ban |
 | [UPGRADE.md](UPGRADE.md) | Version upgrades and migrations |
 | [CLI.md](CLI.md) | `bin/latch` commands (migrate, backup, test, import, …) |
 | [TESTING.md](TESTING.md) | PHPUnit suites, smoke/security gates, theme JS + plugin audit tests, OIDC E2E |

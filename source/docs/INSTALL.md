@@ -306,6 +306,8 @@ php bin/latch audit          # security self-check (headers, permissions, debug 
 php bin/latch backup         # WAL-safe split tarball (core + plugins) to storage/backups/
 php bin/latch db-check       # SQLite integrity after migrate/restore
 php bin/latch restore list   # list backups; restore --latest when locked
+# Fedora/RHEL: sudo latch backup | restore list | restore --latest --with-config
+# See INSTALL-FEDORA.md § Backups and restore
 php bin/latch cron daily     # scheduled DB prunes (also run by crontab)
 php bin/latch maintenance --clear-cache   # after deploy if needed
 php bin/latch maintenance --vacuum

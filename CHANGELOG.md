@@ -11,6 +11,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Split backups** — `bin/latch backup` packs `core.tar.gz` (forum DB + `local.php`) and `plugins.tar.gz` (`storage/plugins/`, WAL-safe plugin SQLite) as separate members in one outer tarball. Restore supports `--core-only` / `--plugins-only` so a harmful plugin can be escaped without replaying plugin state. Legacy flat archives still restore. Flags: `backup --core-only` / `--plugins-only`.
 - **Unique backup filenames** — archive names include a random suffix so multiple backups in the same second (e.g. core-only then plugins-only) never overwrite each other.
 
+### Docs
+- **INSTALL-FEDORA.md** — full **Backups and restore (RPM)** section: paths under `/var/lib/latch/storage/`, `sudo latch backup|restore`, off-site copies, bad-plugin `--core-only`, disaster recovery, upgrade rollback.
+- **CLI / SECURITY / UPGRADE / PLUGINS / INSTALL** — Fedora `sudo latch` examples and links to the RPM backup runbook.
+
 ### Tests
 - **SiteMaintenanceBackupTest** / **SiteRestoreTest** — split archive layout, core-only and plugins-only restore, non-colliding filenames.
 

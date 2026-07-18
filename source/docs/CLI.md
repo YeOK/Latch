@@ -131,10 +131,10 @@ php bin/latch audit
 
 ## backup
 
-Creates a timestamped outer archive under `storage/backups/`:
+Creates a timestamped outer archive under `storage/backups/` (unique even within the same second):
 
 ```text
-latch-backup-YYYYMMDD-HHMMSS.tar.gz
+latch-backup-YYYYMMDD-HHMMSS-<id>.tar.gz
 ├── core.tar.gz       # storage/database/latch.sqlite + config/local.php
 └── plugins.tar.gz    # storage/plugins/* (WAL-safe plugin.sqlite + settings)
 ```
@@ -142,14 +142,20 @@ latch-backup-YYYYMMDD-HHMMSS.tar.gz
 Default backs up **both** parts. Use flags to take only one half:
 
 ```bash
+# Tarball / from source/
 php bin/latch backup                 # core + plugins
 php bin/latch backup --core-only     # forum DB + local.php only
 php bin/latch backup --plugins-only  # plugin storage only
+
+# Fedora/RHEL RPM (writes /var/lib/latch/storage/backups/)
+sudo latch backup
+sudo latch backup --core-only
+sudo latch restore list
 ```
 
 Plugin SQLite files are copied with the same WAL-safe helper as core. Non-SQLite plugin files (e.g. `settings.json`) are included as-is. Sidecar `-wal` / `-shm` files are skipped.
 
-Prefer **`php bin/latch restore --latest`** (site lock required). See [UPGRADE.md](UPGRADE.md).
+Prefer **`php bin/latch restore --latest`** (site lock required). Fedora: **`sudo latch restore --latest`**. See [UPGRADE.md](UPGRADE.md) and [INSTALL-FEDORA.md](INSTALL-FEDORA.md#backups-and-restore-rpm).
 
 **Bad plugin recovery:** restore **core only** so plugin state is left alone (then `plugin disable` / remove), or restore an older archive that predates the bad install:
 
@@ -158,6 +164,12 @@ php bin/latch lock on
 php bin/latch restore --latest --core-only
 php bin/latch plugin disable bad-slug
 php bin/latch lock off
+
+# RPM:
+# sudo latch lock on
+# sudo latch restore --latest --core-only
+# sudo latch plugin disable bad-slug
+# sudo latch lock off
 ```
 
 ---
@@ -194,12 +206,17 @@ sudo -u apache php bin/latch db-check
 ```bash
 php bin/latch restore list
 php bin/latch restore --latest
-php bin/latch restore --name=latch-backup-20260703-120000.tar.gz
+php bin/latch restore --name=latch-backup-20260703-120000-a1b2c3.tar.gz
 php bin/latch restore --archive=/path/to/backup.tar.gz
 php bin/latch restore --latest --with-config   # also restore local.php (disaster recovery)
 php bin/latch restore --latest --core-only     # forum DB only; leave storage/plugins alone
 php bin/latch restore --latest --plugins-only  # plugin storage only; leave latch.sqlite alone
 php bin/latch restore --latest --force         # skip lock gate (dangerous)
+
+# Fedora/RHEL:
+sudo latch restore list
+sudo latch restore --latest --with-config
+sudo latch restore --latest --core-only
 ```
 
 | Flag | Effect |

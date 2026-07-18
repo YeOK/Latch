@@ -11,8 +11,10 @@
 | `fail2ban/` | `latch-login` filter + jail → `/etc/fail2ban/{filter.d,jail.d}/` |
 | `systemd/` | `latch-cron-*.timer` replaces crontab for `apache` |
 
-**Operators:** [source/docs/INSTALL-FEDORA.md](../source/docs/INSTALL-FEDORA.md)  
+**Operators:** [source/docs/INSTALL-FEDORA.md](../source/docs/INSTALL-FEDORA.md) (install, **`sudo latch backup` / restore**, paths under `/var/lib/latch/storage/`)  
 **Maintainer setup:** local `deploy/copr-setup.md` (not in git)
+
+**Backups (RPM):** `%posttrans` and `sudo latch backup` write split archives (`core.tar.gz` + `plugins.tar.gz`) to `/var/lib/latch/storage/backups/`. Keep off-site copies. See [INSTALL-FEDORA.md — Backups](../source/docs/INSTALL-FEDORA.md#backups-and-restore-rpm).
 
 **COPR builds:** enable **Use internet** on the COPR project; `%build` runs `composer install --no-dev` (`BuildRequires: composer`). `source/vendor/` is gitignored — only `composer.lock` is committed.
 

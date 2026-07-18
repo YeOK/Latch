@@ -61,16 +61,31 @@ If **migrate** or **db-check** fails during `bin/latch update`, the site stays l
 
 ```bash
 php bin/latch lock status          # should be on
-php bin/latch restore list         # pick a backup
-php bin/latch restore --latest     # or --name=latch-backup-YYYYMMDD-HHMMSS.tar.gz
+php bin/latch restore list         # pick a backup (shows parts=[core, plugins])
+php bin/latch restore --latest     # core + plugins when both present
+# or: --name=latch-backup-YYYYMMDD-HHMMSS-<id>.tar.gz
+# or: --latest --core-only         # leave storage/plugins alone
 php bin/latch db-check             # must pass before unlock
 php bin/latch lock off
 ```
+
+**Fedora/RHEL (COPR RPM):**
+
+```bash
+sudo latch lock status
+sudo latch restore list
+sudo latch restore --latest --with-config   # restores /etc/latch/local.php too
+sudo latch db-check
+sudo latch lock off
+```
+
+Backups live in `/var/lib/latch/storage/backups/`. Full Fedora backup/restore runbook: [INSTALL-FEDORA.md — Backups](INSTALL-FEDORA.md#backups-and-restore-rpm).
 
 Restore **requires site lock** by default. Break-glass only:
 
 ```bash
 php bin/latch restore --latest --force   # dangerous — logs restore.forced
+# RPM: sudo latch restore --latest --force
 ```
 
 ### If `restore --latest` fails
@@ -94,16 +109,17 @@ php bin/latch db-check
 php bin/latch lock off
 ```
 
-Data loss is possible. Prefer nightly `bin/latch backup` and off-site copies.
+Data loss is possible. Prefer nightly `bin/latch backup` (split core + plugins) and **off-site** copies of `storage/backups/`.
 
 ## What to preserve
 
 | Keep | Replace on upgrade |
 |------|-------------------|
 | `storage/database/latch.sqlite` | `app/`, `bin/`, `public/` |
-| `config/local.php` | `database/migrations/` |
-| `storage/plugins/` (enabled plugins) | `vendor/` (re-run Composer) |
-| `storage/backups/` | Core `themes/`, `lang/` |
+| `config/local.php` (RPM: `/etc/latch/local.php`) | `database/migrations/` |
+| `storage/plugins/` (plugin DBs + settings) | `vendor/` (re-run Composer) |
+| `storage/backups/` (split archives) | Core `themes/`, `lang/` |
+| Enabled plugin **code** under `plugins/` | — reinstall from catalog if missing |
 
 ## If `update.sh` stops at audit
 

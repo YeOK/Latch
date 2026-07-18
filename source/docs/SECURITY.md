@@ -156,14 +156,22 @@ For direct Apache exposure (no proxy), point `logpath` at your access log instea
 ```bash
 php bin/latch backup
 php bin/latch db-check
+
+# Fedora/RHEL:
+sudo latch backup
+sudo latch db-check
 ```
 
-Creates a **WAL-safe** timestamped outer tarball under `storage/backups/` (mode `0750`) with **separate** members:
+Creates a **WAL-safe** outer tarball under `storage/backups/` (RPM: `/var/lib/latch/storage/backups/`) with **separate** members:
 
-- `core.tar.gz` — `latch.sqlite` + `config/local.php`
-- `plugins.tar.gz` — `storage/plugins/` (plugin DBs + settings)
+| Member | Contents |
+|--------|----------|
+| `core.tar.gz` | `latch.sqlite` + `config/local.php` |
+| `plugins.tar.gz` | `storage/plugins/` (plugin DBs + settings) |
 
-Restore either half independently (`restore --core-only` / `--plugins-only`) so a bad plugin install can be escaped without replaying plugin state. Run `db-check` after migrate, restore, or suspected corruption.
+Archive names look like `latch-backup-YYYYMMDD-HHMMSS-<id>.tar.gz` (unique within the same second). Restore either half independently (`restore --core-only` / `--plugins-only`) so a bad plugin install can be escaped without replaying plugin state. Run `db-check` after migrate, restore, or suspected corruption.
+
+Keep **off-site** copies of the outer archive; do not rely only on files next to the live DB. Fedora operator runbook: [INSTALL-FEDORA.md — Backups](INSTALL-FEDORA.md#backups-and-restore-rpm). Full flags: [CLI.md — backup](CLI.md#backup).
 
 ## Corruption and restore
 
@@ -172,6 +180,8 @@ Restore either half independently (`restore --core-only` / `--plugins-only`) so 
 3. **Restore** — `php bin/latch restore --latest` (both parts), or `--core-only` if a plugin is the problem (lock required unless `--force`)
 4. **Verify** — restore runs db-check before success exit (when core is restored)
 5. **Unlock** — `php bin/latch lock off` only after db-check passes
+
+Fedora: prefix with `sudo latch` instead of `php bin/latch`. Use `--with-config` on disaster recovery so `/etc/latch/local.php` returns with the database.
 
 Pre-restore snapshots: `storage/backups/.pre-restore-*.sqlite` (latest symlink). Pruned to three timestamped files.
 
