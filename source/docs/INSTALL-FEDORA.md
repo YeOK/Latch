@@ -51,6 +51,18 @@ sudo vi /etc/httpd/conf.d/latch.conf
 sudo systemctl reload httpd
 ```
 
+### Configure secrets safely (recommended)
+
+Secrets stay in `/etc/latch/local.php` (not the admin UI). Prefer the CLI walkthrough over hand-editing:
+
+```bash
+sudo latch configure           # interactive: site URL, Turnstile, mail, OIDC, plugin keys
+sudo latch configure --show    # masked status of keys
+sudo latch configure --section=turnstile,mail
+```
+
+Cloudflare (Free plan, Tunnel, Turnstile): [CLOUDFLARE.md](CLOUDFLARE.md).
+
 ### Paths (RPM layout)
 
 | Path | Purpose |

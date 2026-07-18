@@ -116,6 +116,15 @@ Turnstile is free for typical forum volumes — create a widget in the dashboard
 
 ### 2. Put keys in `config/local.php` only
 
+**Preferred (interactive, no browser):**
+
+```bash
+php bin/latch configure --section=turnstile   # or: sudo latch configure --section=turnstile
+php bin/latch configure --show                # confirm set without printing secrets
+```
+
+Or edit `config/local.php` / `/etc/latch/local.php` by hand:
+
 ```php
 'security' => [
     'encryption_key' => '…', // existing

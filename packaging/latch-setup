@@ -81,6 +81,11 @@ sudo -u "${WEB_USER}" php "${LATCH_ROOT}/bin/latch" doctor || true
 
 echo ""
 echo "Setup complete."
-echo "  Enable Apache: sudo systemctl enable --now httpd"
+echo "  Enable Apache: sudo systemctl enable --now httpd php-fpm"
 echo "  Edit vhost:    /etc/httpd/conf.d/latch.conf"
 echo "  Config:        /etc/latch/local.php"
+echo ""
+echo "Optional — guided local.php (Turnstile, mail, OIDC, plugin secrets):"
+echo "  sudo latch configure"
+echo "  sudo latch configure --show    # masked status"
+echo "  See: /usr/share/latch/source/docs/CLOUDFLARE.md"

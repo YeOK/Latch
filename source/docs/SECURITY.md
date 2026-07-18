@@ -46,7 +46,13 @@ Applies when the signed-in role is **admin** or **mod** (ordinary members unchan
 | **Step-up** | 15 minute window (`security.staff_stepup_ttl_minutes`) | Sensitive admin POSTs (roles, ban, plugins, settings, site lock, backup, webhooks, …) require `/admin/step-up` (TOTP if enrolled, else password). |
 | **New-login alert** | on (`security.staff_login_alerts`) | First use of a new fingerprint emails the staff account when outbound mail works, and logs `staff_session_new`. |
 
-Tune via `config/local.php` → `security` keys above.
+Tune via `config/local.php` → `security` keys above, or interactively:
+
+```bash
+php bin/latch configure --section=staff,security,turnstile
+# RPM: sudo latch configure --section=staff,security,turnstile
+php bin/latch configure --show
+```
 
 ## Founder account
 

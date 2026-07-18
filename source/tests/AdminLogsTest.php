@@ -28,6 +28,8 @@ final class AdminLogsTest extends TestCase
 {
     private Database $db;
     private Session $session;
+    private UserSessionRepository $sessions;
+    private Request $request;
     private Auth $auth;
 
     protected function setUp(): void
@@ -74,13 +76,29 @@ final class AdminLogsTest extends TestCase
         $config = new Config(LATCH_ROOT . '/config');
         $this->session = new Session();
         $this->session->start($config);
+        $this->sessions = new UserSessionRepository($this->db);
+        $this->request = new Request($config);
         $this->auth = new Auth(
             $this->session,
             new UserRepository($this->db),
-            new UserSessionRepository($this->db),
-            new Request($config),
+            $this->sessions,
+            $this->request,
             new Csrf($this->session),
+            null,
+            $config,
         );
+    }
+
+    /** Staff auth requires a registered user_sessions row (fingerprint / idle). */
+    private function actAsStaff(int $userId): void
+    {
+        $this->session->set('user_id', $userId);
+        $sid = $this->session->id();
+        if ($sid === '') {
+            return;
+        }
+        $fp = hash('sha256', $this->request->userAgent() . '|' . $this->request->ip());
+        $this->sessions->register($sid, $userId, $fp, $this->request->ip(), $this->request->userAgent());
     }
 
     protected function tearDown(): void
@@ -93,7 +111,7 @@ final class AdminLogsTest extends TestCase
     {
         $this->insertUser(2, 'moduser', 'mod', null);
 
-        $this->session->set('user_id', 2);
+        $this->actAsStaff(2);
         $this->assertFalse($this->auth->isAdmin());
         $this->assertTrue($this->auth->isMod());
     }
@@ -101,7 +119,7 @@ final class AdminLogsTest extends TestCase
     public function testAdminWithoutTotpWouldFailRequireAdminGate(): void
     {
         $this->insertUser(3, 'adminuser', 'admin', null);
-        $this->session->set('user_id', 3);
+        $this->actAsStaff(3);
         $this->assertTrue($this->auth->isAdmin());
         $this->assertNull($this->auth->user()['totp_enabled_at'] ?? null);
     }

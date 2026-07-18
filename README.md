@@ -8,9 +8,9 @@ Most forums ask you to run a database server, a cache, a job queue, and a dozen 
 
 **You own the whole stack.** Your posts, users, and config live on your disk. No vendor lock-in, no surprise plan changes, no mining your members for ads. MIT licensed — fork it, theme it, extend it.
 
-**Built for operators, not just visitors.** Install, migrate, backup, restore, health checks, and maintenance are first-class CLI commands (`bin/latch`), not wiki archaeology. Site lock quiesces the forum during upgrades; WAL-safe backups and `db-check` catch corruption before it spreads. Fedora/RHEL operators can `dnf install latch` from COPR. A live reference install runs at **[latch.network](https://latch.network)**.
+**Built for operators, not just visitors.** Install, migrate, backup, restore, health checks, and maintenance are first-class CLI commands (`bin/latch`), not wiki archaeology. Guided **`latch configure`** walks through `local.php` secrets (Turnstile, mail, OIDC) without putting them in the browser. Site lock quiesces the forum during upgrades; WAL-safe backups and `db-check` catch corruption before it spreads. Fedora/RHEL operators can `dnf install latch` from COPR. A live reference install runs at **[latch.network](https://latch.network)**.
 
-**Security is not an afterthought.** Mandatory admin 2FA, strict CSP, session registry, audit logging, board ACLs, report queue, Cloudflare Turnstile on signup, fail2ban on login failures, and a **`plugin-audit` gate** before any plugin is enabled — hardened from Phase 1.5 onward, not bolted on years later. Admin **log viewer** tails `security.log` and optional server logs with filters and redaction.
+**Security is not an afterthought.** Mandatory admin 2FA, **staff session hardening** (fingerprint, idle timeout, step-up for sensitive admin actions), Security mode Standard/High, strict CSP, session registry, audit logging, board ACLs, report queue, Cloudflare Turnstile on signup, fail2ban on login failures, and a **`plugin-audit` gate** before any plugin is enabled — hardened from Phase 1.5 onward, not bolted on years later. Admin **log viewer** tails `security.log` and optional server logs with filters and redaction.
 
 **Modern forum features, modest footprint.** Full-text search, tags, reactions, DMs, notifications, reputation, OAuth API, webhooks, live AJAX preview while composing, fenced code blocks with syntax highlighting, and a **28-hook plugin system** with an official **[Latch-plugins](https://github.com/YeOK/Latch-plugins)** catalog — install from **Admin → Plugins**, update in place, audit before enable. No Redis, Elasticsearch, or a separate Node process.
 
@@ -26,7 +26,7 @@ Most forums ask you to run a database server, a cache, a job queue, and a dozen 
 | **Plugins** | Catalog install + updates; tier-1 plugins include forum-stats, word-filter, spam-bridge, slack-notify, link-preview, privacy analytics, git-release widget |
 | **Admin** | Dashboard, mod tools, board ACLs, **site branding** (logo / favicon / OG), **theme packs** (default, modern, showcase), plugin settings UI |
 | **API** | OAuth 2.0 + PKCE, read/write REST API, webhooks |
-| **Ops** | `bin/latch` CLI — install, migrate, backup, restore, `db-check`, `audit`, `fix-perms`, `logs`, cron timers (RPM) |
+| **Ops** | `bin/latch` CLI — install, **configure**, migrate, backup, restore, `db-check`, `audit`, `fix-perms`, `logs`, cron timers (RPM) |
 
 ### Screenshots
 
@@ -51,7 +51,7 @@ Try it in minutes — download a release tarball, run `php bin/latch install`, p
 
 ## Status
 
-**v0.4.8.0** — public release. Live demo: **[latch.network](https://latch.network)** · Release notes: [CHANGELOG.md](CHANGELOG.md) · Plugins: [Latch-plugins](https://github.com/YeOK/Latch-plugins) · Cloudflare: [source/docs/CLOUDFLARE.md](source/docs/CLOUDFLARE.md)
+**v0.5.0.0** — operator security & setup milestone. Live demo: **[latch.network](https://latch.network)** · Release notes: [CHANGELOG.md](CHANGELOG.md) · Plugins: [Latch-plugins](https://github.com/YeOK/Latch-plugins) · Cloudflare: [source/docs/CLOUDFLARE.md](source/docs/CLOUDFLARE.md)
 
 ## Quick paths
 
@@ -66,9 +66,10 @@ Try it in minutes — download a release tarball, run `php bin/latch install`, p
 ## Install (release tarball)
 
 ```bash
-VERSION=0.4.6.1
+VERSION=0.5.0.0
 tar -xzf latch-${VERSION}.tar.gz && cd latch-${VERSION}-stage
 bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
+# Optional: php bin/latch configure   # Turnstile, mail, OIDC (secrets stay in local.php)
 ```
 
 Download: [GitHub Releases](https://github.com/YeOK/Latch/releases) · Build locally: `./scripts/build-release.sh` → `dist/latch-<version>.tar.gz`

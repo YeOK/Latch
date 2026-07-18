@@ -90,6 +90,7 @@ match ($command) {
     'test-mail' => run_test_mail($argv),
     'mail' => run_mail($argv),
     'security-bootstrap' => run_security_bootstrap(),
+    'configure' => run_configure($argv),
     'totp' => run_totp($argv),
     'search-reindex' => run_search_reindex(),
     'test-rss' => run_test_rss(),
@@ -150,6 +151,8 @@ Latch CLI
   php bin/latch test-mail      Send a test email (verify msmtp/SMTP)
   php bin/latch mail process   Drain pending notification mail queue
   php bin/latch security-bootstrap  Set encryption_key + re-wrap TOTP secrets (server ops)
+  php bin/latch configure        Interactive walkthrough for config/local.php (secrets stay off web UI)
+  php bin/latch configure --show Masked status of local.php keys
   php bin/latch totp reset <username> --confirm  Clear 2FA enrolment (re-setup on next admin login)
   php bin/latch search-reindex Rebuild FTS5 search index (topics, posts, tags)
   php bin/latch reputation-recompute [--user=ID]  Recompute member ranks (all or one user)
@@ -212,6 +215,11 @@ Install options:
   --admin-email=EMAIL          Admin email (default: admin@localhost)
   --admin-pass=PASS            Admin password (prompted if omitted)
   --no-seed-board              Skip creating the default General board
+  --no-configure               Skip optional post-install configure walkthrough prompt
+
+Configure options:
+  --show                       Masked status of config/local.php (no write)
+  --section=LIST               site,security,turnstile,staff,oidc,mail,plugins (default: all)
 
 Maintenance options:
   --clear-cache                Purge guest page cache and Twig compile files
@@ -1544,6 +1552,17 @@ function run_install(array $argv): void
     fwrite(STDOUT, "\nSchedule maintenance (required for production):\n");
     fwrite(STDOUT, "  bash " . dirname(LATCH_ROOT) . "/scripts/install-cron.sh\n");
     fwrite(STDOUT, "  Or copy deploy/cron/latch.cron.example into your system crontab.\n");
+
+    if (!isset($opts['no-configure']) && function_exists('stream_isatty') && stream_isatty(STDIN)) {
+        $answer = strtolower(prompt('Configure Turnstile, mail, Cloudflare, and plugin secrets now?', 'n'));
+        if (in_array($answer, ['y', 'yes'], true)) {
+            run_configure(['latch', 'configure']);
+        } else {
+            fwrite(STDOUT, "Later: php bin/latch configure   (or sudo latch configure on RPM)\n");
+        }
+    } else {
+        fwrite(STDOUT, "\nOptional config walkthrough: php bin/latch configure\n");
+    }
 }
 
 /**
@@ -2928,6 +2947,463 @@ function run_totp_reset(array $argv): void
 
     fwrite(STDOUT, "Reset 2FA for {$username} (user #{$userId}).\n");
     fwrite(STDOUT, "They must sign in and complete 2FA setup again if their role requires it.\n");
+}
+
+/**
+ * Interactive local.php walkthrough — secrets never go through the web UI.
+ *
+ * Usage:
+ *   php bin/latch configure
+ *   php bin/latch configure --show
+ *   php bin/latch configure --section=turnstile
+ *   php bin/latch configure --section=site,mail
+ */
+function run_configure(array $argv): void
+{
+    $opts = parse_cli_options($argv);
+    $configDir = LATCH_ROOT . '/config';
+    $localPath = $configDir . '/local.php';
+
+    if (!is_file($localPath)) {
+        fwrite(STDERR, "config/local.php not found. Run install first (or sudo latch-setup on RPM).\n");
+        exit(1);
+    }
+
+    if (!is_writable($localPath) && !is_writable(dirname($localPath))) {
+        fwrite(STDERR, "Cannot write {$localPath} — run as a user that can edit it (RPM: sudo latch configure).\n");
+        exit(1);
+    }
+
+    $local = require $localPath;
+    if (!is_array($local)) {
+        fwrite(STDERR, "config/local.php must return an array.\n");
+        exit(1);
+    }
+
+    if (isset($opts['show'])) {
+        configure_show_status($local);
+        exit(0);
+    }
+
+    $sections = configure_parse_sections((string) ($opts['section'] ?? 'all'));
+
+    if (!function_exists('stream_isatty') || !stream_isatty(STDIN)) {
+        fwrite(STDERR, "configure requires an interactive terminal (or use --show).\n");
+        exit(1);
+    }
+
+    fwrite(STDOUT, "Latch config walkthrough — edits {$localPath}\n");
+    fwrite(STDOUT, "Secrets are never printed after save. Leave blank to keep the current value.\n\n");
+
+    $changed = false;
+    foreach ($sections as $section) {
+        $changed = configure_section($local, $section) || $changed;
+    }
+
+    if (!$changed) {
+        fwrite(STDOUT, "No changes.\n");
+        exit(0);
+    }
+
+    write_local_config($localPath, $local);
+    @chmod($localPath, 0640);
+    fwrite(STDOUT, "\nWrote {$localPath} (mode preferably 640; web user must read it).\n");
+    fwrite(STDOUT, "Run: php bin/latch doctor\n");
+}
+
+/**
+ * @return list<string>
+ */
+function configure_parse_sections(string $raw): array
+{
+    $raw = strtolower(trim($raw));
+    if ($raw === '' || $raw === 'all') {
+        return ['site', 'security', 'turnstile', 'staff', 'oidc', 'mail', 'plugins'];
+    }
+
+    $allowed = ['site', 'security', 'turnstile', 'staff', 'oidc', 'mail', 'plugins'];
+    $parts = array_values(array_filter(array_map('trim', explode(',', $raw))));
+    $out = [];
+    foreach ($parts as $part) {
+        if (!in_array($part, $allowed, true)) {
+            fwrite(STDERR, "Unknown section '{$part}'. Allowed: " . implode(', ', $allowed) . "\n");
+            exit(1);
+        }
+        $out[] = $part;
+    }
+
+    return $out;
+}
+
+/**
+ * @param array<string, mixed> $local
+ */
+function configure_show_status(array $local): void
+{
+    $sec = is_array($local['security'] ?? null) ? $local['security'] : [];
+    $site = is_array($local['site'] ?? null) ? $local['site'] : [];
+    $oidc = is_array($local['oidc'] ?? null) ? $local['oidc'] : [];
+    $mail = is_array($local['mail'] ?? null) ? $local['mail'] : [];
+    $plugins = is_array($local['plugins'] ?? null) ? $local['plugins'] : [];
+
+    $mask = static function (mixed $value): string {
+        $s = is_string($value) ? trim($value) : '';
+        if ($s === '') {
+            return '(empty)';
+        }
+
+        return 'set (' . strlen($s) . ' chars)';
+    };
+
+    fwrite(STDOUT, "config/local.php (masked)\n");
+    fwrite(STDOUT, '  site.url                 ' . (string) ($site['url'] ?? '(empty)') . "\n");
+    fwrite(STDOUT, '  site.name                ' . (string) ($site['name'] ?? '(empty)') . "\n");
+    fwrite(STDOUT, '  security.encryption_key  ' . $mask($sec['encryption_key'] ?? '') . "\n");
+    fwrite(STDOUT, '  security.turnstile_site  ' . $mask($sec['turnstile_site_key'] ?? '') . "\n");
+    fwrite(STDOUT, '  security.turnstile_secret ' . $mask($sec['turnstile_secret_key'] ?? '') . "\n");
+    fwrite(STDOUT, '  security.trust_cloudflare ' . configure_bool_label($sec['trust_cloudflare'] ?? true) . "\n");
+    fwrite(STDOUT, '  staff fingerprint        ' . configure_bool_label($sec['staff_session_fingerprint'] ?? true) . "\n");
+    fwrite(STDOUT, '  staff idle minutes       ' . (string) ($sec['staff_idle_timeout_minutes'] ?? 30) . "\n");
+    fwrite(STDOUT, '  staff login alerts       ' . configure_bool_label($sec['staff_login_alerts'] ?? true) . "\n");
+    $g = is_array($oidc['google'] ?? null) ? $oidc['google'] : [];
+    $h = is_array($oidc['github'] ?? null) ? $oidc['github'] : [];
+    fwrite(STDOUT, '  oidc.google              ' . $mask($g['client_id'] ?? '') . ' / secret ' . $mask($g['client_secret'] ?? '') . "\n");
+    fwrite(STDOUT, '  oidc.github              ' . $mask($h['client_id'] ?? '') . ' / secret ' . $mask($h['client_secret'] ?? '') . "\n");
+    fwrite(STDOUT, '  mail.transport           ' . (string) ($mail['transport'] ?? 'msmtp') . "\n");
+    fwrite(STDOUT, '  mail.from_email          ' . (string) ($mail['from_email'] ?? '(empty)') . "\n");
+    $iu = is_array($plugins['image_upload'] ?? null) ? $plugins['image_upload'] : [];
+    $sb = is_array($plugins['spam_bridge'] ?? null) ? $plugins['spam_bridge'] : [];
+    $sn = is_array($plugins['slack_notify'] ?? null) ? $plugins['slack_notify'] : [];
+    fwrite(STDOUT, '  plugins.image_upload     account ' . $mask($iu['account_id'] ?? '') . ', key ' . $mask($iu['access_key_id'] ?? '') . "\n");
+    fwrite(STDOUT, '  plugins.spam_bridge      akismet ' . $mask($sb['akismet_api_key'] ?? '') . "\n");
+    fwrite(STDOUT, '  plugins.slack_notify     webhook ' . $mask($sn['webhook_url'] ?? '') . "\n");
+}
+
+function configure_bool_label(mixed $value): string
+{
+    if ($value === false || $value === 0 || $value === '0' || $value === 'false') {
+        return 'false';
+    }
+
+    return 'true';
+}
+
+/**
+ * @param array<string, mixed> $local
+ */
+function configure_section(array &$local, string $section): bool
+{
+    return match ($section) {
+        'site' => configure_section_site($local),
+        'security' => configure_section_security($local),
+        'turnstile' => configure_section_turnstile($local),
+        'staff' => configure_section_staff($local),
+        'oidc' => configure_section_oidc($local),
+        'mail' => configure_section_mail($local),
+        'plugins' => configure_section_plugins($local),
+        default => false,
+    };
+}
+
+/**
+ * @param array<string, mixed> $local
+ */
+function configure_section_site(array &$local): bool
+{
+    fwrite(STDOUT, "── Site ──\n");
+    if (!isset($local['site']) || !is_array($local['site'])) {
+        $local['site'] = [];
+    }
+    $changed = false;
+    $url = (string) ($local['site']['url'] ?? 'http://localhost');
+    $name = (string) ($local['site']['name'] ?? 'Latch');
+    $newUrl = prompt('Public site URL (https://…)', $url);
+    $newName = prompt('Site name', $name);
+    if ($newUrl !== $url) {
+        $local['site']['url'] = rtrim($newUrl, '/');
+        $changed = true;
+    }
+    if ($newName !== $name) {
+        $local['site']['name'] = $newName;
+        $changed = true;
+    }
+
+    return $changed;
+}
+
+/**
+ * @param array<string, mixed> $local
+ */
+function configure_section_security(array &$local): bool
+{
+    fwrite(STDOUT, "── Security (encryption key) ──\n");
+    if (!isset($local['security']) || !is_array($local['security'])) {
+        $local['security'] = [];
+    }
+    $key = trim((string) ($local['security']['encryption_key'] ?? ''));
+    if ($key === '' || $key === 'REPLACE_WITH_BASE64_32_BYTE_KEY') {
+        $gen = strtolower(prompt('Generate security.encryption_key now? (required for admin 2FA)', 'y'));
+        if (in_array($gen, ['y', 'yes'], true)) {
+            $local['security']['encryption_key'] = generate_encryption_key_b64();
+            fwrite(STDOUT, "  Generated encryption_key (not shown).\n");
+
+            return true;
+        }
+
+        return false;
+    }
+
+    fwrite(STDOUT, "  encryption_key: already set (leave alone; use security-bootstrap only if re-wrapping TOTP).\n");
+    $trust = configure_prompt_bool(
+        'Trust Cloudflare client IPs (CF-Connecting-IP when CF-Ray present)?',
+        (bool) ($local['security']['trust_cloudflare'] ?? true),
+    );
+    if ($trust !== (bool) ($local['security']['trust_cloudflare'] ?? true)) {
+        $local['security']['trust_cloudflare'] = $trust;
+
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * @param array<string, mixed> $local
+ */
+function configure_section_turnstile(array &$local): bool
+{
+    fwrite(STDOUT, "── Cloudflare Turnstile ──\n");
+    fwrite(STDOUT, "  Docs: https://developers.cloudflare.com/turnstile/get-started/\n");
+    fwrite(STDOUT, "  Latch guide: docs/CLOUDFLARE.md — same keys for register + login.\n");
+    if (!isset($local['security']) || !is_array($local['security'])) {
+        $local['security'] = [];
+    }
+    $changed = false;
+    $site = configure_prompt_secret('Turnstile site key', (string) ($local['security']['turnstile_site_key'] ?? ''));
+    if ($site !== null) {
+        $local['security']['turnstile_site_key'] = $site;
+        $changed = true;
+    }
+    $secret = configure_prompt_secret('Turnstile secret key', (string) ($local['security']['turnstile_secret_key'] ?? ''));
+    if ($secret !== null) {
+        $local['security']['turnstile_secret_key'] = $secret;
+        $changed = true;
+    }
+    if ($changed) {
+        fwrite(STDOUT, "  Enable widgets in Admin → Settings (or Security mode → High).\n");
+    }
+
+    return $changed;
+}
+
+/**
+ * @param array<string, mixed> $local
+ */
+function configure_section_staff(array &$local): bool
+{
+    fwrite(STDOUT, "── Staff session hardening (admin/mod) ──\n");
+    if (!isset($local['security']) || !is_array($local['security'])) {
+        $local['security'] = [];
+    }
+    $changed = false;
+    $fp = configure_prompt_bool(
+        'Bind staff sessions to IP + browser fingerprint?',
+        (bool) ($local['security']['staff_session_fingerprint'] ?? true),
+    );
+    if ($fp !== (bool) ($local['security']['staff_session_fingerprint'] ?? true)) {
+        $local['security']['staff_session_fingerprint'] = $fp;
+        $changed = true;
+    }
+    $idleDefault = (string) ($local['security']['staff_idle_timeout_minutes'] ?? 30);
+    $idle = prompt('Staff idle timeout minutes (0 = off)', $idleDefault);
+    if ($idle !== $idleDefault && ctype_digit($idle)) {
+        $local['security']['staff_idle_timeout_minutes'] = (int) $idle;
+        $changed = true;
+    }
+    $alerts = configure_prompt_bool(
+        'Email staff on new device login?',
+        (bool) ($local['security']['staff_login_alerts'] ?? true),
+    );
+    if ($alerts !== (bool) ($local['security']['staff_login_alerts'] ?? true)) {
+        $local['security']['staff_login_alerts'] = $alerts;
+        $changed = true;
+    }
+
+    return $changed;
+}
+
+/**
+ * @param array<string, mixed> $local
+ */
+function configure_section_oidc(array &$local): bool
+{
+    fwrite(STDOUT, "── Social login (OIDC) — optional ──\n");
+    $skip = strtolower(prompt('Configure Google/GitHub OAuth app credentials?', 'n'));
+    if (!in_array($skip, ['y', 'yes'], true)) {
+        return false;
+    }
+    if (!isset($local['oidc']) || !is_array($local['oidc'])) {
+        $local['oidc'] = [];
+    }
+    $changed = false;
+    foreach (['google', 'github'] as $provider) {
+        if (!isset($local['oidc'][$provider]) || !is_array($local['oidc'][$provider])) {
+            $local['oidc'][$provider] = ['client_id' => '', 'client_secret' => ''];
+        }
+        fwrite(STDOUT, "  {$provider}:\n");
+        $id = configure_prompt_secret('  client_id', (string) ($local['oidc'][$provider]['client_id'] ?? ''));
+        if ($id !== null) {
+            $local['oidc'][$provider]['client_id'] = $id;
+            $changed = true;
+        }
+        $secret = configure_prompt_secret('  client_secret', (string) ($local['oidc'][$provider]['client_secret'] ?? ''));
+        if ($secret !== null) {
+            $local['oidc'][$provider]['client_secret'] = $secret;
+            $changed = true;
+        }
+    }
+    if ($changed) {
+        fwrite(STDOUT, "  Enable providers in Admin → Settings after keys are set.\n");
+    }
+
+    return $changed;
+}
+
+/**
+ * @param array<string, mixed> $local
+ */
+function configure_section_mail(array &$local): bool
+{
+    fwrite(STDOUT, "── Outbound mail ──\n");
+    if (!isset($local['mail']) || !is_array($local['mail'])) {
+        $local['mail'] = [];
+    }
+    $changed = false;
+    $transport = (string) ($local['mail']['transport'] ?? 'msmtp');
+    $newT = prompt('Transport (msmtp|mail)', $transport);
+    if (in_array($newT, ['msmtp', 'mail'], true) && $newT !== $transport) {
+        $local['mail']['transport'] = $newT;
+        $changed = true;
+    }
+    $from = (string) ($local['mail']['from_email'] ?? 'noreply@localhost');
+    $newFrom = prompt('From email', $from);
+    if ($newFrom !== $from) {
+        $local['mail']['from_email'] = $newFrom;
+        $changed = true;
+    }
+    $fromName = (string) ($local['mail']['from_name'] ?? 'Latch');
+    $newName = prompt('From name', $fromName);
+    if ($newName !== $fromName) {
+        $local['mail']['from_name'] = $newName;
+        $changed = true;
+    }
+    if (($local['mail']['transport'] ?? 'msmtp') === 'msmtp') {
+        $cfg = (string) ($local['mail']['msmtp_config'] ?? '');
+        $newCfg = prompt('msmtp config path (optional)', $cfg !== '' ? $cfg : '/etc/msmtprc');
+        if ($newCfg !== $cfg && $newCfg !== '') {
+            $local['mail']['msmtp_config'] = $newCfg;
+            $changed = true;
+        }
+    }
+    if ($changed) {
+        fwrite(STDOUT, "  Test with: php bin/latch test-mail --to=you@example.com\n");
+    }
+
+    return $changed;
+}
+
+/**
+ * @param array<string, mixed> $local
+ */
+function configure_section_plugins(array &$local): bool
+{
+    fwrite(STDOUT, "── Plugin secrets (optional) ──\n");
+    $skip = strtolower(prompt('Configure image-upload / spam-bridge / slack secrets?', 'n'));
+    if (!in_array($skip, ['y', 'yes'], true)) {
+        return false;
+    }
+    if (!isset($local['plugins']) || !is_array($local['plugins'])) {
+        $local['plugins'] = [];
+    }
+    $changed = false;
+
+    fwrite(STDOUT, "  image-upload (R2):\n");
+    if (!isset($local['plugins']['image_upload']) || !is_array($local['plugins']['image_upload'])) {
+        $local['plugins']['image_upload'] = [];
+    }
+    foreach (['account_id', 'access_key_id', 'secret_access_key', 'bucket', 'public_host'] as $key) {
+        $cur = (string) ($local['plugins']['image_upload'][$key] ?? '');
+        $isSecret = str_contains($key, 'secret') || str_contains($key, 'key_id') || $key === 'access_key_id';
+        if ($isSecret || $key === 'account_id' || $key === 'secret_access_key') {
+            $val = configure_prompt_secret("  {$key}", $cur);
+            if ($val !== null) {
+                $local['plugins']['image_upload'][$key] = $val;
+                $changed = true;
+            }
+        } else {
+            $val = prompt("  {$key}", $cur !== '' ? $cur : ($key === 'bucket' ? 'latch-forum-images' : ''));
+            if ($val !== $cur) {
+                $local['plugins']['image_upload'][$key] = $val;
+                $changed = true;
+            }
+        }
+    }
+
+    fwrite(STDOUT, "  spam-bridge:\n");
+    if (!isset($local['plugins']['spam_bridge']) || !is_array($local['plugins']['spam_bridge'])) {
+        $local['plugins']['spam_bridge'] = [];
+    }
+    $ak = configure_prompt_secret('  akismet_api_key', (string) ($local['plugins']['spam_bridge']['akismet_api_key'] ?? ''));
+    if ($ak !== null) {
+        $local['plugins']['spam_bridge']['akismet_api_key'] = $ak;
+        $changed = true;
+    }
+
+    fwrite(STDOUT, "  slack-notify:\n");
+    if (!isset($local['plugins']['slack_notify']) || !is_array($local['plugins']['slack_notify'])) {
+        $local['plugins']['slack_notify'] = [];
+    }
+    $wh = configure_prompt_secret('  webhook_url', (string) ($local['plugins']['slack_notify']['webhook_url'] ?? ''));
+    if ($wh !== null) {
+        $local['plugins']['slack_notify']['webhook_url'] = $wh;
+        $changed = true;
+    }
+
+    return $changed;
+}
+
+/**
+ * Prompt for a secret. Returns null if user leaves blank (keep current).
+ * Empty string can be forced with a single "-" to clear.
+ */
+function configure_prompt_secret(string $label, string $current): ?string
+{
+    $hint = $current !== '' ? 'set, ' . strlen($current) . ' chars' : 'empty';
+    if (!function_exists('readline') || !stream_isatty(STDIN)) {
+        return null;
+    }
+
+    $value = readline("{$label} [{$hint}; blank=keep, -=clear]: ");
+    if ($value === false) {
+        return null;
+    }
+    $value = trim($value);
+    if ($value === '') {
+        return null;
+    }
+    if ($value === '-') {
+        return '';
+    }
+
+    return $value;
+}
+
+function configure_prompt_bool(string $label, bool $default): bool
+{
+    $def = $default ? 'y' : 'n';
+    $answer = strtolower(prompt($label . ' (y/n)', $def));
+
+    return in_array($answer, ['y', 'yes', '1', 'true'], true);
 }
 
 function run_security_bootstrap(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 /**
  * Copy to local.php during install, or let `php bin/latch install` create it.
+ * Prefer guided edits: `php bin/latch configure` (or `sudo latch configure` on RPM).
  * Secrets stay here — not in the admin UI or database.
  */
 return [

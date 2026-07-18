@@ -7,10 +7,27 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
+## [0.5.0.0] — 2026-07-18
+
+Operator-grade security and setup milestone. Secrets stay in `local.php` (CLI walkthrough); staff sessions are hardened; tier-2 catalog plugins (avatar-url, board-icon-pack) are supported on core hooks from 0.4.8+.
 
 ### Added
 - **Staff session hardening** — for admin/mod only: fingerprint binding (IP+UA), idle timeout (default 30m), step-up TOTP/password for sensitive admin POSTs (`/admin/step-up`), and email alert on new staff device login when mail is configured.
+- **`bin/latch configure`** — interactive walkthrough for `config/local.php` (site, encryption key, Turnstile, staff session, OIDC, mail, plugin secrets). Secrets never re-printed after set; `--show` prints masked status. Optional prompt after interactive `install` (skip with `--no-configure`). RPM `latch-setup` points operators to `sudo latch configure` instead of auto-running it.
+
+### Docs
+- **CLI.md** — full `configure` section; install `--no-configure`.
+- **INSTALL / INSTALL-FEDORA / CLOUDFLARE** — post-install configure path; Turnstile prefers CLI.
+- **SECURITY.md** — staff session controls table.
+
+### Tests
+- **StaffSessionHardeningTest** — fingerprint, idle, step-up window, alerts.
+
+### Latch-plugins
+- Catalog **v1.0.13** — **avatar-url** 1.0.0 (min Latch 0.4.8), **board-icon-pack** 1.0.0 (already on GitHub Releases).
+
+### Deferred (not in 0.5.0)
+- Docker / Packagist demo paths, WebAuthn, fediverse-share, phpBB real-dump operator guide (PR-4), Phase 7 i18n polish.
 
 ## [0.4.8.0] — 2026-07-18
 

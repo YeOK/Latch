@@ -82,7 +82,16 @@ php bin/latch install \
   --admin-email=admin@example.com
 ```
 
-3. **Upgrades** — replace application files, then run `sudo bash scripts/update.sh` from the install root (see [UPGRADE.md](UPGRADE.md)). Existing `storage/database/latch.sqlite` and `config/local.php` are preserved.
+3. **Config walkthrough** (optional, interactive) — after install, set Turnstile, mail, OIDC, and plugin secrets without pasting secrets into the browser:
+
+```bash
+php bin/latch configure
+php bin/latch configure --show
+```
+
+Secrets remain in `config/local.php` only. See [CLOUDFLARE.md](CLOUDFLARE.md) and [CLI.md](CLI.md).
+
+4. **Upgrades** — replace application files, then run `sudo bash scripts/update.sh` from the install root (see [UPGRADE.md](UPGRADE.md)). Existing `storage/database/latch.sqlite` and `config/local.php` are preserved.
 
 Example Apache vhost: `packaging/latch-httpd.conf` (also installed as `/etc/httpd/conf.d/latch.conf` on COPR). Fedora/RHEL: [INSTALL-FEDORA.md](INSTALL-FEDORA.md).
 

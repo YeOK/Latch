@@ -38,6 +38,8 @@ php bin/latch help
 | `lock on\|off\|status` | Site maintenance lock — blocks web + API (no DB traffic) |
 | `search-reindex` | Rebuild FTS5 search index |
 | `security-bootstrap` | Set `encryption_key` and re-wrap TOTP secrets |
+| `configure` | Interactive walkthrough for `config/local.php` (secrets stay off the web UI) |
+| `configure --show` | Masked status of local.php keys (safe to paste in tickets) |
 | `totp reset <username> --confirm` | Clear 2FA enrolment (user re-setups on next login if required) |
 | `api-client` | Create, list, or revoke OAuth API clients |
 | `benchmark` | Curl timing report for key pages |
@@ -76,6 +78,9 @@ php bin/latch install \
 | `--admin-email` | `admin@localhost` | Admin email |
 | `--admin-pass` | *(prompted)* | Admin password |
 | `--no-seed-board` | — | Skip creating the default General board |
+| `--no-configure` | — | Skip the optional post-install config walkthrough prompt |
+
+On an interactive TTY, `install` offers **Configure Turnstile, mail, Cloudflare, and plugin secrets now?** (default no). Non-interactive installs print a one-line tip instead. RPM `latch-setup` never auto-runs the walkthrough — it prints `sudo latch configure` after setup.
 
 ---
 
@@ -461,6 +466,56 @@ php bin/latch security-bootstrap
 ```
 
 Do **not** run this on a site that already has admins enrolled in 2FA unless you are deliberately rotating keys and can decrypt existing secrets (see **totp** below).
+
+---
+
+## configure
+
+Guided editor for operator secrets and site settings in `config/local.php`. Prefer this over pasting secrets into the admin UI or sharing `local.php` in chat.
+
+**Why CLI?** Turnstile secrets, OIDC client secrets, R2 keys, and the encryption key must never be stored in the database or sent through browser forms. Admin → Settings only shows whether keys are **configured**.
+
+```bash
+# Tarball / from source/
+php bin/latch configure
+php bin/latch configure --show
+php bin/latch configure --section=turnstile
+php bin/latch configure --section=site,mail
+
+# RPM (writes /etc/latch/local.php via the package wrapper)
+sudo latch configure
+sudo latch configure --show
+```
+
+| Flag | Description |
+|------|-------------|
+| `--show` | Print masked status (lengths only for secrets). No write. |
+| `--section=…` | Comma-separated subset: `site`, `security`, `turnstile`, `staff`, `oidc`, `mail`, `plugins`. Default `all`. |
+
+**Walkthrough sections**
+
+| Section | What it sets |
+|---------|----------------|
+| `site` | Public URL, site name |
+| `security` | Generate `encryption_key` if missing; Cloudflare IP trust |
+| `turnstile` | Site + secret keys ([CLOUDFLARE.md](CLOUDFLARE.md)) |
+| `staff` | Staff fingerprint, idle timeout, new-login email alerts |
+| `oidc` | Google/GitHub `client_id` / `client_secret` |
+| `mail` | Transport, from address, msmtp path |
+| `plugins` | image-upload (R2), spam-bridge Akismet, slack webhook |
+
+**Secret prompts:** blank keeps the current value; `-` clears. Values are never re-printed after save. File is rewritten with `var_export` and preferably mode `640`.
+
+**When to run**
+
+| Install path | Behaviour |
+|--------------|-----------|
+| `php bin/latch install` (TTY) | Optional prompt at end (unless `--no-configure`) |
+| Non-interactive install | Tip only: `php bin/latch configure` |
+| `sudo latch-setup` (RPM) | **Does not** run configure; prints `sudo latch configure` |
+| Existing site | Re-run anytime; only changed keys are updated |
+
+Requires an interactive terminal (or use `--show`). After writes: `php bin/latch doctor` (or `sudo latch doctor`).
 
 ---
 

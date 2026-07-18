@@ -118,6 +118,8 @@ rsync -a \
     --exclude='source/plugins/md-import/' \
     --exclude='source/plugins/git-release/' \
     --exclude='source/plugins/link-preview/' \
+    --exclude='source/plugins/avatar-url/' \
+    --exclude='source/plugins/board-icon-pack/' \
     --exclude='scripts/latch-logs.sh' \
     --exclude='scripts/setup-api-test-client.sh' \
     --exclude='scripts/install-latch-security.sh' \
