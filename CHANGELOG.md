@@ -9,13 +9,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+## [0.4.8.0] — 2026-07-18
+
 ### Added
+- **Profile avatar URL hooks** — `ProfileSaveContext` avatar fields + `UserRepository::updateAvatarUrl()` so plugins can persist custom HTTPS avatars (catalog **avatar-url** 1.0.0, min Latch 0.4.8).
+- **Board icon keyword registration** — `BoardIconRegistry::registerKeywords()` for plugin packs (catalog **board-icon-pack** 1.0.0).
 - **Cloudflare operator guide** — `docs/CLOUDFLARE.md` (Free plan, Tunnel, Turnstile, IP trust; links to official Cloudflare docs).
-- **Board icon keyword registration** — plugins can call `BoardIconRegistry::registerKeywords()` for auto-suggest (pairs with catalog **board-icon-pack**).
-- **Profile avatar URL hooks** — `ProfileSaveContext` avatar fields + `UserRepository::updateAvatarUrl()` for the **avatar-url** plugin (custom HTTPS avatars on allowlisted hosts).
 
 ### Changed
-- **Docs** — PLUGINS.md hook notes for `board.icons` keywords and profile avatar fields; CLI catalog install wording; README status → 0.4.7.0.
+- **Docs** — PLUGINS.md hook notes for `board.icons` keywords and profile avatar fields; CLI catalog install wording; README status.
+
+### Tests
+- **AvatarUrlPluginTest** — audit, host allowlist, reject private/insecure URLs.
+- **BoardIconRegistryTest** / **BoardIconPackPluginTest** — keywords + pack registration.
+
+### Latch-plugins
+- **avatar-url** 1.0.0 (catalog **v1.0.13**).
+- **board-icon-pack** 1.0.0 (catalog **v1.0.12**).
 
 ## [0.4.7.0] — 2026-07-17
 

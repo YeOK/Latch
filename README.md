@@ -51,7 +51,7 @@ Try it in minutes — download a release tarball, run `php bin/latch install`, p
 
 ## Status
 
-**v0.4.7.0** — public release. Live demo: **[latch.network](https://latch.network)** · Release notes: [CHANGELOG.md](CHANGELOG.md) · Plugins: [Latch-plugins](https://github.com/YeOK/Latch-plugins) · Cloudflare: [source/docs/CLOUDFLARE.md](source/docs/CLOUDFLARE.md)
+**v0.4.8.0** — public release. Live demo: **[latch.network](https://latch.network)** · Release notes: [CHANGELOG.md](CHANGELOG.md) · Plugins: [Latch-plugins](https://github.com/YeOK/Latch-plugins) · Cloudflare: [source/docs/CLOUDFLARE.md](source/docs/CLOUDFLARE.md)
 
 ## Quick paths
 
