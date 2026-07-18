@@ -422,6 +422,26 @@ final class UserRepository
         ]);
     }
 
+    /**
+     * Custom avatar URL (plugins). Pass null to clear.
+     */
+    public function updateAvatarUrl(int $id, ?string $avatarUrl): void
+    {
+        $url = $avatarUrl !== null ? trim($avatarUrl) : null;
+        if ($url === '') {
+            $url = null;
+        }
+        if ($url !== null && strlen($url) > 500) {
+            $url = substr($url, 0, 500);
+        }
+
+        $stmt = $this->db->pdo()->prepare('UPDATE users SET avatar_url = :avatar_url WHERE id = :id');
+        $stmt->execute([
+            'avatar_url' => $url,
+            'id' => $id,
+        ]);
+    }
+
     public function updateThemeMode(int $id, string $mode): void
     {
         $mode = strtolower(trim($mode));

@@ -12,6 +12,7 @@ Work in progress on `main` — not tagged or released yet. Fold into the next ve
 ### Added
 - **Cloudflare operator guide** — `docs/CLOUDFLARE.md` (Free plan, Tunnel, Turnstile, IP trust; links to official Cloudflare docs).
 - **Board icon keyword registration** — plugins can call `BoardIconRegistry::registerKeywords()` for auto-suggest (pairs with catalog **board-icon-pack**).
+- **Profile avatar URL hooks** — `ProfileSaveContext` avatar fields + `UserRepository::updateAvatarUrl()` for the **avatar-url** plugin (custom HTTPS avatars on allowlisted hosts).
 
 ## [0.4.7.0] — 2026-07-17
 

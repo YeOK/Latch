@@ -166,7 +166,10 @@ final class ProfileController
             Response::redirect('/profile');
         }
 
-        $profileContext = new ProfileSaveContext($bio, $user);
+        $avatarField = $this->app->request()->input('avatar_url');
+        $avatarUrlInput = is_string($avatarField) ? trim($avatarField) : null;
+
+        $profileContext = new ProfileSaveContext($bio, $user, $avatarUrlInput);
         $rejectReason = $this->app->applyProfileBeforeSave($profileContext);
         if ($rejectReason !== null) {
             $this->app->session()->flash('error', $rejectReason);
@@ -174,6 +177,9 @@ final class ProfileController
         }
 
         $this->app->users()->updateProfile((int) $user['id'], $profileContext->bio);
+        if ($profileContext->updateAvatarUrl) {
+            $this->app->users()->updateAvatarUrl((int) $user['id'], $profileContext->avatarUrl);
+        }
         $this->app->invalidateCacheTags([Cache::tagUser((int) $user['id'])]);
         $this->app->session()->flash('success', 'Profile updated.');
         Response::redirect('/profile');
