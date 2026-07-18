@@ -9,6 +9,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work in progress on `main` — not tagged or released yet. Fold into the next version section before `scripts/build-release.sh`.
 
+### Added
+- **Staff session hardening** — for admin/mod only: fingerprint binding (IP+UA), idle timeout (default 30m), step-up TOTP/password for sensitive admin POSTs (`/admin/step-up`), and email alert on new staff device login when mail is configured.
+
 ## [0.4.8.0] — 2026-07-18
 
 ### Added

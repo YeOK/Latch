@@ -119,6 +119,40 @@ final class UserSessionRepository
         return $revoked !== false && $revoked !== null;
     }
 
+    /**
+     * Active (non-revoked) session row, or null.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findActive(string $sessionId): ?array
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT * FROM user_sessions WHERE id = :id AND revoked_at IS NULL LIMIT 1'
+        );
+        $stmt->execute(['id' => $sessionId]);
+        $row = $stmt->fetch();
+
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Whether this fingerprint has been seen for the user (including revoked sessions).
+     */
+    public function hasFingerprint(int $userId, string $fingerprint): bool
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT 1 FROM user_sessions
+             WHERE user_id = :user_id AND fingerprint = :fingerprint
+             LIMIT 1'
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+            'fingerprint' => $fingerprint,
+        ]);
+
+        return $stmt->fetchColumn() !== false;
+    }
+
     public function pruneStale(int $days = 90): int
     {
         $stmt = $this->db->pdo()->prepare(

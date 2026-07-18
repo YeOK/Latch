@@ -19,6 +19,11 @@ return [
         // 'turnstile_site_key' => '',
         // 'turnstile_secret_key' => '',
         // 'trust_cloudflare' => true, // default; set false if not behind Cloudflare
+        // Staff session hardening (admin/mod) — see docs/SECURITY.md
+        // 'staff_session_fingerprint' => true,
+        // 'staff_idle_timeout_minutes' => 30, // 0 = off
+        // 'staff_stepup_ttl_minutes' => 15,
+        // 'staff_login_alerts' => true, // email on new staff device when mail works
     ],
     // Optional social sign-in (enable per provider in Admin → Settings)
     'oidc' => [

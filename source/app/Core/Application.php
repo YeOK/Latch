@@ -309,7 +309,17 @@ final class Application implements PluginCollectContext
             $this->registrationGuard,
         );
 
-        $this->auth = new Auth($this->session, $this->users, $this->userSessions, $this->request, $this->csrf, $this->twoFactor);
+        $this->auth = new Auth(
+            $this->session,
+            $this->users,
+            $this->userSessions,
+            $this->request,
+            $this->csrf,
+            $this->twoFactor,
+            $this->config,
+            $this->securityLog,
+            $this->mail,
+        );
         $this->reputation = new ReputationService($this->db, $this->users, $this->settings);
         $this->moderationTrash = new ModerationTrashService(
             $this->db,
@@ -536,6 +546,8 @@ final class Application implements PluginCollectContext
         $this->router->post('/report/user/:id', $this->bind($report, 'reportUser'));
 
         $this->router->get('/admin', $this->bind($admin, 'index'));
+        $this->router->get('/admin/step-up', $this->bind($admin, 'showStepUp'));
+        $this->router->post('/admin/step-up', $this->bind($admin, 'verifyStepUp'));
         $this->router->post('/admin/backup', $this->bind($admin, 'createBackup'));
         $this->router->post('/admin/site-lock', $this->bind($admin, 'enableSiteLock'));
         $this->router->get('/admin/site-lock/enabled', $this->bind($admin, 'showSiteLockEnabled'));

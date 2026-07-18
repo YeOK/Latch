@@ -1,0 +1,40 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Confirm identity — Admin{% endblock %}
+
+{% block admin_content %}
+    <section class="page-header">
+        <h1>Confirm your identity</h1>
+        <p class="muted">
+            Sensitive staff actions require a recent confirmation (valid about {{ stepup_ttl_minutes }} minutes).
+            You will return to <code>{{ return_path }}</code> after success.
+        </p>
+    </section>
+
+    <section class="form-section auth-card" style="max-width: 28rem;">
+        <form method="post" action="/admin/step-up" class="form">
+            {{ csrf_field() }}
+            {% if has_totp %}
+                <label>
+                    Authentication code
+                    <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" autofocus required>
+                </label>
+                <details class="muted" style="margin-top:0.75rem">
+                    <summary>Use a recovery code instead</summary>
+                    <label style="margin-top:0.5rem">
+                        Recovery code
+                        <input type="text" name="recovery_code" placeholder="XXXX-XXXX" autocomplete="off">
+                    </label>
+                </details>
+            {% else %}
+                <p class="muted">Two-factor is not enabled on this account — enter your password to continue.</p>
+                <label>
+                    Password
+                    <input type="password" name="password" autocomplete="current-password" required autofocus>
+                </label>
+            {% endif %}
+            <button type="submit" class="btn btn-primary">Confirm</button>
+            <a class="btn" href="/admin">Cancel</a>
+        </form>
+    </section>
+{% endblock %}

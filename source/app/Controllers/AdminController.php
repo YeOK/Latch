@@ -190,9 +190,71 @@ final class AdminController
         $this->finishTrashPurge((int) ($params['id'] ?? 0));
     }
 
+    public function showStepUp(array $params = []): void
+    {
+        $this->app->auth()->requireMod();
+        $user = $this->app->auth()->user();
+        if ($user === null) {
+            Response::redirect('/login');
+        }
+
+        $this->app->render('admin/step_up.html.twig', [
+            'username' => (string) ($user['username'] ?? ''),
+            'has_totp' => $this->app->twoFactor()->isEnabled($user),
+            'return_path' => $this->app->auth()->peekStaffStepUpReturn(),
+            'stepup_ttl_minutes' => max(1, (int) $this->app->config()->get('security.staff_stepup_ttl_minutes', 15)),
+        ]);
+    }
+
+    public function verifyStepUp(array $params = []): void
+    {
+        $this->app->auth()->requireMod();
+        $this->validateStaffCsrf();
+
+        $user = $this->app->auth()->user();
+        if ($user === null) {
+            Response::redirect('/login');
+        }
+
+        $twoFactor = $this->app->twoFactor();
+        $ok = false;
+
+        if ($twoFactor->isEnabled($user)) {
+            $code = trim((string) $this->app->request()->input('code', ''));
+            $recovery = trim((string) $this->app->request()->input('recovery_code', ''));
+            if ($code !== '' && $twoFactor->verifyCode($user, $code)) {
+                $ok = true;
+            } elseif ($recovery !== '' && $twoFactor->verifyRecoveryCode((int) $user['id'], $recovery)) {
+                $ok = true;
+            }
+        } else {
+            $password = (string) $this->app->request()->input('password', '');
+            $ok = $password !== '' && password_verify($password, (string) $user['password_hash']);
+        }
+
+        if (!$ok) {
+            $this->app->securityLog()->log('staff_stepup_fail', [
+                'ip' => $this->app->request()->ip(),
+                'user_id' => (int) $user['id'],
+                'username' => (string) ($user['username'] ?? ''),
+            ]);
+            $this->finishStaffAction(false, 'Verification failed. Try again.', '/admin/step-up');
+        }
+
+        $this->app->auth()->markStaffStepUp();
+        $this->app->securityLog()->log('staff_stepup_ok', [
+            'ip' => $this->app->request()->ip(),
+            'user_id' => (int) $user['id'],
+            'username' => (string) ($user['username'] ?? ''),
+        ]);
+        $return = $this->app->auth()->consumeStaffStepUpReturn();
+        $this->finishStaffAction(true, 'Identity confirmed. You can continue for a short time.', $return);
+    }
+
     public function enableSiteLock(array $params = []): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $storagePath = (string) $this->app->config()->get('paths.storage');
@@ -251,6 +313,7 @@ final class AdminController
     public function createBackup(array $params = []): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $storagePath = (string) $this->app->config()->get('paths.storage');
@@ -304,6 +367,7 @@ final class AdminController
     public function purgeAllModTrash(array $params = []): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $result = $this->app->moderationTrash()->purgeAllTrash();
@@ -486,6 +550,7 @@ final class AdminController
     public function setRole(array $params): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $id = (int) ($params['id'] ?? 0);
@@ -532,6 +597,7 @@ final class AdminController
     public function banUser(array $params): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $id = (int) ($params['id'] ?? 0);
@@ -583,6 +649,7 @@ final class AdminController
     public function unbanUser(array $params): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $id = (int) ($params['id'] ?? 0);
@@ -617,6 +684,7 @@ final class AdminController
     public function bulkBanUsers(array $params = []): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $ids = $this->parseBulkUserIds();
@@ -665,6 +733,7 @@ final class AdminController
     public function bulkUnbanUsers(array $params = []): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $ids = $this->parseBulkUserIds();
@@ -841,6 +910,7 @@ final class AdminController
     public function deleteBoard(array $params): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
 
         if (!$this->app->csrf()->validate($this->app->request()->input('_csrf'))) {
             Response::forbidden('Invalid form token.');
@@ -976,6 +1046,7 @@ final class AdminController
     public function saveSettings(array $params = []): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $siteName = trim((string) $this->app->request()->input('site_name', ''));
@@ -1946,6 +2017,7 @@ final class AdminController
     public function installCatalogPlugin(array $params = []): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $slug = trim((string) ($this->app->request()->input('slug') ?? ''));
@@ -2021,6 +2093,7 @@ final class AdminController
     public function updateCatalogPlugin(array $params = []): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $slug = trim((string) ($params['slug'] ?? ''));
@@ -2185,6 +2258,7 @@ final class AdminController
     public function enablePlugin(array $params): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $slug = trim((string) ($params['slug'] ?? ''));
@@ -2250,6 +2324,7 @@ final class AdminController
     public function disablePlugin(array $params): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $slug = trim((string) ($params['slug'] ?? ''));
@@ -2286,6 +2361,7 @@ final class AdminController
     public function removePlugin(array $params): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $slug = trim((string) ($params['slug'] ?? ''));
@@ -2577,6 +2653,7 @@ final class AdminController
     public function createWebhook(array $params = []): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $url = trim((string) $this->app->request()->input('url', ''));
@@ -2619,6 +2696,7 @@ final class AdminController
     public function deleteWebhook(array $params): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $id = (int) ($params['id'] ?? 0);

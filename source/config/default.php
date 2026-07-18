@@ -67,6 +67,11 @@ return [
         'turnstile_site_key' => '',
         'turnstile_secret_key' => '',
         'registration_max_per_ip_hour' => 3,
+        // Staff (admin/mod) session hardening — see docs/SECURITY.md.
+        'staff_session_fingerprint' => true,
+        'staff_idle_timeout_minutes' => 30,
+        'staff_stepup_ttl_minutes' => 15,
+        'staff_login_alerts' => true,
     ],
     'cache' => [
         'enabled' => true,
@@ -110,6 +115,11 @@ return [
             'totp_enabled',
             'totp_disabled',
             'totp_recovery_regenerated',
+            'session_fingerprint_mismatch',
+            'session_idle_timeout',
+            'staff_session_new',
+            'staff_stepup_ok',
+            'staff_stepup_fail',
         ],
         'sources' => [],
     ],

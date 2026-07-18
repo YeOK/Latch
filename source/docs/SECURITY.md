@@ -35,6 +35,19 @@ Applied on every response via `Latch\Core\SecurityHeaders`:
 - Session list + revoke from profile; all sessions invalidated on password reset
 - **Authorized applications** on profile — list OAuth apps you approved and revoke their access tokens (logged to `security.log` as `oauth_app_revoke`)
 
+### Staff session hardening (admin / mod)
+
+Applies when the signed-in role is **admin** or **mod** (ordinary members unchanged).
+
+| Control | Default | Behaviour |
+|---------|---------|-----------|
+| **Fingerprint** | on (`security.staff_session_fingerprint`) | Session bound to `sha256(User-Agent \| IP)` at login. Mismatch → revoke + `session_fingerprint_mismatch` in `security.log`. Mobile IP changes may force re-login. |
+| **Idle timeout** | 30 minutes (`security.staff_idle_timeout_minutes`; `0` = off) | No request for N minutes → logout + `session_idle_timeout`. |
+| **Step-up** | 15 minute window (`security.staff_stepup_ttl_minutes`) | Sensitive admin POSTs (roles, ban, plugins, settings, site lock, backup, webhooks, …) require `/admin/step-up` (TOTP if enrolled, else password). |
+| **New-login alert** | on (`security.staff_login_alerts`) | First use of a new fingerprint emails the staff account when outbound mail works, and logs `staff_session_new`. |
+
+Tune via `config/local.php` → `security` keys above.
+
 ## Founder account
 
 User id `1` (first installed admin) cannot be demoted or banned by other admins. Blocked attempts are written to the audit log and `storage/logs/security.log`.
