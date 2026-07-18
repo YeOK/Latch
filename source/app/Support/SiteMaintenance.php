@@ -76,7 +76,8 @@ final class SiteMaintenance
             ];
         }
 
-        $timestamp = gmdate('Ymd-His');
+        // Unique even when multiple backups run in the same second (core-only then plugins-only).
+        $timestamp = gmdate('Ymd-His') . '-' . substr(bin2hex(random_bytes(3)), 0, 6);
         $archive = $backupDir . "/latch-backup-{$timestamp}.tar.gz";
 
         $sourceRoot = realpath(dirname(rtrim($storagePath, '/')));

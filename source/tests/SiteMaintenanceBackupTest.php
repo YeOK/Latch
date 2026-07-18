@@ -112,6 +112,27 @@ final class SiteMaintenanceBackupTest extends TestCase
         $this->assertSame(['core'], $meta['parts']);
     }
 
+    public function testRapidBackupsDoNotOverwriteEachOther(): void
+    {
+        $a = SiteMaintenance::createBackup(
+            $this->storagePath,
+            $this->dbPath,
+            $this->root . '/config/local.php',
+            ['core' => true, 'plugins' => false],
+        );
+        $b = SiteMaintenance::createBackup(
+            $this->storagePath,
+            $this->dbPath,
+            $this->root . '/config/local.php',
+            ['core' => true, 'plugins' => false],
+        );
+
+        $this->assertTrue($a['ok'] && $b['ok']);
+        $this->assertNotSame($a['path'], $b['path']);
+        $this->assertFileExists((string) $a['path']);
+        $this->assertFileExists((string) $b['path']);
+    }
+
     private function removeTree(string $path): void
     {
         if (!is_dir($path)) {
