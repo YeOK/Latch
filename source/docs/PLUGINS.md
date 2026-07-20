@@ -288,6 +288,8 @@ $hooks->add(HookName::TOPIC_ACTIONS, static function (Application $app, array $t
 });
 ```
 
+Catalog plugin **fediverse-share** ships a full share panel (instance picker, Mastodon/Misskey, copy link, Web Share) on this hook.
+
 ### `profile.form` + `profile.before_save` (avatar-url)
 
 ```php

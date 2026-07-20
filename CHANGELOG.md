@@ -7,6 +7,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Docs
+- **PLUGINS.md** — fediverse-share catalog plugin on `topic.actions`.
+
+### Tests
+- **FediverseSharePluginTest** — audit, URL builder, XSS-safe panel (catalog plugin).
+
+### Latch-plugins
+- Catalog **v1.0.14** — **fediverse-share** 1.0.0.
+
 ## [0.5.1.0] — 2026-07-18
 
 Solid backup/restore: plugin storage is included, core and plugins are separate members for safer recovery, and Fedora operators get a full runbook.
