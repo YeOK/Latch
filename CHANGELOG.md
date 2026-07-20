@@ -14,7 +14,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **FediverseSharePluginTest** — audit, URL builder, XSS-safe panel (catalog plugin).
 
 ### Latch-plugins
-- Catalog **v1.0.14** — **fediverse-share** 1.0.0.
+- Catalog **v1.0.15** — **fediverse-share** 1.0.1 (fix: panel clipped by `.topic-view` overflow; fixed placement + dark theme contrast).
 
 ## [0.5.1.0] — 2026-07-18
 
