@@ -7,8 +7,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.2.0] — 2026-07-20
+
+Fewer SQLite round-trips on everyday pages — no feature or polish loss.
+
 ### Changed
-- **Hot-path SQL** — request-level settings hydrate (one load of `settings`); memoize `Auth::user()` (and session touch once); batch mod revision counts on topic view; single unread-flags query for all home recent topics; topic pagination uses `LIMIT n+1` instead of separate existence queries. See `docs/PERFORMANCE.md`.
+- **Hot-path SQL** — request-level settings hydrate (one load of `settings`); memoize `Auth::user()` (session touch once; staff fingerprint/idle still re-checked); batch mod revision counts on topic view; single unread-flags query for all home recent topics; topic pagination uses `LIMIT n+1` instead of separate existence queries. See `docs/PERFORMANCE.md`.
 
 ### Docs
 - **PLUGINS.md** — fediverse-share catalog plugin on `topic.actions`.
@@ -19,7 +23,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **SettingRepositoryCacheTest**, **PostRevisionBatchTest**, pagination limit+1 cases.
 
 ### Latch-plugins
-- Catalog **v1.0.15** — **fediverse-share** 1.0.1 (fix: panel clipped by `.topic-view` overflow; fixed placement + dark theme contrast).
+- Catalog **v1.0.15** — **fediverse-share** 1.0.1 (panel overflow fix; already on GitHub Releases).
 
 ## [0.5.1.0] — 2026-07-18
 
