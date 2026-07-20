@@ -1125,6 +1125,21 @@ final class Application implements PluginCollectContext
         $summaries = $this->topics->activitySummariesForBoards($boardIds, $isMod);
         $recentByBoard = $this->topics->recentTopicsForBoards($boardIds, 4, $isMod);
 
+        // One avatar + unread pass for all recent topics (not per board).
+        $flatRecent = [];
+        foreach ($boardIds as $boardId) {
+            foreach ($recentByBoard[$boardId] ?? [] as $topic) {
+                $flatRecent[] = $topic;
+            }
+        }
+        $flatRecent = $this->enrichTopicsWithAvatars($flatRecent);
+        $flatRecent = $this->enrichTopicsWithUnread($flatRecent, $viewerId);
+        $enrichedByBoard = [];
+        foreach ($flatRecent as $topic) {
+            $bid = (int) ($topic['board_id'] ?? 0);
+            $enrichedByBoard[$bid][] = $topic;
+        }
+
         foreach ($boards as $i => $board) {
             $boardId = (int) $board['id'];
             $summary = $summaries[$boardId] ?? [
@@ -1135,10 +1150,7 @@ final class Application implements PluginCollectContext
             $boards[$i]['topic_count'] = $summary['topic_count'];
             $boards[$i]['post_count'] = $summary['post_count'];
             $boards[$i]['last_activity_at'] = $summary['last_activity_at'];
-
-            $recent = $recentByBoard[$boardId] ?? [];
-            $recent = $this->enrichTopicsWithAvatars($recent);
-            $boards[$i]['recent_topics'] = $this->enrichTopicsWithUnread($recent, $viewerId);
+            $boards[$i]['recent_topics'] = $enrichedByBoard[$boardId] ?? [];
         }
 
         return $boards;

@@ -2,6 +2,16 @@
 
 Operator-focused query counts for pages that affect daily perceived speed. Lighthouse on staging is useful; **N+1 patterns on board/topic pages matter more** on production with real data.
 
+## Request-level SQL reductions (2026-07)
+
+| Change | Effect |
+|--------|--------|
+| **`SettingRepository` hydrate** | One `SELECT key, value FROM settings` per request (was one SELECT per `get()`) |
+| **`Auth::user()` memo** | User + session checks once per request; `user_sessions.touch` once (was every `user()` / `isMod()` call) |
+| **Revision counts batch** | Mods on topic view: one `GROUP BY post_id` (was `COUNT` per edited post) |
+| **Home unread batch** | One unread-flags query for all recent topics across boards (was one per board) |
+| **Topic cursor `LIMIT n+1`** | `has_more` / `has_earlier` from extra row (no separate existence queries) |
+
 ## Home (`/`)
 
 | Query | Count (typical) | Notes |
@@ -9,10 +19,12 @@ Operator-focused query counts for pages that affect daily perceived speed. Light
 | Board list | 1 | `BoardRepository::all()` |
 | Activity summaries | 1 | `TopicRepository::activitySummariesForBoards()` — grouped aggregate |
 | Recent topics per board | **1** | `TopicRepository::recentTopicsForBoards()` — `ROW_NUMBER() OVER (PARTITION BY board_id …)` (was N+1 per board) |
-| Plugin hooks / settings | 1–2 | Cached per request |
+| Unread flags (logged-in) | **1** | All recent topic ids in one `unreadFlagsForTopics()` |
+| Settings | **1** | Full `settings` table hydrate |
+| Plugin hooks | 0–2 | Per-request plugin collect |
 
 **Before fix:** 1 + N boards for recent topics (e.g. 5 boards → 6 queries).  
-**After fix:** 3 SQL round-trips for board data regardless of board count.
+**After fix:** 3 SQL round-trips for board data regardless of board count (+ 1 unread when logged in).
 
 ## Board (`/board/{slug}`)
 

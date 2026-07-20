@@ -54,12 +54,39 @@ final class PostRevisionRepository
 
     public function countForPost(int $postId): int
     {
-        $stmt = $this->db->pdo()->prepare(
-            'SELECT COUNT(*) FROM post_revisions WHERE post_id = :post_id'
-        );
-        $stmt->execute(['post_id' => $postId]);
+        $counts = $this->countsForPosts([$postId]);
 
-        return (int) $stmt->fetchColumn();
+        return $counts[$postId] ?? 0;
+    }
+
+    /**
+     * Revision counts keyed by post id (missing keys mean zero).
+     *
+     * @param list<int> $postIds
+     * @return array<int, int>
+     */
+    public function countsForPosts(array $postIds): array
+    {
+        $postIds = array_values(array_unique(array_filter($postIds, static fn (int $id): bool => $id > 0)));
+        if ($postIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($postIds), '?'));
+        $stmt = $this->db->pdo()->prepare(
+            "SELECT post_id, COUNT(*) AS cnt
+             FROM post_revisions
+             WHERE post_id IN ({$placeholders})
+             GROUP BY post_id"
+        );
+        $stmt->execute($postIds);
+
+        $counts = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $counts[(int) $row['post_id']] = (int) $row['cnt'];
+        }
+
+        return $counts;
     }
 
     /**

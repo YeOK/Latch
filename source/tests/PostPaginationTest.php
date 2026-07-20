@@ -108,6 +108,36 @@ final class PostPaginationTest extends TestCase
         $this->assertFalse($this->posts->hasPostsBefore(10, 1, null, false, false));
     }
 
+    public function testLimitPlusOneDetectsHasMore(): void
+    {
+        $page = $this->posts->listByTopicCursor(10, null, false, false, 3, null);
+        $this->assertCount(3, $page);
+
+        $overflow = $this->posts->listByTopicCursor(10, null, false, false, 3 + 1, null);
+        $this->assertCount(4, $overflow);
+        $hasMore = count($overflow) > 3;
+        if ($hasMore) {
+            array_pop($overflow);
+        }
+        $this->assertTrue($hasMore);
+        $this->assertCount(3, $overflow);
+        $this->assertSame(3, (int) $overflow[2]['id']);
+    }
+
+    public function testTailLimitPlusOneDetectsHasEarlier(): void
+    {
+        $overflow = $this->posts->listByTopicTail(10, null, false, false, 2 + 1);
+        $this->assertCount(3, $overflow);
+        $hasEarlier = count($overflow) > 2;
+        if ($hasEarlier) {
+            array_shift($overflow);
+        }
+        $this->assertTrue($hasEarlier);
+        $this->assertCount(2, $overflow);
+        $this->assertSame(4, (int) $overflow[0]['id']);
+        $this->assertSame(5, (int) $overflow[1]['id']);
+    }
+
     public function testCountVisibleUpToId(): void
     {
         $this->assertSame(3, $this->posts->countVisibleUpToId(10, 3, null, false, false));

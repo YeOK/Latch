@@ -204,9 +204,13 @@ final class TopicController
             $viewerId,
             $isMod,
             $isTrashBoard,
-            $perPage,
+            $perPage + 1,
             $afterId,
         );
+        $hasMore = count($posts) > $perPage;
+        if ($hasMore) {
+            array_pop($posts);
+        }
         $baseIndex = $this->app->posts()->countVisibleUpToId(
             (int) $topic['id'],
             $afterId,
@@ -217,13 +221,6 @@ final class TopicController
         $posts = $this->finalizeTopicPosts($posts, $topic, $board, $user, $isMod, $isTrashBoard, $baseIndex);
 
         $lastId = $posts !== [] ? (int) $posts[array_key_last($posts)]['id'] : $afterId;
-        $hasMore = $this->app->posts()->hasPostsAfter(
-            (int) $topic['id'],
-            $lastId,
-            $viewerId,
-            $isMod,
-            $isTrashBoard,
-        );
 
         $html = $this->app->renderPartial('partials/topic_posts.html.twig', [
             'topic' => $topic,
@@ -287,17 +284,14 @@ final class TopicController
         }
 
         if ($showLatest) {
-            $posts = $this->app->posts()->listByTopicTail($topicId, $viewerId, $isMod, $isTrashBoard, $perPage);
+            // LIMIT n+1 (DESC) then reverse → extra oldest row signals has_earlier.
+            $posts = $this->app->posts()->listByTopicTail($topicId, $viewerId, $isMod, $isTrashBoard, $perPage + 1);
+            $hasEarlier = count($posts) > $perPage;
+            if ($hasEarlier) {
+                array_shift($posts);
+            }
             $baseIndex = max(0, $total - count($posts));
             $posts = $this->finalizeTopicPosts($posts, $topic, $board, $user, $isMod, $isTrashBoard, $baseIndex);
-            $firstId = $posts !== [] ? (int) $posts[0]['id'] : 0;
-            $hasEarlier = $firstId > 0 && $this->app->posts()->hasPostsBefore(
-                $topicId,
-                $firstId,
-                $viewerId,
-                $isMod,
-                $isTrashBoard,
-            );
 
             return [
                 'posts' => $posts,
@@ -310,23 +304,21 @@ final class TopicController
             ];
         }
 
+        // LIMIT n+1 → extra newest row signals has_more (no second existence query).
         $posts = $this->app->posts()->listByTopicCursor(
             $topicId,
             $viewerId,
             $isMod,
             $isTrashBoard,
-            $perPage,
+            $perPage + 1,
             null,
         );
+        $hasMore = count($posts) > $perPage;
+        if ($hasMore) {
+            array_pop($posts);
+        }
         $posts = $this->finalizeTopicPosts($posts, $topic, $board, $user, $isMod, $isTrashBoard, 0);
         $lastId = $posts !== [] ? (int) $posts[array_key_last($posts)]['id'] : 0;
-        $hasMore = $lastId > 0 && $this->app->posts()->hasPostsAfter(
-            $topicId,
-            $lastId,
-            $viewerId,
-            $isMod,
-            $isTrashBoard,
-        );
 
         return [
             'posts' => $posts,
@@ -386,10 +378,16 @@ final class TopicController
             ? $this->app->postRevisions()->latestEditorsForPosts($editedPostIds)
             : [];
 
+        $revisionCounts = [];
+        if ($isMod && $posts !== []) {
+            $allIds = array_map(static fn (array $p): int => (int) $p['id'], $posts);
+            $revisionCounts = $this->app->postRevisions()->countsForPosts($allIds);
+        }
+
         foreach ($posts as $i => $post) {
             $posts[$i]['can_edit'] = $this->app->canUserEditPost($post, $topic, $user, $isMod);
             $posts[$i]['revision_count'] = $isMod
-                ? $this->app->postRevisions()->countForPost((int) $post['id'])
+                ? ($revisionCounts[(int) $post['id']] ?? 0)
                 : 0;
 
             $editor = $latestEditors[(int) $post['id']] ?? null;

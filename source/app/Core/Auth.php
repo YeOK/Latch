@@ -27,6 +27,11 @@ final class Auth
     private const SESSION_STEPUP_AT = 'staff_stepup_at';
     private const SESSION_STEPUP_RETURN = 'staff_stepup_return';
 
+    /** @var array<string, mixed>|null Resolved once per request after successful auth. */
+    private ?array $resolvedUser = null;
+
+    private bool $userResolved = false;
+
     public function __construct(
         private readonly Session $session,
         private readonly UserRepository $users,
@@ -41,6 +46,30 @@ final class Auth
     }
 
     public function user(): ?array
+    {
+        if ($this->userResolved) {
+            if ($this->resolvedUser !== null && $this->isStaffUser($this->resolvedUser)) {
+                // Staff fingerprint / idle must still be enforced if session row changes.
+                if (!$this->assertStaffSessionValid($this->resolvedUser, touch: false)) {
+                    return null;
+                }
+            }
+
+            return $this->resolvedUser;
+        }
+
+        // Resolve first — may call logout() which clears the memo.
+        $user = $this->resolveUser();
+        $this->userResolved = true;
+        $this->resolvedUser = $user;
+
+        return $user;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function resolveUser(): ?array
     {
         $id = $this->session->get('user_id');
         if (!is_int($id) && !is_string($id)) {
@@ -98,53 +127,85 @@ final class Auth
             return null;
         }
 
-        if ($sessionId !== '' && $this->isStaffUser($user)) {
-            $active = $this->userSessions->findActive($sessionId);
-            if ($active === null) {
-                $this->logout();
-
-                return null;
-            }
-
-            if ($this->staffFingerprintEnabled()) {
-                $expected = (string) ($active['fingerprint'] ?? '');
-                $current = $this->sessionFingerprint();
-                if ($expected !== '' && !hash_equals($expected, $current)) {
-                    $this->securityLog?->log('session_fingerprint_mismatch', [
-                        'ip' => $this->request->ip(),
-                        'user_id' => (int) $user['id'],
-                        'username' => (string) ($user['username'] ?? ''),
-                        'role' => (string) ($user['role'] ?? ''),
-                    ]);
-                    $this->logout();
-
-                    return null;
-                }
-            }
-
-            $idleMinutes = $this->staffIdleTimeoutMinutes();
-            if ($idleMinutes > 0) {
-                $lastSeen = strtotime((string) ($active['last_seen_at'] ?? ''));
-                if ($lastSeen !== false && (time() - $lastSeen) > ($idleMinutes * 60)) {
-                    $this->securityLog?->log('session_idle_timeout', [
-                        'ip' => $this->request->ip(),
-                        'user_id' => (int) $user['id'],
-                        'username' => (string) ($user['username'] ?? ''),
-                        'role' => (string) ($user['role'] ?? ''),
-                        'idle_minutes' => $idleMinutes,
-                    ]);
-                    $this->logout();
-
-                    return null;
-                }
-            }
+        if ($this->isStaffUser($user) && !$this->assertStaffSessionValid($user, touch: true)) {
+            return null;
         }
 
-        if ($sessionId !== '') {
+        // Members: touch at most once per request.
+        if ($sessionId !== '' && !$this->isStaffUser($user)) {
             $this->userSessions->touch($sessionId);
         }
 
         return $user;
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     */
+    private function assertStaffSessionValid(array $user, bool $touch): bool
+    {
+        $sessionId = $this->session->id();
+        if ($sessionId === '') {
+            return true;
+        }
+
+        if ($this->userSessions->isRevoked($sessionId)) {
+            $this->logout();
+
+            return false;
+        }
+
+        $active = $this->userSessions->findActive($sessionId);
+        if ($active === null) {
+            $this->logout();
+
+            return false;
+        }
+
+        if ($this->staffFingerprintEnabled()) {
+            $expected = (string) ($active['fingerprint'] ?? '');
+            $current = $this->sessionFingerprint();
+            if ($expected !== '' && !hash_equals($expected, $current)) {
+                $this->securityLog?->log('session_fingerprint_mismatch', [
+                    'ip' => $this->request->ip(),
+                    'user_id' => (int) $user['id'],
+                    'username' => (string) ($user['username'] ?? ''),
+                    'role' => (string) ($user['role'] ?? ''),
+                ]);
+                $this->logout();
+
+                return false;
+            }
+        }
+
+        $idleMinutes = $this->staffIdleTimeoutMinutes();
+        if ($idleMinutes > 0) {
+            $lastSeen = strtotime((string) ($active['last_seen_at'] ?? ''));
+            if ($lastSeen !== false && (time() - $lastSeen) > ($idleMinutes * 60)) {
+                $this->securityLog?->log('session_idle_timeout', [
+                    'ip' => $this->request->ip(),
+                    'user_id' => (int) $user['id'],
+                    'username' => (string) ($user['username'] ?? ''),
+                    'role' => (string) ($user['role'] ?? ''),
+                    'idle_minutes' => $idleMinutes,
+                ]);
+                $this->logout();
+
+                return false;
+            }
+        }
+
+        if ($touch) {
+            $this->userSessions->touch($sessionId);
+        }
+
+        return true;
+    }
+
+    private function clearResolvedUser(): void
+    {
+        $this->userResolved = false;
+        $this->resolvedUser = null;
     }
 
     public function check(): bool
@@ -154,6 +215,8 @@ final class Auth
 
     public function login(array $user): void
     {
+        $this->clearResolvedUser();
+
         $fingerprint = $this->sessionFingerprint();
         $isNewDevice = $this->isStaffUser($user)
             && !$this->userSessions->hasFingerprint((int) $user['id'], $fingerprint);
@@ -195,6 +258,7 @@ final class Auth
         $this->session->forget(self::SESSION_STEPUP_AT);
         $this->session->forget(self::SESSION_STEPUP_RETURN);
         $this->clearTotpPending();
+        $this->clearResolvedUser();
     }
 
     public function pendingTotpUser(): ?array
@@ -214,6 +278,7 @@ final class Auth
 
     public function beginTotpPending(array $user, bool $setupRequired = false): void
     {
+        $this->clearResolvedUser();
         $this->session->regenerate();
         $this->session->forget('user_id');
         $this->session->forget('password_changed_at');
