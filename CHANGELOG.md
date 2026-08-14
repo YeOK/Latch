@@ -7,6 +7,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.3.1] — 2026-08-14
+
 ### Fixed
 - **Account purge leftovers** — `UserDependencyCleanup` now deletes reports filed by a purged user (and clears `resolved_by`, `audit_log.actor_id`, `user_notifications.actor_id`, quarantine report ids). Hard-delete turns SQLite FKs off, so CASCADE/SET NULL never ran; leftover `reports.reporter_id` rows made `db-check` fail mid-RPM upgrade.
 

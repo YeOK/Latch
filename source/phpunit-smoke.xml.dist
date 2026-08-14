@@ -25,6 +25,7 @@
             <file>tests/DoctorTest.php</file>
             <file>tests/TwoFactorCancelTest.php</file>
             <file>tests/ThemeAssetServerTest.php</file>
+            <file>tests/UserDependencyCleanupTest.php</file>
         </testsuite>
     </testsuites>
 </phpunit>
