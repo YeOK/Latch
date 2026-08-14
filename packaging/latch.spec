@@ -12,7 +12,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.5.2.0
+Version:        0.5.3.0
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -202,6 +202,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Fri Aug 14 2026 YeOK <yeokky@gmail.com> - 0.5.3.0-1
+- Theme /assets skip Application kernel; no session cookie on CSS/JS; unused helper cleanup
+
 * Mon Jul 20 2026 YeOK <yeokky@gmail.com> - 0.5.2.0-1
 - Hot-path SQL: settings hydrate, Auth memo, batch revision/unread, LIMIT n+1 pagination
 

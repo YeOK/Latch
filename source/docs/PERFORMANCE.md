@@ -38,6 +38,10 @@ Operator-focused query counts for pages that affect daily perceived speed. Light
 
 Guest cache eligible when: public board, default sort, no tag filter, `members_only` off.
 
+A cache **hit still runs the controller** (lookup is inside `Application::render()`).
+
+Theme `/assets/*` is served by `ThemeAssetServer` from `index.php` **before** `Application` (no session, plugin boot, or security-header collect). Apache `Alias` is not used: the active pack is a setting, and child `css/theme.css` is appended after default.
+
 ## Topic (`/topic/{id}`)
 
 | Query | Count (typical) | Notes |

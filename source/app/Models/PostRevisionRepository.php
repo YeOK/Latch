@@ -131,23 +131,4 @@ final class PostRevisionRepository
 
         return $editors;
     }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    public function findById(int $id): ?array
-    {
-        $stmt = $this->db->pdo()->prepare(
-            'SELECT r.id, r.post_id, r.editor_id, r.body, r.created_at, '
-            . DeletedAuthorSql::usernameAlias('editor_username')
-            . ' FROM post_revisions r
-             LEFT JOIN users u ON u.id = r.editor_id
-             WHERE r.id = :id'
-        );
-        $stmt->execute(['id' => $id]);
-
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-        return is_array($row) ? $row : null;
-    }
 }

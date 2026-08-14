@@ -6,7 +6,7 @@ Latch ships cache-friendly headers for **static theme assets** and **guest HTML*
 
 | Resource | Path | Cache-Control (typical) |
 |----------|------|-------------------------|
-| Theme CSS/JS | `/assets/css/*`, `/assets/js/*` | `public, max-age=86400, must-revalidate` + ETag |
+| Theme CSS/JS | `/assets/css/*`, `/assets/js/*` | `public, max-age=86400, must-revalidate` + ETag (no session cookie) |
 | Guest HTML pages | `/`, `/board/*`, `/topic/*` (eligible guests) | `public, max-age=60–120, must-revalidate` + ETag |
 | Authenticated HTML | any logged-in view | `no-store` |
 | API / health / admin | `/api/*`, `/health`, `/admin/*` | `no-store` |

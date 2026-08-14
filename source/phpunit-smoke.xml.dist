@@ -24,6 +24,7 @@
             <file>tests/DirectMessageTest.php</file>
             <file>tests/DoctorTest.php</file>
             <file>tests/TwoFactorCancelTest.php</file>
+            <file>tests/ThemeAssetServerTest.php</file>
         </testsuite>
     </testsuites>
 </phpunit>

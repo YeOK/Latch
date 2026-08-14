@@ -14,6 +14,12 @@ namespace Latch\Models;
 use Latch\Core\Database;
 use Latch\Support\DeletedAuthorSql;
 
+/**
+ * Topic watches and unread flags.
+ *
+ * Unread is “latest approved post created_at > topic_reads.last_read_at”, not topics.last_post_at
+ * (that column can include unapproved or later-deleted posts). Do not “simplify” to a join on last_post_at.
+ */
 final class TopicWatchRepository
 {
     private const LATEST_APPROVED_POST_AT_SQL = <<<'SQL'

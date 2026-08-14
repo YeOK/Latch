@@ -52,7 +52,6 @@ use Latch\Core\Webhooks\WebhookEvent;
 use Latch\Support\SiteLock;
 use Latch\Support\SiteMaintenance;
 use Latch\Support\Doctor;
-use Latch\Support\SiteMigrate;
 use Latch\Support\Logs\LogViewer;
 use Latch\Support\Logs\LogViewerException;
 use Latch\Support\SiteRestore;

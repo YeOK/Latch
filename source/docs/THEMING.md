@@ -38,7 +38,7 @@ themes/
 
 Twig resolves templates from `themes/{active}/` first, then falls back to `themes/default/`.
 
-Static assets are served from `/assets/…` (mapped to `themes/{active}/assets/`). Child packs that ship `css/theme.css` have it **appended** after default CSS; other assets override when present. Do not reference files outside the theme `assets/` directory.
+Static assets are served from `/assets/…` (mapped to `themes/{active}/assets/`) by `ThemeAssetServer` in `public/index.php` — not the full request kernel. Child packs that ship `css/theme.css` have it **appended** after default CSS; other assets override when present. Do not reference files outside the theme `assets/` directory.
 
 | Pack | Type | What it overrides |
 |------|------|-------------------|

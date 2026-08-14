@@ -10,8 +10,8 @@ Security fixes are published for the **latest release** only. Upgrade via [GitHu
 
 | Version              | Supported |
 |----------------------|-----------|
-| 0.5.2.0 (latest)     | Yes       |
-| 0.5.1.x and earlier  | No        |
+| 0.5.3.0 (latest)     | Yes       |
+| 0.5.2.x and earlier  | No        |
 
 When a new version is tagged, this table is updated in the release commit.
 

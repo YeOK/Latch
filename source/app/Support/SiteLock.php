@@ -123,13 +123,6 @@ final class SiteLock
         return 'denied';
     }
 
-    public static function storageDirWritable(string $storagePath): bool
-    {
-        $dir = rtrim($storagePath, '/');
-
-        return is_dir($dir) && is_writable($dir);
-    }
-
     public static function cliUnlockHint(): string
     {
         return self::cliHint('lock', 'off');

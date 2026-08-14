@@ -85,6 +85,15 @@ use Latch\Models\RecoveryCodeRepository;
 use Latch\Models\SearchRepository;
 use Latch\Models\TagRepository;
 
+/**
+ * Request kernel: constructs services, boots plugins, then routes.
+ *
+ * Constructor order is load-bearing (settings → theme → plugins → SecurityHeaders).
+ * Guest HTML cache is applied in render() after the controller has already queried.
+ * Plugin code reaches this object via PluginContext::app() — treat public methods as API.
+ *
+ * Lifecycle: public/index.php (SiteLock) → __construct() → run() → controller → render().
+ */
 final class Application implements PluginCollectContext
 {
     private Config $config;
@@ -392,7 +401,7 @@ final class Application implements PluginCollectContext
         $path = $this->request->path();
 
         if (str_starts_with($path, '/assets/')) {
-            $this->serveThemeAsset(substr($path, 8));
+            ThemeAssetServer::serveRelative($this->config, substr($path, 8), $this->activeTheme());
             return;
         }
 
@@ -625,44 +634,6 @@ final class Application implements PluginCollectContext
         };
     }
 
-    private function serveThemeAsset(string $relativePath): void
-    {
-        $themesPath = (string) $this->config->get('paths.themes');
-        $active = $this->activeTheme();
-        $defaultFile = $this->resolveThemeAssetFile($themesPath, 'default', $relativePath);
-        $activeFile = $active !== 'default'
-            ? $this->resolveThemeAssetFile($themesPath, $active, $relativePath)
-            : null;
-
-        // Child theme packs override tokens/components; base layout CSS stays in default.
-        if ($relativePath === 'css/theme.css' && $defaultFile !== null && $activeFile !== null && $activeFile !== $defaultFile) {
-            $this->emitThemeAsset(
-                'text/css; charset=utf-8',
-                file_get_contents($defaultFile) . "\n" . file_get_contents($activeFile),
-                $active . '|' . $defaultFile . '|' . filemtime($defaultFile) . '|' . $activeFile . '|' . filemtime($activeFile),
-            );
-            return;
-        }
-
-        $file = $activeFile ?? $defaultFile;
-
-        if ($file === null) {
-            Response::notFound('Asset not found');
-        }
-
-        $mime = match (pathinfo($file, PATHINFO_EXTENSION)) {
-            'css' => 'text/css; charset=utf-8',
-            'js' => 'application/javascript; charset=utf-8',
-            'png' => 'image/png',
-            'jpg', 'jpeg' => 'image/jpeg',
-            'svg' => 'image/svg+xml',
-            'woff2' => 'font/woff2',
-            default => 'application/octet-stream',
-        };
-
-        $this->emitThemeAsset($mime, (string) file_get_contents($file), $active . '|' . $file . '|' . filemtime($file));
-    }
-
     private function serveBrandingAsset(string $relativePath): void
     {
         $route = explode('/', trim($relativePath, '/'), 2)[0] ?? '';
@@ -676,41 +647,7 @@ final class Application implements PluginCollectContext
             Response::notFound('Asset not found');
         }
 
-        $this->emitThemeAsset($mime, (string) file_get_contents($file), $file . '|' . filemtime($file));
-    }
-
-    private function emitThemeAsset(string $mime, string $body, string $etagSeed): void
-    {
-        $etag = '"' . hash('sha256', $etagSeed) . '"';
-
-        http_response_code(200);
-        header('Content-Type: ' . $mime);
-        header('Cache-Control: public, max-age=86400, must-revalidate');
-        header('ETag: ' . $etag);
-
-        $ifNoneMatch = $this->request->header('If-None-Match');
-        if ($ifNoneMatch === $etag) {
-            http_response_code(304);
-            exit;
-        }
-
-        echo $body;
-        exit;
-    }
-
-    private function resolveThemeAssetFile(string $themesPath, string $theme, string $relativePath): ?string
-    {
-        $base = realpath($themesPath . '/' . $theme . '/assets');
-        if ($base === false) {
-            return null;
-        }
-
-        $file = realpath($base . '/' . $relativePath);
-        if ($file === false || !str_starts_with($file, $base) || !is_file($file)) {
-            return null;
-        }
-
-        return $file;
+        ThemeAssetServer::emit($mime, (string) file_get_contents($file), $file . '|' . filemtime($file));
     }
 
     private function themeAssetStamp(): int

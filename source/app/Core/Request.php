@@ -89,6 +89,7 @@ final class Request
         }
 
         // CF-Ray is set by Cloudflare edge — require it so clients cannot spoof CF-Connecting-IP alone.
+        // This is not a substitute for locking the origin: anyone who can hit Apache directly can send CF-Ray.
         return $this->header('CF-Ray') !== '';
     }
 

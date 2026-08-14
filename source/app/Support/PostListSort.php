@@ -93,18 +93,6 @@ final class PostListSort
     }
 
     /**
-     * @return array<string, string>
-     */
-    public static function labels(): array
-    {
-        return [
-            self::OLDEST => 'Oldest first',
-            self::NEWEST => 'Newest first',
-            self::TOP => 'Most likes',
-        ];
-    }
-
-    /**
      * @param callable(string): string $translate
      * @return array<string, string>
      */

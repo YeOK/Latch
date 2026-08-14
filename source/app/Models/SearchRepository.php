@@ -18,6 +18,13 @@ use Latch\Core\SearchExcerpt;
 use Latch\Support\Schema;
 use PDO;
 
+/**
+ * SQLite FTS5 search over posts/topics.
+ *
+ * Pagination is PHP-side (fetch a rank window, then slice) — deep pages rescan from rank 1.
+ * FTS topic_id / post_id columns are UNINDEXED; reply/edit reindexes the whole thread via indexTopic().
+ * Incremental per-post updates would be the next win if indexing shows up in cron or reply latency.
+ */
 final class SearchRepository
 {
     private ?bool $enabled = null;

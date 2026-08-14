@@ -36,6 +36,7 @@ require $autoload;
 
 use Latch\Core\Application;
 use Latch\Core\Config;
+use Latch\Core\ThemeAssetServer;
 use Latch\Support\SiteLock;
 
 $config = new Config(LATCH_ROOT . '/config');
@@ -51,6 +52,11 @@ if ($config->isInstalled()) {
     if (SiteLock::isLocked($storagePath) && !SiteLock::isExemptWebPath($requestPath)) {
         SiteLock::respondLocked($requestPath);
     }
+}
+
+// Theme CSS/JS/images — no session, plugins, or kernel (see ThemeAssetServer).
+if (ThemeAssetServer::isAssetPath($requestPath)) {
+    ThemeAssetServer::tryServe($config, $requestPath);
 }
 
 $app = new Application();

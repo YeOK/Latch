@@ -63,20 +63,6 @@ final class TopicListSort
     }
 
     /**
-     * @return array<string, string>
-     */
-    public static function labels(): array
-    {
-        return [
-            self::ACTIVITY => 'Latest activity',
-            self::NEWEST => 'Newest topics',
-            self::OLDEST => 'Oldest activity',
-            self::REPLIES => 'Most replies',
-            self::UNREAD => 'Unread first',
-        ];
-    }
-
-    /**
      * @param callable(string): string $translate
      * @return array<string, string>
      */

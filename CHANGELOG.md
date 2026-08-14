@@ -7,6 +7,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.3.0] — 2026-08-14
+
+Theme CSS/JS no longer boot the forum kernel. Guest pages pay PHP once for HTML.
+
+### Changed
+- **Theme assets skip the kernel** — `/assets/*` is served by `ThemeAssetServer` from `index.php` (active pack + default fallback, child `theme.css` merge) without session, plugins, or `Application` bootstrap. Asset responses no longer get a session cookie.
+- **Hygiene** — drop unused helpers (`SiteLock::storageDirWritable`, deprecated `fixPluginStorage`, unused sort `labels()`, unused revision `findById`, unused CLI import).
+
+### Docs
+- **Core README / PERFORMANCE / THEMING / CDN** — request lifecycle, asset short-circuit, no Set-Cookie on `/assets/*`.
+
+### Tests
+- **ThemeAssetServerTest** — path traversal, child CSS merge, settings-backed active theme; included in the smoke suite.
+
 ## [0.5.2.0] — 2026-07-20
 
 Fewer SQLite round-trips on everyday pages — no feature or polish loss.

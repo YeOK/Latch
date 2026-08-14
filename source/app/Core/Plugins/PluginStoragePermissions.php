@@ -242,22 +242,6 @@ final class PluginStoragePermissions
         ];
     }
 
-    /**
-     * @deprecated Use fixRuntimePermissions()
-     *
-     * @return array{ok: bool, fixed: list<string>, message: string}
-     */
-    public static function fixPluginStorage(string $storagePath, ?string $pluginsPath = null): array
-    {
-        $result = self::fixRuntimePermissions($storagePath, $pluginsPath);
-
-        return [
-            'ok' => $result['ok'],
-            'fixed' => $result['fixed'],
-            'message' => $result['message'],
-        ];
-    }
-
     private static function ensureStorageLayout(string $storagePath, int $uid, int $gid): void
     {
         if (!is_dir($storagePath)) {
