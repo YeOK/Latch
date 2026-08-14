@@ -1,0 +1,42 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}{{ trans('following.title') }} — {{ site.name }}{% endblock %}
+
+{% block content %}
+    <section class="page-header">
+        <h1>{{ trans('following.title') }}</h1>
+        <p class="muted">{{ trans('following.summary', { count: total }) }}</p>
+    </section>
+
+    {% if people is empty %}
+        <p class="muted watched-empty">{{ trans('following.empty') }}</p>
+    {% else %}
+        <ul class="following-list" role="list">
+            {% for person in people %}
+                <li class="following-list-item card">
+                    {% include 'partials/avatar.twig' with {
+                        username: person.username,
+                        avatar_src: person.avatar_src|default(''),
+                        avatar_hue: person.avatar_hue|default(210),
+                        size: 40
+                    } %}
+                    <div class="following-list-meta">
+                        <a href="/user/{{ person.username }}">{{ person.username }}</a>
+                        <time class="muted">{{ trans('following.since', { date: person.followed_at|slice(0, 10) }) }}</time>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+        {% if total_pages > 1 %}
+            <nav class="pagination" aria-label="{{ trans('following.pages_aria') }}">
+                {% if page > 1 %}
+                    <a class="btn btn-small" href="/following?page={{ page - 1 }}">{{ trans('common.newer') }}</a>
+                {% endif %}
+                <span class="muted">{{ trans('common.page_of', { page: page, total: total_pages }) }}</span>
+                {% if page < total_pages %}
+                    <a class="btn btn-small" href="/following?page={{ page + 1 }}">{{ trans('common.older') }}</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    {% endif %}
+{% endblock %}

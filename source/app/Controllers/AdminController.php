@@ -1338,6 +1338,17 @@ final class AdminController
                 $approvedPost = $post;
                 $approvedPost['approval_status'] = \Latch\Models\PostRepository::APPROVAL_APPROVED;
                 $this->app->notificationService()->onReply($topic, $approvedPost, $author);
+                if ((int) ($topic['user_id'] ?? 0) === (int) $author['id']) {
+                    $board = $this->app->boards()->findById((int) $topic['board_id']);
+                    if ($board !== null) {
+                        $this->app->notificationService()->onFollowedUserNewTopic(
+                            $topic,
+                            $author,
+                            $board,
+                            $this->app->membersOnly(),
+                        );
+                    }
+                }
             }
         }
 

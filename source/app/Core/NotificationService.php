@@ -11,8 +11,10 @@ declare(strict_types=1);
 
 namespace Latch\Core;
 
+use Latch\Models\BoardRepository;
 use Latch\Models\NotificationRepository;
 use Latch\Models\PostRepository;
+use Latch\Models\UserFollowRepository;
 use Latch\Models\UserRepository;
 
 /**
@@ -25,6 +27,8 @@ final class NotificationService
         private readonly UserRepository $users,
         private readonly ?EmailNotificationService $emailNotifications = null,
         private readonly MentionParser $mentions = new MentionParser(),
+        private readonly ?UserFollowRepository $follows = null,
+        private readonly ?BoardRepository $boards = null,
     ) {
     }
 
@@ -74,6 +78,69 @@ final class NotificationService
             null,
             ['conversation_id' => $conversationId, 'kind' => $kind],
         );
+    }
+
+    /**
+     * Notify followers that $author created an approved topic they can read.
+     *
+     * @param array<string, mixed> $topic
+     * @param array<string, mixed> $author
+     * @param array<string, mixed> $board
+     */
+    public function onFollowedUserNewTopic(array $topic, array $author, array $board, bool $membersOnly): int
+    {
+        if ($this->follows === null || $this->boards === null) {
+            return 0;
+        }
+
+        $authorId = (int) ($author['id'] ?? 0);
+        if ($authorId <= 0) {
+            return 0;
+        }
+
+        $topicId = (int) ($topic['id'] ?? 0);
+        $title = $this->truncateTitle((string) ($topic['title'] ?? ''));
+        $actorName = (string) ($author['username'] ?? '');
+        $url = '/topic/' . $topicId;
+        $sent = 0;
+
+        foreach ($this->follows->followerIds($authorId) as $followerId) {
+            if ($followerId === $authorId) {
+                continue;
+            }
+
+            $follower = $this->users->findById($followerId);
+            if ($follower === null
+                || $this->users->isDeleted($follower)
+                || $this->users->isBanned($follower)
+                || $this->users->isLocked($follower)
+            ) {
+                continue;
+            }
+
+            $role = (string) ($follower['role'] ?? 'member');
+            $rank = isset($follower['reputation_rank']) && $follower['reputation_rank'] !== ''
+                ? (int) $follower['reputation_rank']
+                : 1;
+
+            if (!$this->boards->canRead($board, true, $membersOnly, $role, $rank)) {
+                continue;
+            }
+
+            $this->notify(
+                $followerId,
+                NotificationRepository::TYPE_FOLLOWED_USER_TOPIC,
+                '@' . $actorName . ' started "' . $title . '"',
+                $url,
+                $authorId,
+                $topicId,
+                null,
+                ['topic_title' => $title],
+            );
+            $sent++;
+        }
+
+        return $sent;
     }
 
     /**

@@ -7,6 +7,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.4.0] — 2026-08-14
+
+### Added
+- **Follow user** — follow/unfollow from a member profile; `/following` list; in-app (+ email if `notify_email`) when they start a topic you can read. Board ACL is applied before notify. Account purge removes follow rows.
+
 ## [0.5.3.1] — 2026-08-14
 
 ### Fixed

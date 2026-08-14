@@ -48,6 +48,7 @@ use Latch\Controllers\SearchController;
 use Latch\Controllers\TagController;
 use Latch\Controllers\TopicController;
 use Latch\Controllers\TopicWatchController;
+use Latch\Controllers\UserFollowController;
 use Latch\Controllers\TwoFactorController;
 use Latch\Models\ApiAuditLogRepository;
 use Latch\Models\AuditLogRepository;
@@ -73,6 +74,7 @@ use Latch\Models\SettingRepository;
 use Latch\Models\SitemapRepository;
 use Latch\Models\TopicRepository;
 use Latch\Models\TopicWatchRepository;
+use Latch\Models\UserFollowRepository;
 use Latch\Models\UserBlockRepository;
 use Latch\Models\UserRepository;
 use Latch\Models\UserSessionRepository;
@@ -150,6 +152,7 @@ final class Application implements PluginCollectContext
     private PostReactionRepository $postReactions;
     private PostRevisionRepository $postRevisions;
     private TopicWatchRepository $topicWatches;
+    private UserFollowRepository $userFollows;
     private OAuthClientRepository $oauthClients;
     private OAuthTokenRepository $oauthTokens;
     private ApiAuditLogRepository $apiAuditLog;
@@ -278,10 +281,14 @@ final class Application implements PluginCollectContext
             $this->mailQueue,
         );
         $this->notificationMessageFormatter = new NotificationMessageFormatter();
+        $this->userFollows = new UserFollowRepository($this->db, $this->users);
         $this->notificationService = new NotificationService(
             $this->notifications,
             $this->users,
             $emailNotifications,
+            new MentionParser(),
+            $this->userFollows,
+            $this->boards,
         );
         $this->directMessages = new DirectMessageRepository($this->db);
         $this->userBlocks = new UserBlockRepository($this->db);
@@ -443,6 +450,7 @@ final class Application implements PluginCollectContext
         $localeCtrl = new LocaleController($this);
         $postVote = new PostVoteController($this);
         $topicWatch = new TopicWatchController($this);
+        $userFollow = new UserFollowController($this);
         $api = new ApiV1Controller($this);
         $apiMessages = new ApiMessagesController($this);
         $oauth = new OAuthController($this);
@@ -495,6 +503,8 @@ final class Application implements PluginCollectContext
         $this->router->post('/login/2fa/setup', $this->bind($twoFactor, 'confirmLoginSetup'));
 
         $this->router->get('/user/:username', $this->bind($user, 'show'));
+        $this->router->post('/user/:id/follow', $this->bind($userFollow, 'toggle'));
+        $this->router->get('/following', $this->bind($userFollow, 'index'));
         $this->router->get('/notifications', $this->bind($notifications, 'index'));
         $this->router->get('/notifications/feed', $this->bind($notifications, 'feed'));
         $this->router->get('/notifications/:id/go', $this->bind($notifications, 'go'));
@@ -1284,6 +1294,11 @@ final class Application implements PluginCollectContext
     public function topicWatches(): TopicWatchRepository
     {
         return $this->topicWatches;
+    }
+
+    public function userFollows(): UserFollowRepository
+    {
+        return $this->userFollows;
     }
 
     public function oauthClients(): OAuthClientRepository

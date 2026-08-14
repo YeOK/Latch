@@ -63,12 +63,17 @@ final class UserController
         $reputation = $this->app->reputation()->profileViewForUser($user);
         $viewer = $this->app->auth()->user();
         $canMessage = false;
+        $canFollow = false;
+        $isFollowing = false;
         if ($viewer !== null && (int) $viewer['id'] !== $userId) {
             $canMessage = $this->app->messages()->canStartWith($viewer, $userId);
+            $canFollow = !$this->app->users()->isBanned($user) && !$this->app->users()->isDeleted($user);
+            $isFollowing = $canFollow && $this->app->userFollows()->isFollowing((int) $viewer['id'], $userId);
         }
 
         $this->app->render('user/show.html.twig', [
             'profile' => [
+                'id' => $userId,
                 'username' => (string) $user['username'],
                 'bio' => (string) ($user['bio'] ?? ''),
                 'created_at' => (string) $user['created_at'],
@@ -95,6 +100,10 @@ final class UserController
             'recent_posts' => $recentPosts,
             'is_own_profile' => $viewer !== null && (int) $viewer['id'] === $userId,
             'can_message' => $canMessage,
+            'can_follow' => $canFollow,
+            'is_following' => $isFollowing,
+            'follower_count' => $this->app->userFollows()->followerCount($userId),
+            'following_count' => $this->app->userFollows()->followingCount($userId),
             'seo' => SeoMeta::forUser(
                 $this->app->siteUrl(),
                 $this->app->siteName(),

@@ -52,6 +52,7 @@ final class NotificationMessageFormatter
             NotificationRepository::TYPE_POST_LIKE => 'notify.post_like',
             NotificationRepository::TYPE_MENTION => 'notify.mention',
             NotificationRepository::TYPE_USER_WARN => 'notify.user_warn',
+            NotificationRepository::TYPE_FOLLOWED_USER_TOPIC => 'notify.followed_user_topic',
             NotificationRepository::TYPE_POST_PENDING => !empty($meta['is_new_topic'])
                 ? 'notify.post_pending_topic'
                 : 'notify.post_pending_reply',

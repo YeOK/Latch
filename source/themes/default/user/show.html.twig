@@ -45,7 +45,30 @@
                         </dd>
                     </dl>
                 {% endif %}
+                <p class="muted profile-follow-counts">
+                    {{ trans('user.followers_count', { count: follower_count|default(0) }) }}
+                    ·
+                    {{ trans('user.following_count', { count: following_count|default(0) }) }}
+                    {% if is_own_profile %}
+                        · <a href="/following">{{ trans('user.following_list') }}</a>
+                    {% endif %}
+                </p>
                 <div class="profile-public-actions">
+                    {% if can_follow %}
+                        <button
+                            type="button"
+                            class="btn btn-small profile-follow-btn{% if is_following %} is-following{% endif %}"
+                            id="profile-follow-btn"
+                            data-user-id="{{ profile.id }}"
+                            data-following="{{ is_following ? '1' : '0' }}"
+                            data-label-follow="{{ trans('user.follow') }}"
+                            data-label-unfollow="{{ trans('user.unfollow') }}"
+                            aria-pressed="{{ is_following ? 'true' : 'false' }}"
+                            title="{{ is_following ? trans('user.unfollow') : trans('user.follow') }}"
+                        >
+                            {{ is_following ? trans('user.unfollow') : trans('user.follow') }}
+                        </button>
+                    {% endif %}
                     {% if can_message and direct_messages_enabled|default(false) %}
                         <button
                             type="button"
@@ -112,4 +135,10 @@
             </ul>
         {% endif %}
     </section>
+{% endblock %}
+
+{% block scripts %}
+    {% if can_follow %}
+        <script src="/assets/js/user-follow.js?v={{ asset_version }}" defer></script>
+    {% endif %}
 {% endblock %}

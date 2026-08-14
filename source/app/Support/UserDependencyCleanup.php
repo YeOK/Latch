@@ -50,6 +50,7 @@ final class UserDependencyCleanup
             $this->deleteWhere($pdo, $table, "{$column} = :id", $bind);
         }
 
+        $this->deleteWhere($pdo, 'user_follows', 'follower_id = :id OR following_id = :id', $bind);
         $this->deleteWhere($pdo, 'dm_conversations', 'user_low = :id OR user_high = :id', $bind);
         $this->deleteWhere($pdo, 'user_blocks', 'blocker_id = :id OR blocked_id = :id', $bind);
         $this->deleteWhere($pdo, 'user_warnings', 'issued_by = :id', $bind);
@@ -103,6 +104,16 @@ final class UserDependencyCleanup
         );
         if ($blocks > 0) {
             $removed['user_blocks'] = $blocks;
+        }
+
+        $follows = $this->deleteWhere(
+            $pdo,
+            'user_follows',
+            'follower_id NOT IN (SELECT id FROM users) OR following_id NOT IN (SELECT id FROM users)',
+            [],
+        );
+        if ($follows > 0) {
+            $removed['user_follows'] = $follows;
         }
 
         $warnings = $this->deleteWhere(

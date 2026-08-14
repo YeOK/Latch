@@ -17,6 +17,7 @@
             {% endif %}
             <a class="user-menu-item" href="/notifications" data-account-bypass>{{ trans('user_menu.notifications') }}{% if notification_unread > 0 %} ({{ notification_unread }}){% endif %}</a>
             <a class="user-menu-item" href="/watched">{{ trans('user_menu.watched') }}{% if watched_unread > 0 %} ({{ watched_unread }}){% endif %}</a>
+            <a class="user-menu-item" href="/following">{{ trans('user_menu.following') }}</a>
             <a class="user-menu-item" href="/profile" data-account-panel>{{ trans('user_menu.profile') }}</a>
             <a class="user-menu-item" href="/profile/2fa" data-account-panel>{{ trans('user_menu.two_factor') }}</a>
             {% if is_mod %}

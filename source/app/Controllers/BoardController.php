@@ -270,6 +270,12 @@ final class BoardController
                     $this->app->notificationService()->onReply($topic, $posts[0], $user);
                     $this->app->participateInTopic((int) $user['id'], (int) $topic['id'], $posts);
                 }
+                $this->app->notificationService()->onFollowedUserNewTopic(
+                    $topic,
+                    $user,
+                    $board,
+                    $this->app->membersOnly(),
+                );
                 $this->app->enqueueReputationUpdate((int) $user['id']);
             } else {
                 $this->app->topicWatches()->watch((int) $user['id'], (int) $topic['id']);

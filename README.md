@@ -51,7 +51,7 @@ Try it in minutes — download a release tarball, run `php bin/latch install`, p
 
 ## Status
 
-**v0.5.3.1** — purge leftovers no longer fail `db-check` mid-upgrade. Live demo: **[latch.network](https://latch.network)** · Release notes: [CHANGELOG.md](CHANGELOG.md) · Plugins: [Latch-plugins](https://github.com/YeOK/Latch-plugins) · Cloudflare: [source/docs/CLOUDFLARE.md](source/docs/CLOUDFLARE.md)
+**v0.5.4.0** — follow members from their profile; notify when they start a topic you can read. Live demo: **[latch.network](https://latch.network)** · Release notes: [CHANGELOG.md](CHANGELOG.md) · Plugins: [Latch-plugins](https://github.com/YeOK/Latch-plugins) · Cloudflare: [source/docs/CLOUDFLARE.md](source/docs/CLOUDFLARE.md)
 
 ## Quick paths
 
@@ -66,7 +66,7 @@ Try it in minutes — download a release tarball, run `php bin/latch install`, p
 ## Install (release tarball)
 
 ```bash
-VERSION=0.5.3.1
+VERSION=0.5.4.0
 tar -xzf latch-${VERSION}.tar.gz && cd latch-${VERSION}-stage
 bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 # Optional: php bin/latch configure   # Turnstile, mail, OIDC (secrets stay in local.php)

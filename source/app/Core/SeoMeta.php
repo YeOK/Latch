@@ -35,6 +35,7 @@ final class SeoMeta
         '/profile',
         '/notifications',
         '/watched',
+        '/following',
         '/preview',
         '/search',
         '/mod/',

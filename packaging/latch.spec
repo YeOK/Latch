@@ -12,7 +12,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.5.3.1
+Version:        0.5.4.0
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -202,6 +202,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Fri Aug 14 2026 YeOK <yeokky@gmail.com> - 0.5.4.0-1
+- Follow user: profile follow/unfollow, /following, ACL-safe topic notifications
+
 * Fri Aug 14 2026 YeOK <yeokky@gmail.com> - 0.5.3.1-1
 - Prune report/audit/notification leftovers after account purge so db-check passes on upgrade
 

@@ -23,6 +23,7 @@ final class NotificationRepository
     public const TYPE_POST_PENDING = 'post_pending';
     public const TYPE_USER_WARN = 'user_warn';
     public const TYPE_DIRECT_MESSAGE = 'direct_message';
+    public const TYPE_FOLLOWED_USER_TOPIC = 'followed_user_topic';
 
     public function __construct(private readonly Database $db)
     {

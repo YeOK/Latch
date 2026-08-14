@@ -77,6 +77,7 @@ final class EmailNotificationService
             NotificationRepository::TYPE_DIRECT_MESSAGE => $this->settings->getBool('email_notify_messages', true),
             NotificationRepository::TYPE_STAFF_ACTION,
             NotificationRepository::TYPE_POST_PENDING => $this->settings->getBool('email_notify_staff', true),
+            NotificationRepository::TYPE_FOLLOWED_USER_TOPIC => $this->settings->getBool('email_notify_replies', true),
             default => false,
         };
     }
@@ -92,6 +93,7 @@ final class EmailNotificationService
             NotificationRepository::TYPE_DIRECT_MESSAGE => 'New message',
             NotificationRepository::TYPE_STAFF_ACTION => 'Staff action on your content',
             NotificationRepository::TYPE_POST_PENDING => 'Post awaiting approval',
+            NotificationRepository::TYPE_FOLLOWED_USER_TOPIC => 'Someone you follow started a topic',
             default => 'Notification',
         };
     }
