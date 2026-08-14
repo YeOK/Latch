@@ -138,6 +138,16 @@ final class UserDependencyCleanupTest extends TestCase
                 id INTEGER PRIMARY KEY,
                 trashed_by_user_id INTEGER
              );
+             CREATE TABLE reports (
+                id INTEGER PRIMARY KEY,
+                reporter_id INTEGER NOT NULL,
+                target_type TEXT NOT NULL,
+                target_id INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                resolved_by INTEGER
+             );
              INSERT INTO users (id) VALUES (1), (2);
              INSERT INTO user_warnings (id, user_id, issued_by, reason, created_at)
              VALUES (1, 2, 1, "warn", "2026-01-01");
@@ -145,7 +155,10 @@ final class UserDependencyCleanupTest extends TestCase
              VALUES (1, 1, 1, "old", "2026-01-01");
              INSERT INTO oauth_clients (id, client_id, name, created_by_user_id, created_at)
              VALUES (1, "client", "API", 1, "2026-01-01");
-             INSERT INTO posts (id, trashed_by_user_id) VALUES (1, 1);'
+             INSERT INTO posts (id, trashed_by_user_id) VALUES (1, 1);
+             INSERT INTO reports (id, reporter_id, target_type, target_id, reason, status, created_at, resolved_by)
+             VALUES (1, 2, "post", 1, "spam", "resolved", "2026-01-01", 1),
+                    (2, 1, "post", 1, "spam", "open", "2026-01-01", NULL);'
         );
 
         $this->cleanup->deleteForUser($pdo, 1);
@@ -155,6 +168,37 @@ final class UserDependencyCleanupTest extends TestCase
         $this->assertSame(0, (int) $pdo->query('SELECT COUNT(*) FROM post_revisions WHERE editor_id = 1')->fetchColumn());
         $this->assertNull($pdo->query('SELECT created_by_user_id FROM oauth_clients WHERE id = 1')->fetchColumn());
         $this->assertNull($pdo->query('SELECT trashed_by_user_id FROM posts WHERE id = 1')->fetchColumn());
+        $this->assertSame(1, (int) $pdo->query('SELECT COUNT(*) FROM reports')->fetchColumn());
+        $this->assertNull($pdo->query('SELECT resolved_by FROM reports WHERE id = 1')->fetchColumn());
+        $this->assertSame([], $pdo->query('PRAGMA foreign_key_check')->fetchAll());
+    }
+
+    public function testPruneOrphansNullifiesReportResolvedBy(): void
+    {
+        $pdo = $this->db->pdo();
+        $pdo->exec(
+            'CREATE TABLE users (id INTEGER PRIMARY KEY);
+             CREATE TABLE reports (
+                id INTEGER PRIMARY KEY,
+                reporter_id INTEGER NOT NULL,
+                target_type TEXT NOT NULL,
+                target_id INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                resolved_by INTEGER
+             );
+             INSERT INTO users (id) VALUES (1);
+             INSERT INTO reports (id, reporter_id, target_type, target_id, reason, status, created_at, resolved_by)
+             VALUES (3, 1, "post", 1, "spam", "resolved", "2026-01-01", 99),
+                    (4, 1, "user", 2, "abuse", "resolved", "2026-01-01", 99);'
+        );
+
+        $removed = $this->cleanup->pruneOrphans($pdo);
+
+        $this->assertSame(2, $removed['reports_resolved_by'] ?? 0);
+        $this->assertNull($pdo->query('SELECT resolved_by FROM reports WHERE id = 3')->fetchColumn());
+        $this->assertSame(2, (int) $pdo->query('SELECT COUNT(*) FROM reports')->fetchColumn());
         $this->assertSame([], $pdo->query('PRAGMA foreign_key_check')->fetchAll());
     }
 }

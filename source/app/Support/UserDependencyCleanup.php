@@ -54,6 +54,17 @@ final class UserDependencyCleanup
         $this->deleteWhere($pdo, 'user_blocks', 'blocker_id = :id OR blocked_id = :id', $bind);
         $this->deleteWhere($pdo, 'user_warnings', 'issued_by = :id', $bind);
         $this->deleteWhere($pdo, 'post_revisions', 'editor_id = :id', $bind);
+        $this->nullifyColumn(
+            $pdo,
+            'posts',
+            'quarantined_by_report_id',
+            'quarantined_by_report_id IN (SELECT id FROM reports WHERE reporter_id = :id)',
+            $bind,
+        );
+        $this->deleteWhere($pdo, 'reports', 'reporter_id = :id', $bind);
+        $this->nullifyColumn($pdo, 'reports', 'resolved_by', 'resolved_by = :id', $bind);
+        $this->nullifyColumn($pdo, 'audit_log', 'actor_id', 'actor_id = :id', $bind);
+        $this->nullifyColumn($pdo, 'user_notifications', 'actor_id', 'actor_id = :id', $bind);
         $this->nullifyColumn($pdo, 'oauth_clients', 'created_by_user_id', 'created_by_user_id = :id', $bind);
         $this->nullifyColumn($pdo, 'posts', 'trashed_by_user_id', 'trashed_by_user_id = :id', $bind);
     }
@@ -134,6 +145,60 @@ final class UserDependencyCleanup
         );
         if ($trash > 0) {
             $removed['posts_trashed_by'] = $trash;
+        }
+
+        $quarantine = $this->nullifyColumn(
+            $pdo,
+            'posts',
+            'quarantined_by_report_id',
+            'quarantined_by_report_id IS NOT NULL AND quarantined_by_report_id IN (SELECT id FROM reports WHERE reporter_id NOT IN (SELECT id FROM users))',
+            [],
+        );
+        if ($quarantine > 0) {
+            $removed['posts_quarantine_report'] = $quarantine;
+        }
+
+        $reportReporters = $this->deleteWhere(
+            $pdo,
+            'reports',
+            'reporter_id NOT IN (SELECT id FROM users)',
+            [],
+        );
+        if ($reportReporters > 0) {
+            $removed['reports'] = $reportReporters;
+        }
+
+        $reportResolvers = $this->nullifyColumn(
+            $pdo,
+            'reports',
+            'resolved_by',
+            'resolved_by IS NOT NULL AND resolved_by NOT IN (SELECT id FROM users)',
+            [],
+        );
+        if ($reportResolvers > 0) {
+            $removed['reports_resolved_by'] = $reportResolvers;
+        }
+
+        $audit = $this->nullifyColumn(
+            $pdo,
+            'audit_log',
+            'actor_id',
+            'actor_id IS NOT NULL AND actor_id NOT IN (SELECT id FROM users)',
+            [],
+        );
+        if ($audit > 0) {
+            $removed['audit_log_actor'] = $audit;
+        }
+
+        $notifyActors = $this->nullifyColumn(
+            $pdo,
+            'user_notifications',
+            'actor_id',
+            'actor_id IS NOT NULL AND actor_id NOT IN (SELECT id FROM users)',
+            [],
+        );
+        if ($notifyActors > 0) {
+            $removed['user_notifications_actor'] = $notifyActors;
         }
 
         return $removed;
