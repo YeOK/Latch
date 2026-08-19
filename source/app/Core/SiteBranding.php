@@ -496,20 +496,8 @@ final class SiteBranding
     private function validateSvg(string $raw): ?string
     {
         $lower = strtolower($raw);
-        $blocked = [
-            '<script',
-            'javascript:',
-            '<foreignobject',
-            '<?php',
-            '<!entity',
-            'onload=',
-            'onerror=',
-            'onclick=',
-        ];
-        foreach ($blocked as $needle) {
-            if (str_contains($lower, $needle)) {
-                return 'SVG contains disallowed content.';
-            }
+        if (\Latch\Support\SvgSafety::containsDisallowedMarkup($raw)) {
+            return 'SVG contains disallowed content.';
         }
 
         if (!str_contains($lower, '<svg')) {

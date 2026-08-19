@@ -1,0 +1,8 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}{{ plugin_panel_title|default('Plugin') }} — {{ site.name }}{% endblock %}
+
+{% block admin_content %}
+    {# plugin_panel_html is trusted markup from the plugin; escape dynamic values before assigning. #}
+    {{ plugin_panel_html|raw }}
+{% endblock %}

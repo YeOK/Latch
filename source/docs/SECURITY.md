@@ -111,7 +111,7 @@ On Fedora RPM: `sudo latch logs …`. See [CLI.md — logs](CLI.md#logs).
 
 **Correlating auth abuse** — `login_fail` in `latch.security` is what fail2ban watches by default (real IPs behind Cloudflare). Apache access logs may still show `::1` until `mod_remoteip` is configured; enable server sources in `local.php` to tail both from the admin UI. See [INSTALL-FEDORA.md](INSTALL-FEDORA.md#server-logs-admin-viewer) and `packaging/README.md`.
 
-Common security log `event` values: `login_fail`, `login_success`, `login_banned`, `login_totp_fail`, `oidc_fail`, `ban`, `password_reset_request`, `founder_block`, `oauth_app_revoke`. Full curated list: `config/default.php` → `logs.security_event_types`.
+Common security log `event` values: `login_fail`, `login_success`, `login_banned`, `login_totp_fail`, `oidc_fail`, `ban`, `password_reset_request`, `founder_block`, `oauth_app_revoke`, `registration_blocked`. For blocked signups, `meta.reason` is `honeypot`, `turnstile`, `rate_limit`, or `registration_disabled`. Full curated list: `config/default.php` → `logs.security_event_types`.
 
 ## Client IP behind Cloudflare
 

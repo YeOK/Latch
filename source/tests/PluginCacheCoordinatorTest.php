@@ -129,7 +129,7 @@ final class PluginCacheCoordinatorTest extends TestCase
 
         $this->assertSame(['<p>first</p>'], $first);
         $this->assertSame(['<p>first</p>'], $second);
-        $this->assertSame(2, $calls);
+        $this->assertSame(1, $calls);
 
         $key = Cache::makeFragmentKey('plugin:frag-plug:' . HookName::HOME_AFTER_BOARDS, ['_locale' => 'en']);
         $this->cache->invalidateTag(Cache::tagPlugin('frag-plug'));

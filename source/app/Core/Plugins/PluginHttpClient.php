@@ -18,7 +18,10 @@ use Latch\Support\OutboundUrlGuard;
  */
 final class PluginHttpClient implements PluginHttpClientInterface
 {
-    public function __construct(private readonly int $timeoutSeconds = 30)
+    private const MAX_REDIRECTS = 5;
+    private const MAX_BODY_BYTES = 33554432;
+
+    public function __construct(private readonly int $timeoutSeconds = 15)
     {
     }
 
@@ -37,31 +40,75 @@ final class PluginHttpClient implements PluginHttpClientInterface
      */
     public function request(string $method, string $url, ?string $body = null): ?array
     {
-        if ($method === 'GET' && OutboundUrlGuard::normalizePublicHttpsUrl($url) === null) {
-            return null;
+        $current = $url;
+        for ($hop = 0; $hop <= self::MAX_REDIRECTS; $hop++) {
+            if ($method === 'GET' && OutboundUrlGuard::normalizePublicHttpsUrl($current) === null) {
+                return null;
+            }
+
+            $context = stream_context_create([
+                'http' => [
+                    'method' => $method,
+                    'header' => "User-Agent: Latch-PluginCatalog/1.0\r\n",
+                    'content' => $body ?? '',
+                    'timeout' => $this->timeoutSeconds,
+                    'ignore_errors' => true,
+                    'follow_location' => 0,
+                    'max_redirects' => 0,
+                ],
+            ]);
+
+            $raw = @file_get_contents($current, false, $context);
+            if ($raw === false) {
+                return null;
+            }
+
+            if (strlen($raw) > self::MAX_BODY_BYTES) {
+                return null;
+            }
+
+            $headers = $http_response_header ?? [];
+            $status = self::statusFromHeaders($headers);
+            if ($status >= 300 && $status < 400) {
+                $location = self::locationFromHeaders($headers);
+                if ($location === null) {
+                    return null;
+                }
+
+                $next = OutboundUrlGuard::resolveRedirectLocation($current, $location);
+                if ($next === null) {
+                    return null;
+                }
+
+                $current = $next;
+                $method = 'GET';
+                $body = null;
+                continue;
+            }
+
+            return [
+                'status' => $status,
+                'body' => $raw,
+            ];
         }
 
-        $context = stream_context_create([
-            'http' => [
-                'method' => $method,
-                'header' => "User-Agent: Latch-PluginCatalog/1.0\r\n",
-                'content' => $body ?? '',
-                'timeout' => $this->timeoutSeconds,
-                'ignore_errors' => true,
-                'follow_location' => 1,
-                'max_redirects' => 5,
-            ],
-        ]);
+        return null;
+    }
 
-        $raw = @file_get_contents($url, false, $context);
-        if ($raw === false) {
-            return null;
+    /**
+     * @param list<string> $headers
+     */
+    private static function locationFromHeaders(array $headers): ?string
+    {
+        for ($i = count($headers) - 1; $i >= 0; $i--) {
+            if (stripos($headers[$i], 'Location:') === 0) {
+                $value = trim(substr($headers[$i], 9));
+
+                return $value !== '' ? $value : null;
+            }
         }
 
-        return [
-            'status' => self::statusFromHeaders($http_response_header ?? []),
-            'body' => $raw,
-        ];
+        return null;
     }
 
     /**

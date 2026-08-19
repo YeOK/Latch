@@ -87,6 +87,26 @@ final class SlackNotifyPluginTest extends TestCase
         $this->assertStringNotContainsString("\n> ", $message['text']);
     }
 
+    public function testMessageBuilderStripsBroadcastMentions(): void
+    {
+        $settings = new Settings('Latch', [Settings::EVENT_NEW_TOPIC], true, false);
+        $builder = new MessageBuilder($settings, 'https://forum.test');
+
+        $message = $builder->forPost(new PostSaveContext(
+            body: 'Ping <!channel> and @here',
+            user: ['id' => 1, 'username' => 'alice'],
+            board: ['id' => 1, 'slug' => 'general'],
+            topic: ['id' => 9, 'title' => '@everyone look'],
+            kind: 'topic',
+            post: ['id' => 50, 'approval_status' => 'approved'],
+        ));
+
+        $this->assertStringNotContainsString('@everyone', $message['text']);
+        $this->assertStringNotContainsString('@here', $message['text']);
+        $this->assertStringNotContainsString('<!channel>', $message['text']);
+        $this->assertStringContainsString('everyone look', $message['text']);
+    }
+
     public function testWebhookClientSendsSlackPayload(): void
     {
         $sent = [];

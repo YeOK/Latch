@@ -24,6 +24,9 @@ final class PluginLoader
     /** @var array<string, bool> */
     private array $registeredAutoloaders = [];
 
+    /** Enabled plugins that declare user.before_register but failed to boot. */
+    private array $registrationGateFailures = [];
+
     public function __construct(
         private readonly PluginRegistry $registry,
         private readonly HookRegistry $hooks,
@@ -50,16 +53,27 @@ final class PluginLoader
             }
 
             if (!$this->prepareDatabase($manifest)) {
+                $this->recordRegistrationGateFailure($manifest);
+
                 continue;
             }
 
             $plugin = $this->instantiate($manifest);
             if ($plugin === null) {
+                $this->recordRegistrationGateFailure($manifest);
+
                 continue;
             }
 
             $context = new PluginContext($app, $manifest, $this->hooks);
-            $plugin->register($context);
+            try {
+                $plugin->register($context);
+            } catch (\Throwable) {
+                $this->recordRegistrationGateFailure($manifest);
+
+                continue;
+            }
+
             $this->loaded[] = $manifest;
         }
     }
@@ -70,6 +84,15 @@ final class PluginLoader
     public function loaded(): array
     {
         return $this->loaded;
+    }
+
+    /**
+     * True when an enabled registration-gate plugin (user.before_register) did not boot.
+     * Callers should refuse new accounts rather than fail-open.
+     */
+    public function registrationGateFailed(): bool
+    {
+        return $this->registrationGateFailures !== [];
     }
 
     private function instantiate(PluginManifest $manifest): ?PluginInterface
@@ -127,12 +150,31 @@ final class PluginLoader
             }
 
             $relative = substr($class, strlen($prefix));
-            $path = $baseDir . str_replace('\\', '/', $relative) . '.php';
-            if (is_file($path)) {
-                require $path;
+            if ($relative === '' || str_contains($relative, '..')) {
+                return;
             }
+
+            $path = $baseDir . str_replace('\\', '/', $relative) . '.php';
+            $baseReal = realpath($baseDir);
+            $fileReal = realpath($path);
+            if (
+                $baseReal === false
+                || $fileReal === false
+                || !str_starts_with($fileReal, $baseReal . DIRECTORY_SEPARATOR)
+            ) {
+                return;
+            }
+
+            require $fileReal;
         });
 
         $this->registeredAutoloaders[$slug] = true;
+    }
+
+    private function recordRegistrationGateFailure(PluginManifest $manifest): void
+    {
+        if (in_array(HookName::USER_BEFORE_REGISTER, $manifest->hooks, true)) {
+            $this->registrationGateFailures[] = $manifest->slug;
+        }
     }
 }

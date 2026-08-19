@@ -25,6 +25,7 @@ final class PluginContext
     ) {
     }
 
+    /** Forum kernel. Avoid storing long-lived state on it. */
     public function app(): Application
     {
         return $this->app;
@@ -35,11 +36,13 @@ final class PluginContext
         return $this->manifest;
     }
 
+    /** Register listeners. Declare every hook in plugin.json first. */
     public function hooks(): PluginHookRegistrar
     {
-        return new PluginHookRegistrar($this->hooks, $this->manifest->slug);
+        return new PluginHookRegistrar($this->hooks, $this->manifest);
     }
 
+    /** Plugin root on disk (assets/, migrations/, plugin.json). */
     public function path(): string
     {
         return $this->manifest->pluginDir;

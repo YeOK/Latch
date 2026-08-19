@@ -65,11 +65,12 @@ final class ImageUploadPluginTest extends TestCase
     public function testPresignerBuildsR2PutUrl(): void
     {
         $config = $this->sampleConfig();
-        $url = (new R2Presigner($config))->presignPut('forum/1/abc.png', 'image/png', 300);
+        $url = (new R2Presigner($config))->presignPut('forum/1/abc.png', 'image/png', 1024);
 
         $this->assertStringStartsWith('https://a1b2c3d4e5f6.r2.cloudflarestorage.com/latch-forum-images/forum/1/abc.png?', $url);
         $this->assertStringContainsString('X-Amz-Algorithm=AWS4-HMAC-SHA256', $url);
         $this->assertStringContainsString('X-Amz-Signature=', $url);
+        $this->assertStringContainsString('X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost', $url);
     }
 
     public function testPublicUrlEncodesSegments(): void

@@ -401,7 +401,7 @@ PHP);
         $this->assertContains('js_eval', $this->findingCodes($report->findings));
     }
 
-    public function testVendorJsSkipped(): void
+    public function testVendorJsIsScanned(): void
     {
         $dir = $this->makeTempPlugin('js-vendor', '<?php');
         mkdir($dir . '/vendor', 0777, true);
@@ -410,7 +410,7 @@ PHP);
 
         $report = $this->auditor->auditPath($dir);
 
-        $this->assertNotContains('js_eval', $this->findingCodes($report->findings));
+        $this->assertContains('js_eval', $this->findingCodes($report->findings));
     }
 
     public function testMarkupNeverCritical(): void

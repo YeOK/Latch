@@ -7,6 +7,32 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.5.0] — 2026-08-19
+
+Plugin-author hooks for invite-only signup and member signatures, mixed catalog versions, and a security pass on webhooks, the auditor, and OIDC.
+
+### Added
+- **Plugin hooks** — `user.before_register` (`RegisterContext`, can reject) and `auth.register_form` (extra register fields). `post.format.after` and Twig `format_post` accept an optional context array (`user_id` for signatures). Admin `plugin_panel.html.twig` for plugin admin pages.
+
+### Changed
+- **Plugin catalog** — entries (and update offers) whose `min_latch_version` is newer than the running core are omitted from the catalog tab and update badges. Catalog-wide `latch_min_version` no longer blocks installing compatible plugins from a mixed index. Install, update, and enable still refuse a plugin that this Latch cannot run.
+- **Plugin admin** — `plugin_panel.html.twig` uses `admin_content` (keeps the admin chrome). Catalog install asserts zip slug matches the catalog entry. Plugin settings and webhook toggle require staff step-up. Plugin POST helper: `Application::requirePluginAdminPost()`.
+- **Plugin boot** — enabled `user.before_register` plugins that fail to migrate/register fail-closed (registration unavailable). Undeclared hooks are ignored at `PluginHookRegistrar::add`. Auditor scans `vendor/` and HTML/SVG assets; shell backticks and variable-function calls block enable.
+- **Outbound HTTP** — webhook delivery and catalog downloads do not follow unvalidated redirects. Catalog client re-validates each hop and caps body size.
+
+### Fixed
+- **Registration block reason** — `security.log` `registration_blocked` now records `meta.reason` (`honeypot`, `turnstile`, `rate_limit`, `registration_disabled`). Extra `SecurityLog` context keys are folded into `meta` instead of being dropped.
+- **RegisterContext** — `reject()` stops later listeners; `onAbort()` runs if account create fails after a one-shot token was consumed.
+- **GitHub OIDC** — email is taken only from the verified-emails API.
+- **Staff step-up return** — uses `safeRedirectPath` (rejects `//` open redirects).
+- **SVG icons** — shared denylist (event handlers, `javascript:`, `foreignObject`).
+- **Profile SQL** — indexes on `posts(user_id, created_at)` and `topics(user_id, created_at)`.
+- **Guest fragment cache** — returns a cached fragment without re-running the plugin callback.
+- **Plugin static files** — `/plugin/{slug}/*.{css,js,…}` under `assets/` skips the kernel (same idea as `/assets/*`).
+
+### Latch-plugins
+- Catalog **v1.0.16** — **invite-only** 1.0.0 and **member-signature** 1.0.0 (Latch 0.5.5+). Patches: image-upload 1.1.1 (signed `Content-Length`), slack-notify 1.0.1 (mention stripping), word-filter 1.0.1 (ZWSP/NFKC), link-preview 1.0.4, avatar-url 1.0.1.
+
 ## [0.5.4.0] — 2026-08-14
 
 ### Added

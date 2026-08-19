@@ -2565,11 +2565,6 @@ function run_plugin(array $argv): void
                 exit(1);
             }
 
-            if (version_compare($latchVersion, $catalogData['latch_min_version'], '<')) {
-                fwrite(STDERR, "Catalog requires Latch >= {$catalogData['latch_min_version']} (running {$latchVersion})\n");
-                exit(1);
-            }
-
             try {
                 $updateResult = plugin_catalog_installer_from_config($config)->update($entry, $catalogData['release']);
             } catch (\Throwable $e) {

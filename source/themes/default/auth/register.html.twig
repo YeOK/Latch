@@ -30,6 +30,9 @@
                 {{ trans('auth.confirm_password') }}
                 <input type="password" name="password_confirm" required minlength="8" maxlength="{{ input_limits.password_max }}" autocomplete="new-password">
             </label>
+            {% for html in plugin_register_form_html|default([]) %}
+                {{ html|raw }}
+            {% endfor %}
             {% if registration_turnstile_required %}
                 <div class="turnstile-wrap">
                     <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>

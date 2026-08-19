@@ -56,4 +56,12 @@ final class BoardIconRegistryTest extends TestCase
         $this->expectException(RuntimeException::class);
         $registry->register('evil', '<svg><script>alert(1)</script></svg>');
     }
+
+    public function testRejectsOnerrorHandler(): void
+    {
+        $registry = new BoardIconRegistry(new Config($this->configDir));
+
+        $this->expectException(RuntimeException::class);
+        $registry->register('evil2', '<svg onerror = "alert(1)"></svg>');
+    }
 }

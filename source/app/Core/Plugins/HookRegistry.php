@@ -13,6 +13,10 @@ namespace Latch\Core\Plugins;
 
 /**
  * Priority-ordered plugin hook registry.
+ *
+ * Plugins register through PluginHookRegistrar::add (not this class).
+ * dispatch ignores returns; collect skips null/'' and flattens lists;
+ * filter threads the first return value through each listener.
  */
 final class HookRegistry
 {
@@ -40,6 +44,10 @@ final class HookRegistry
     {
         foreach ($this->sorted($hook) as $entry) {
             ($entry['callback'])(...$args);
+            $first = $args[0] ?? null;
+            if ($first instanceof StoppableHookContext && $first->isPropagationStopped()) {
+                return;
+            }
         }
     }
 

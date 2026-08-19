@@ -242,6 +242,12 @@ Staff/moderation actions use `staff-actions.js` with `.staff-action-panel` popov
 
 Posts are stored as **raw text** and rendered server-side by `Latch\Core\PostFormatter`. The Twig filter `format_post` wraps this for templates.
 
+```twig
+{{ post.body|format_post({ user_id: post.user_id }) }}
+```
+
+The optional second argument is a context map. Pass `user_id` on topic posts so `post.format.after` plugins (signatures) can run. Omit it or use `0` when there is no author. `skip_after` (truthy) skips that hook. The filter is marked HTML-safe; plugins that append to the HTML must escape user content.
+
 **Editor preview** (`POST /preview`) uses the same formatter. Theme CSS for `.post-content` must style the HTML structures below — do not assume different preview markup.
 
 ### Block types

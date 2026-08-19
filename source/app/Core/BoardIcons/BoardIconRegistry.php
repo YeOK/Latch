@@ -202,10 +202,6 @@ final class BoardIconRegistry
             return false;
         }
 
-        $lower = strtolower($svg);
-
-        return !str_contains($lower, '<script')
-            && !str_contains($lower, 'onload=')
-            && !str_contains($lower, 'onclick=');
+        return !\Latch\Support\SvgSafety::containsDisallowedMarkup($svg);
     }
 }

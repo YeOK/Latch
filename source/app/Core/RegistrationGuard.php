@@ -70,8 +70,8 @@ final class RegistrationGuard
     {
         $this->securityLog->log('registration_blocked', [
             'ip' => $this->request->ip(),
-            'reason' => $reason,
             'username' => trim((string) $this->request->input('username', '')),
+            'meta' => ['reason' => $reason],
         ]);
     }
 }

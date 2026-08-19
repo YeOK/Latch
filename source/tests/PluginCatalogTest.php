@@ -77,11 +77,7 @@ final class PluginCatalogTest extends TestCase
 
     public function testAvailableEntriesSkipsInstalledSlugs(): void
     {
-        file_put_contents($this->cacheFile, json_encode([
-            'catalog_url' => PluginCatalog::DEFAULT_CATALOG_URL,
-            'fetched_at' => time(),
-            'data' => json_decode($this->sampleCatalogJson(), true),
-        ], JSON_THROW_ON_ERROR));
+        $this->writeCachedCatalog($this->sampleCatalogJson());
 
         $catalog = new PluginCatalog($this->cacheFile);
         $available = $catalog->availableEntries(['forum-stats']);
@@ -90,13 +86,22 @@ final class PluginCatalogTest extends TestCase
         $this->assertSame('word-filter', $available[0]->slug);
     }
 
+    public function testAvailableEntriesIgnoresPluginsThatNeedANewerCore(): void
+    {
+        $this->writeCachedCatalog($this->mixedVersionCatalogJson());
+
+        $catalog = new PluginCatalog($this->cacheFile);
+        $available = $catalog->availableEntries([], false, '0.5.4.0');
+
+        $this->assertCount(1, $available);
+        $this->assertSame('forum-stats', $available[0]->slug);
+        $this->assertCount(2, $catalog->availableEntries([]));
+        $this->assertCount(2, $catalog->availableEntries([], false, '0.5.5.0'));
+    }
+
     public function testFindUpdateEntryWhenCatalogVersionIsNewer(): void
     {
-        file_put_contents($this->cacheFile, json_encode([
-            'catalog_url' => PluginCatalog::DEFAULT_CATALOG_URL,
-            'fetched_at' => time(),
-            'data' => json_decode($this->sampleCatalogJson(), true),
-        ], JSON_THROW_ON_ERROR));
+        $this->writeCachedCatalog($this->sampleCatalogJson());
 
         $catalog = new PluginCatalog($this->cacheFile);
         $entry = $catalog->findUpdateEntry('forum-stats', '0.9.0');
@@ -105,6 +110,30 @@ final class PluginCatalogTest extends TestCase
         $this->assertSame('1.0.0', $entry->version);
         $this->assertNull($catalog->findUpdateEntry('forum-stats', '1.0.0'));
         $this->assertNull($catalog->findUpdateEntry('missing', '0.1.0'));
+    }
+
+    public function testFindUpdateEntryIgnoresUpdatesThatNeedANewerCore(): void
+    {
+        $this->writeCachedCatalog($this->mixedVersionCatalogJson());
+
+        $catalog = new PluginCatalog($this->cacheFile);
+
+        $this->assertNotNull($catalog->findUpdateEntry('invite-only', '0.9.0'));
+        $this->assertNull($catalog->findUpdateEntry('invite-only', '0.9.0', false, '0.5.4.0'));
+        $this->assertNotNull($catalog->findUpdateEntry('invite-only', '0.9.0', false, '0.5.5.0'));
+        $this->assertNotNull($catalog->findUpdateEntry('forum-stats', '0.9.0', false, '0.5.4.0'));
+    }
+
+    public function testFindEntryStillReturnsIncompatiblePlugins(): void
+    {
+        $this->writeCachedCatalog($this->mixedVersionCatalogJson());
+
+        $catalog = new PluginCatalog($this->cacheFile);
+        $entry = $catalog->findEntry('invite-only');
+
+        $this->assertNotNull($entry);
+        $this->assertFalse($entry->isCompatibleWith('0.5.4.0'));
+        $this->assertTrue($entry->isCompatibleWith('0.5.5.0'));
     }
 
     public function testReleaseZipUrl(): void
@@ -116,6 +145,15 @@ final class PluginCatalogTest extends TestCase
             'https://github.com/YeOK/Latch-plugins/releases/download/v1.0.1/word-filter-1.0.0.zip',
             $entry->releaseZipUrl('YeOK/Latch-plugins', 'v1.0.1'),
         );
+    }
+
+    private function writeCachedCatalog(string $json): void
+    {
+        file_put_contents($this->cacheFile, json_encode([
+            'catalog_url' => PluginCatalog::DEFAULT_CATALOG_URL,
+            'fetched_at' => time(),
+            'data' => json_decode($json, true),
+        ], JSON_THROW_ON_ERROR));
     }
 
     private function sampleCatalogJson(): string
@@ -141,6 +179,35 @@ final class PluginCatalogTest extends TestCase
             "min_latch_version": "0.3.0",
             "summary": "Profanity filter",
             "hooks": ["post.before_save"]
+        }
+    ]
+}
+JSON;
+    }
+
+    private function mixedVersionCatalogJson(): string
+    {
+        return <<<'JSON'
+{
+    "name": "Latch plugin catalog",
+    "latch_min_version": "0.5.5",
+    "release": "v1.0.16",
+    "plugins": [
+        {
+            "slug": "forum-stats",
+            "name": "Forum stats",
+            "version": "1.0.0",
+            "min_latch_version": "0.3.0",
+            "summary": "Home totals",
+            "hooks": ["home.after_boards"]
+        },
+        {
+            "slug": "invite-only",
+            "name": "Invite only",
+            "version": "1.0.0",
+            "min_latch_version": "0.5.5",
+            "summary": "Registration invite codes",
+            "hooks": ["user.before_register"]
         }
     ]
 }

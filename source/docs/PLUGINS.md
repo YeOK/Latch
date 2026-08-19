@@ -72,12 +72,14 @@ Declare every hook you use in `plugin.json` → `hooks`.
 | `home.after_boards` | collect | live | Home page; `($app)` | HTML after board list |
 | `post.before_save` | dispatch | live | Before topic/reply/edit persist; `($ctx)` | Mutate `$ctx->body` or `$ctx->reject($reason)` |
 | `post.after_save` | dispatch | live | After successful save; `($ctx)` | Side effects (webhooks, analytics) |
+| `user.before_register` | dispatch | live | Before account insert; `($ctx, $app)` — see [RegisterContext](#userbefore_register--authregister_form) | `$ctx->reject($reason)` to abort |
 | `user.register` | dispatch | live | After new account created; `($user, $app)` | Welcome email, defaults |
+| `auth.register_form` | collect | live | Register page; `($app)` | Trusted HTML fields (plugin must escape); Twig prints `|raw` |
 | `admin.menu` | collect | live | Admin layout; `($app)` | Nav items: `{label, href, match?}` |
 | `editor.compose` | collect | live | Compose toolbar; `($app)` | HTML for extra toolbar buttons |
 | `post.format.image_host` | filter | live | Markdown `![](url)` render; `($allowed, $host)` | Return `true` to allow host |
 | `post.format.link` | filter | live | Link render; `($html, $url, $label, $standalone)` | Replace default `<a>` (onebox / embed when `$standalone`) |
-| `post.format.after` | filter | live | After full post HTML; `($html, $rawBody)` | Optional HTML pass over entire post |
+| `post.format.after` | filter | live | After full post HTML; `($html, $rawBody, $context)` — `$html` is already escaped; returned string is trusted | Append/replace HTML; escape any user content you add |
 | `post.delete` | dispatch | live | Post trashed or permanently purged; `($post, $topic, $app)` | — |
 | `post.vote` | dispatch | live | After vote saved; `($postId, $userId, $vote, $app)` — `$vote` is `like`, `dislike`, or `null` (cleared) | — |
 | `topic.delete` | dispatch | live | Topic archived or trash topic purged; `($topic, $board, $app)` | — |
@@ -93,9 +95,11 @@ Declare every hook you use in `plugin.json` → `hooks`.
 | `avatar.resolve` | filter | live | Avatar URL build; `($url, $email, $size)` | Final avatar URL string (override Gravatar) |
 | `locale.translations` | filter | live | Translator boot; `($strings, $locale)` | Merged translation array for active locale |
 
-Twig globals from collect hooks: `plugin_theme_assets`, `plugin_theme_scripts`, `plugin_head_html`, `plugin_footer_html`, `plugin_home_before_boards_html`, `plugin_home_after_boards_html`, `plugin_admin_menu_items`, `plugin_composer_toolbar`.
+Twig globals from collect hooks: `plugin_theme_assets`, `plugin_theme_scripts`, `plugin_head_html`, `plugin_footer_html`, `plugin_home_before_boards_html`, `plugin_home_after_boards_html`, `plugin_admin_menu_items`, `plugin_composer_toolbar`, `plugin_register_form_html`.
 
 Per-page collect hooks (passed from controllers): `plugin_topic_actions` (topic view), `plugin_profile_form_html` (profile).
+
+Collect HTML (`auth.register_form`, `profile.form`, `layout.head`, `plugin_panel_html`) is printed with Twig `|raw`. Escape every dynamic value (`htmlspecialchars(..., ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')`). Return `''` to hide the field.
 
 ## Guest cache
 
@@ -240,15 +244,46 @@ $hooks->add(HookName::POST_BEFORE_SAVE, static function (PostSaveContext $ctx): 
 }, 10);
 ```
 
+### `user.before_register` / `auth.register_form`
+
+`RegisterContext` is passed to `user.before_register`:
+
+| Field | Notes |
+|-------|-------|
+| `$ctx->username` | Read-only. Empty string on OIDC new-account. |
+| `$ctx->email` | Read-only. |
+| `$ctx->source` | `form` or `oidc`. Extra register fields are **not** copied onto the context; read them from `$app->request()`. |
+| `$ctx->inviteCode` | Form `invite_code` only; omitted (`''`) on OIDC. |
+| `$ctx->reject($reason)` | Abort. `$reason` is shown as a flash (Twig-escaped). No email/username in the string. Do **not** throw. |
+| `$ctx->onAbort($fn)` | Run if `users()->create()` fails after you consumed a one-shot token. |
+| `$ctx->isPropagationStopped()` | True after any listener rejected. Later listeners are skipped. |
+
+```php
+$hooks->add(HookName::AUTH_REGISTER_FORM, static function (): string {
+    return '<label>Invite code<input type="text" name="invite_code" required></label>';
+});
+
+$hooks->add(HookName::USER_BEFORE_REGISTER, static function (RegisterContext $ctx): void {
+    if ($ctx->isPropagationStopped()) {
+        return;
+    }
+    if ($ctx->inviteCode === '') {
+        $ctx->reject('An invite code is required.');
+    }
+});
+```
+
+Admin pages: render `admin/plugin_panel.html.twig` with `plugin_panel_title` and `plugin_panel_html` (HTML is `|raw`). Use `$app->requirePluginAdminPost()` on POST (admin + CSRF + staff step-up). Menu `href` may be `/plugin/{slug}/admin` (invite-only) or `/admin/…`.
+
 ### `admin.menu`
 
-Return associative arrays (or an array of them from one callback). Register the page under `/admin/…` (via `route.register`) so `account-panel.js` loads it in-place in the admin shell instead of a full navigation.
+Return associative arrays (or an array of them from one callback).
 
 ```php
 $hooks->add(HookName::ADMIN_MENU, static fn (): array => [
-    'label' => 'My plugin',
-    'href' => '/admin/my-plugin',
-    'match' => '/admin/my-plugin',  // optional prefix for active state
+    'label' => 'Invite codes',
+    'href' => '/plugin/invite-only/admin',
+    'match' => '/plugin/invite-only/',
 ]);
 ```
 
@@ -420,6 +455,8 @@ See the [Latch-plugins](https://github.com/YeOK/Latch-plugins) catalog README fo
 Enable/disable (CLI and admin) invalidates `tagPlugin:{slug}` and clears guest page / Twig cache automatically.
 
 **Admin UI:** `/admin/plugins` has **Installed** and **Catalog** tabs (SPA-friendly). Icon actions: enable, disable, settings, remove, and catalog install. Enable is blocked until `plugin-audit` passes. Remove deletes `plugins/{slug}/` only — add `--purge-storage` on CLI to drop `storage/plugins/{slug}/`. Audit results are **cached** on disk (`storage/cache/plugin-audits/`); the admin page reuses the cache when plugin files are unchanged, otherwise scans once and refreshes the cache.
+
+**Core version:** catalog.json may list plugins with different `min_latch_version` values. The Catalog tab and update badges omit plugins this Latch cannot run. Catalog-wide `latch_min_version` is the oldest core that can use *some* of the index; it does not block installing older compatible plugins. Set each entry’s `min_latch_version` to the hooks that plugin needs. An already-installed plugin that needs a newer core stays listed as incompatible; boot skips it, and enable refuses until you upgrade Latch. Enabled plugins that declare `user.before_register` but fail to boot (migrate/register error) fail-closed: registration is refused until the plugin loads.
 
 **Audit schedule:** `cron daily` re-scans all non-ignored plugins and updates the cache. Manual `plugin-audit` always forces a fresh scan.
 

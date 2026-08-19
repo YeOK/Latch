@@ -128,6 +128,13 @@ final class PluginCacheCoordinator
             return $this->clientPlaceholder($slug, $cache);
         }
 
+        if ($cache->isFragment() && $slug !== null && $cache->fragmentHook === $hook) {
+            $hit = $this->cachedFragment($app, $slug, $hook);
+            if ($hit !== null) {
+                return $hit;
+            }
+        }
+
         $raw = ($entry['callback'])($app);
 
         if ($raw === null || $raw === '') {
@@ -135,7 +142,7 @@ final class PluginCacheCoordinator
         }
 
         if ($cache->isFragment() && $slug !== null && $cache->fragmentHook === $hook) {
-            return $this->cacheFragmentOutput($app, $slug, $hook, (string) $raw, $cache);
+            return $this->storeFragmentOutput($app, $slug, $hook, (string) $raw, $cache);
         }
 
         return $raw;
@@ -160,7 +167,26 @@ final class PluginCacheCoordinator
             . '"></div>';
     }
 
-    private function cacheFragmentOutput(
+    private function fragmentKey(PluginCollectContext $app, string $slug, string $hook): string
+    {
+        return Cache::makeFragmentKey('plugin:' . $slug . ':' . $hook, ['_locale' => $app->resolvedLocale()]);
+    }
+
+    private function cachedFragment(PluginCollectContext $app, string $slug, string $hook): ?string
+    {
+        if (!$app->guestFragmentCacheEnabled()) {
+            return null;
+        }
+
+        $cached = $app->cache()->getFragment($this->fragmentKey($app, $slug, $hook));
+        if ($cached === null) {
+            return null;
+        }
+
+        return SecurityHeaders::rewriteHtmlNonces($cached, $app->cspNonce());
+    }
+
+    private function storeFragmentOutput(
         PluginCollectContext $app,
         string $slug,
         string $hook,
@@ -171,18 +197,12 @@ final class PluginCacheCoordinator
             return $html;
         }
 
-        $key = Cache::makeFragmentKey('plugin:' . $slug . ':' . $hook, ['_locale' => $app->resolvedLocale()]);
-        $cached = $app->cache()->getFragment($key);
-        if ($cached !== null) {
-            return SecurityHeaders::rewriteHtmlNonces($cached, $app->cspNonce());
-        }
-
         $tags = [Cache::tagPlugin($slug)];
         if ($cache->invalidatesOnSite()) {
             $tags[] = Cache::tagSite();
         }
 
-        $app->cache()->setFragment($key, $html, $app->cacheTtlSeconds(), $tags);
+        $app->cache()->setFragment($this->fragmentKey($app, $slug, $hook), $html, $app->cacheTtlSeconds(), $tags);
 
         return $html;
     }

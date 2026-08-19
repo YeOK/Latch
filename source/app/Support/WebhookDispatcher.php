@@ -117,6 +117,8 @@ final class WebhookDispatcher
                 'content' => $payload,
                 'timeout' => self::TIMEOUT_SECONDS,
                 'ignore_errors' => true,
+                'follow_location' => 0,
+                'max_redirects' => 0,
             ],
         ]);
 

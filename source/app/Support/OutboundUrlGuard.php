@@ -66,6 +66,36 @@ final class OutboundUrlGuard
         return self::resolvedHostError($host);
     }
 
+    /**
+     * First public A/AAAA for CURLOPT_RESOLVE pinning (null if the host is blocked).
+     */
+    public static function resolvedPublicIp(string $host): ?string
+    {
+        $host = strtolower(trim($host));
+        if ($host === '' || self::resolvedHostError($host) !== null) {
+            return null;
+        }
+
+        $records = @dns_get_record($host, DNS_A + DNS_AAAA);
+        if (is_array($records)) {
+            foreach ($records as $record) {
+                if (isset($record['ip']) && is_string($record['ip']) && self::publicIpError($record['ip']) === null) {
+                    return $record['ip'];
+                }
+                if (isset($record['ipv6']) && is_string($record['ipv6']) && self::publicIpError($record['ipv6']) === null) {
+                    return $record['ipv6'];
+                }
+            }
+        }
+
+        $resolved = gethostbyname($host);
+        if ($resolved !== $host && self::publicIpError($resolved) === null) {
+            return $resolved;
+        }
+
+        return null;
+    }
+
     public static function resolveRedirectLocation(string $baseUrl, string $location): ?string
     {
         $location = trim($location);

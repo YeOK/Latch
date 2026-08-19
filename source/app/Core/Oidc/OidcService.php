@@ -23,6 +23,9 @@ use RuntimeException;
 
 final class OidcService
 {
+    /** @var (callable(string): void)|null */
+    private $beforeCreateUser = null;
+
     public function __construct(
         private readonly OidcConfig $config,
         private readonly OidcHttpClient $http,
@@ -33,6 +36,12 @@ final class OidcService
         private readonly Config $appConfig,
         private readonly RegistrationGuard $registrationGuard,
     ) {
+    }
+
+    /** @param callable(string): void $callback email of the would-be new account */
+    public function setBeforeCreateUser(callable $callback): void
+    {
+        $this->beforeCreateUser = $callback;
     }
 
     public function buildAuthorizationUrl(string $provider, string $state): string
@@ -87,6 +96,7 @@ final class OidcService
         }
 
         $this->assertNewRegistrationAllowed();
+        $this->assertPluginAllowsCreate($email);
 
         $username = $this->suggestUsername($profile);
         $user = $this->users->createSocial(
@@ -116,6 +126,15 @@ final class OidcService
             $this->registrationGuard->recordAttempt(false);
             throw new RuntimeException('Too many registration attempts from your network. Try again later.');
         }
+    }
+
+    private function assertPluginAllowsCreate(string $email): void
+    {
+        if ($this->beforeCreateUser === null) {
+            return;
+        }
+
+        ($this->beforeCreateUser)($email);
     }
 
     private function allowRegistration(): bool
@@ -290,9 +309,7 @@ final class OidcService
             throw new RuntimeException('GitHub profile missing id.');
         }
 
-        $email = isset($user['email']) && is_string($user['email']) && $user['email'] !== ''
-            ? $user['email']
-            : $this->fetchGithubPrimaryEmail($accessToken);
+        $email = $this->fetchGithubPrimaryEmail($accessToken);
 
         return new OidcProviderProfile(
             $subject,

@@ -64,14 +64,30 @@ final class PluginCatalog
         return $parsed;
     }
 
-    public function findUpdateEntry(string $slug, string $installedVersion, bool $forceRefresh = false): ?PluginCatalogEntry
-    {
+    /**
+     * Newer catalog version of an installed plugin.
+     * When `$latchVersion` is set, updates that need a newer core are omitted.
+     */
+    public function findUpdateEntry(
+        string $slug,
+        string $installedVersion,
+        bool $forceRefresh = false,
+        ?string $latchVersion = null,
+    ): ?PluginCatalogEntry {
         $entry = $this->findEntry($slug, $forceRefresh);
         if ($entry === null) {
             return null;
         }
 
-        return version_compare($entry->version, $installedVersion, '>') ? $entry : null;
+        if (!version_compare($entry->version, $installedVersion, '>')) {
+            return null;
+        }
+
+        if (!$this->entryCompatibleWithLatch($entry, $latchVersion)) {
+            return null;
+        }
+
+        return $entry;
     }
 
     public function findEntry(string $slug, bool $forceRefresh = false): ?PluginCatalogEntry
@@ -96,10 +112,18 @@ final class PluginCatalog
     }
 
     /**
+     * Catalog plugins not yet installed.
+     *
+     * When `$latchVersion` is set, entries whose `min_latch_version` is newer
+     * than the running core are omitted so mixed catalogs stay usable.
+     *
      * @return list<PluginCatalogEntry>
      */
-    public function availableEntries(array $installedSlugs, bool $forceRefresh = false): array
-    {
+    public function availableEntries(
+        array $installedSlugs,
+        bool $forceRefresh = false,
+        ?string $latchVersion = null,
+    ): array {
         $catalog = $this->load($forceRefresh);
         if ($catalog === null) {
             return [];
@@ -108,12 +132,27 @@ final class PluginCatalog
         $installed = array_fill_keys($installedSlugs, true);
         $available = [];
         foreach ($catalog['entries'] as $entry) {
-            if (!isset($installed[$entry->slug])) {
-                $available[] = $entry;
+            if (isset($installed[$entry->slug])) {
+                continue;
             }
+
+            if (!$this->entryCompatibleWithLatch($entry, $latchVersion)) {
+                continue;
+            }
+
+            $available[] = $entry;
         }
 
         return $available;
+    }
+
+    private function entryCompatibleWithLatch(PluginCatalogEntry $entry, ?string $latchVersion): bool
+    {
+        if ($latchVersion === null || $latchVersion === '') {
+            return true;
+        }
+
+        return $entry->isCompatibleWith($latchVersion);
     }
 
     public function releaseRepo(): string

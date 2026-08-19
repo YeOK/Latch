@@ -14,11 +14,13 @@ namespace Latch\Tests;
 use Latch\Core\Database;
 use Latch\Core\Plugins\HookName;
 use Latch\Core\Plugins\HookRegistry;
+use Latch\Core\Plugins\PluginHookRegistrar;
 use Latch\Core\Plugins\PluginInterface;
 use Latch\Core\Plugins\PluginManifest;
 use Latch\Core\Plugins\PluginRegistry;
 use Latch\Core\Plugins\PostSaveContext;
 use Latch\Core\Plugins\ProfileSaveContext;
+use Latch\Core\Plugins\RegisterContext;
 use Latch\Models\SettingRepository;
 use PHPUnit\Framework\TestCase;
 
@@ -61,6 +63,44 @@ final class PluginSystemTest extends TestCase
         $this->assertSame(['first', 'second'], $order);
     }
 
+    public function testRegisterContextRejectStopsLaterListeners(): void
+    {
+        $hooks = new HookRegistry();
+        $seen = [];
+        $hooks->add('user.before_register', static function (RegisterContext $ctx) use (&$seen): void {
+            $seen[] = 'first';
+            $ctx->reject('no');
+        });
+        $hooks->add('user.before_register', static function () use (&$seen): void {
+            $seen[] = 'second';
+        });
+
+        $ctx = new RegisterContext('alice', 'a@example.test', 'form');
+        $hooks->dispatch('user.before_register', $ctx);
+
+        $this->assertSame(['first'], $seen);
+        $this->assertSame('no', $ctx->rejectReason);
+    }
+
+    public function testPluginHookRegistrarIgnoresUndeclaredHooks(): void
+    {
+        $hooks = new HookRegistry();
+        $manifest = new PluginManifest(
+            name: 'Test',
+            slug: 'test-plug',
+            version: '1.0.0',
+            minLatchVersion: '0.5.0',
+            hooks: [HookName::LAYOUT_FOOTER],
+            pluginDir: '/tmp/test-plug',
+        );
+        $registrar = new PluginHookRegistrar($hooks, $manifest);
+        $registrar->add(HookName::LAYOUT_FOOTER, static fn (): string => 'ok');
+        $registrar->add(HookName::BOOTSTRAP, static function (): void {});
+
+        $this->assertTrue($hooks->has(HookName::LAYOUT_FOOTER));
+        $this->assertFalse($hooks->has(HookName::BOOTSTRAP));
+    }
+
     public function testHookRegistryCollectMergesResults(): void
     {
         $hooks = new HookRegistry();
@@ -96,11 +136,13 @@ final class PluginSystemTest extends TestCase
 
     public function testHookNameRegistryListsAllKnownHooks(): void
     {
-        $this->assertCount(29, HookName::all());
+        $this->assertCount(31, HookName::all());
         $this->assertContains(HookName::HOME_BEFORE_BOARDS, HookName::all());
         $this->assertContains(HookName::POST_FORMAT_LINK, HookName::all());
         $this->assertContains(HookName::CSP_FRAME_SRC, HookName::all());
         $this->assertContains(HookName::TOPIC_ACTIONS, HookName::all());
+        $this->assertContains(HookName::USER_BEFORE_REGISTER, HookName::all());
+        $this->assertContains(HookName::AUTH_REGISTER_FORM, HookName::all());
     }
 
     public function testLinkFormatFilterReplacesStandaloneUrls(): void
@@ -222,7 +264,7 @@ final class PluginSystemTest extends TestCase
 
     public function testCatalogPluginsAreNotShippedInCoreTree(): void
     {
-        foreach (CatalogPath::TIER1_SLUGS as $slug) {
+        foreach (array_merge(CatalogPath::TIER1_SLUGS, ['avatar-url', 'board-icon-pack']) as $slug) {
             $this->assertDirectoryDoesNotExist(dirname(__DIR__) . '/plugins/' . $slug);
         }
     }

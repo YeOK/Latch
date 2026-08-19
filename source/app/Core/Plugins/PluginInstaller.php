@@ -327,6 +327,18 @@ final class PluginInstaller
                 $this->deleteDirectory($tempDir);
                 throw new RuntimeException("Failed to write zip entry: {$name}");
             }
+
+            $realTemp = realpath($tempDir);
+            $realTarget = realpath($target);
+            if (
+                $realTemp === false
+                || $realTarget === false
+                || ($realTarget !== $realTemp && !str_starts_with($realTarget, $realTemp . DIRECTORY_SEPARATOR))
+            ) {
+                $zip->close();
+                $this->deleteDirectory($tempDir);
+                throw new InvalidArgumentException('Zip archive contains unsafe paths');
+            }
         }
 
         $zip->close();

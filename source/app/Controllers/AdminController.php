@@ -1958,12 +1958,17 @@ final class AdminController
             $catalogUpdate = null;
 
             if ($catalogData !== null) {
-                $updateEntry = $catalog->findUpdateEntry($manifest->slug, $manifest->version);
+                $updateEntry = $catalog->findUpdateEntry(
+                    $manifest->slug,
+                    $manifest->version,
+                    false,
+                    $latchVersion,
+                );
                 if ($updateEntry !== null) {
                     ++$updatesCount;
                     $catalogUpdate = [
                         'version' => $updateEntry->version,
-                        'compatible' => $updateEntry->isCompatibleWith($latchVersion),
+                        'compatible' => true,
                         'release' => $catalogData['release'],
                     ];
                 }
@@ -1989,7 +1994,7 @@ final class AdminController
         if ($catalogData === null) {
             $catalogError = 'Could not load the plugin catalog. Check server outbound HTTPS or install via CLI.';
         } else {
-            foreach ($catalog->availableEntries($installedSlugs) as $entry) {
+            foreach ($catalog->availableEntries($installedSlugs, false, $latchVersion) as $entry) {
                 $catalogRows[] = [
                     'slug' => $entry->slug,
                     'name' => $entry->name,
@@ -1997,7 +2002,7 @@ final class AdminController
                     'min_latch_version' => $entry->minLatchVersion,
                     'summary' => $entry->summary,
                     'hooks' => $entry->hooks,
-                    'compatible' => $entry->isCompatibleWith($latchVersion),
+                    'compatible' => true,
                 ];
             }
         }
@@ -2056,14 +2061,6 @@ final class AdminController
             $this->finishStaffAction(
                 false,
                 "Plugin requires Latch >= {$entry->minLatchVersion}.",
-                $this->pluginsAdminUrl('catalog'),
-            );
-        }
-
-        if (version_compare($latchVersion, $catalogData['latch_min_version'], '<')) {
-            $this->finishStaffAction(
-                false,
-                "Catalog requires Latch >= {$catalogData['latch_min_version']}.",
                 $this->pluginsAdminUrl('catalog'),
             );
         }
@@ -2137,14 +2134,6 @@ final class AdminController
             $this->finishStaffAction(
                 false,
                 "Plugin requires Latch >= {$entry->minLatchVersion}.",
-                $this->pluginsAdminUrl('installed'),
-            );
-        }
-
-        if (version_compare($latchVersion, $catalogData['latch_min_version'], '<')) {
-            $this->finishStaffAction(
-                false,
-                "Catalog requires Latch >= {$catalogData['latch_min_version']}.",
                 $this->pluginsAdminUrl('installed'),
             );
         }
@@ -2227,6 +2216,7 @@ final class AdminController
     public function savePluginSettings(array $params): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $manifest = $this->requirePluginSettingsManifest($params);
@@ -2734,6 +2724,7 @@ final class AdminController
     public function toggleWebhook(array $params): void
     {
         $this->app->auth()->requireAdmin();
+        $this->app->auth()->requireStaffStepUp();
         $this->validateStaffCsrf();
 
         $id = (int) ($params['id'] ?? 0);

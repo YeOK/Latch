@@ -22,6 +22,10 @@ source/config/local.php
 *.swp
 .DS_Store
 
+# Catalog copies used for local testing — not shipped in core (install from Latch-plugins)
+source/plugins/avatar-url/
+source/plugins/board-icon-pack/
+
 # Composer (lock file is committed; install with composer or source/composer.phar)
 source/vendor/
 

@@ -174,6 +174,7 @@ final class AuthController
         $this->app->render('auth/register.html.twig', [
             'registration_turnstile_required' => $guard->turnstileRequired(),
             'turnstile_site_key' => $guard->turnstileSiteKey(),
+            'plugin_register_form_html' => $this->app->collectRegisterForm(),
         ]);
     }
 
@@ -250,13 +251,31 @@ final class AuthController
             Response::redirect('/register');
         }
 
-        $user = $this->app->users()->create(
-            $username,
-            $email,
-            $password,
-            'member',
-            $this->app->defaultThemeMode(),
-        );
+        if ($this->app->pluginRegistrationGateFailed()) {
+            $this->app->session()->flash('error', 'Registration is temporarily unavailable.');
+            Response::redirect('/register');
+        }
+
+        $inviteCode = trim((string) $this->app->request()->input('invite_code', ''));
+        $registerContext = new \Latch\Core\Plugins\RegisterContext($username, $email, 'form', $inviteCode);
+        $pluginReject = $this->app->applyUserBeforeRegister($registerContext);
+        if ($pluginReject !== null) {
+            $this->app->session()->flash('error', $pluginReject);
+            Response::redirect('/register');
+        }
+
+        try {
+            $user = $this->app->users()->create(
+                $username,
+                $email,
+                $password,
+                'member',
+                $this->app->defaultThemeMode(),
+            );
+        } catch (\Throwable $e) {
+            $registerContext->runAbortHandlers();
+            throw $e;
+        }
         $this->app->fireUserRegister($user);
         $guard->recordAttempt(true);
 

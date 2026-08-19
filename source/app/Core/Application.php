@@ -372,6 +372,18 @@ final class Application implements PluginCollectContext
         $this->hookRegistry->dispatch(HookName::BOARD_ICONS, $this->boardIcons);
         $this->hookRegistry->dispatch(HookName::BOOTSTRAP, $this);
 
+        $this->oidc->setBeforeCreateUser(function (string $email): void {
+            if ($this->pluginLoader->registrationGateFailed()) {
+                throw new \RuntimeException('Registration is temporarily unavailable.');
+            }
+
+            $ctx = new \Latch\Core\Plugins\RegisterContext('', $email, 'oidc');
+            $reason = $this->applyUserBeforeRegister($ctx);
+            if ($reason !== null) {
+                throw new \RuntimeException($reason);
+            }
+        });
+
         $this->postFormatter->setImageHostChecker(
             fn (string $host): bool => $this->isImageHostAllowed($host),
         );
@@ -385,10 +397,11 @@ final class Application implements PluginCollectContext
             ),
         );
         $this->postFormatter->setFormatAfterFilter(
-            fn (string $html, string $raw): string => (string) $this->hookRegistry->filter(
+            fn (string $html, string $raw, array $context = []): string => (string) $this->hookRegistry->filter(
                 HookName::POST_FORMAT_AFTER,
                 $html,
                 $raw,
+                $context,
             ),
         );
         $this->view->bindPostFormatter($this->postFormatter);
@@ -925,6 +938,23 @@ final class Application implements PluginCollectContext
     public function csrf(): Csrf
     {
         return $this->csrf;
+    }
+
+    /**
+     * Admin + CSRF + staff step-up for plugin-registered POST routes.
+     */
+    public function requirePluginAdminPost(): void
+    {
+        $this->auth()->requireAdmin();
+        $this->auth()->requireStaffStepUp();
+        if (!$this->csrf()->validate($this->request()->input('_csrf'))) {
+            Response::forbidden('Invalid form token.');
+        }
+    }
+
+    public function pluginRegistrationGateFailed(): bool
+    {
+        return $this->pluginLoader->registrationGateFailed();
     }
 
     public function rateLimiter(): RateLimiter
@@ -1561,6 +1591,30 @@ final class Application implements PluginCollectContext
         $this->hookRegistry->dispatch(HookName::USER_REGISTER, $user, $this);
         $this->webhookDispatcher->userRegistered($user);
         $this->bustSiteCache();
+    }
+
+    /**
+     * Extra fields on GET /register. Each item is trusted HTML the plugin escaped.
+     *
+     * @return list<string>
+     */
+    public function collectRegisterForm(): array
+    {
+        /** @var list<string> */
+        return array_values(array_filter(
+            $this->hookRegistry->collect(HookName::AUTH_REGISTER_FORM, $this),
+            static fn (mixed $item): bool => is_string($item) && $item !== '',
+        ));
+    }
+
+    /**
+     * Run user.before_register. Returns a flash-safe reject reason, or null to continue.
+     */
+    public function applyUserBeforeRegister(\Latch\Core\Plugins\RegisterContext $context): ?string
+    {
+        $this->hookRegistry->dispatch(HookName::USER_BEFORE_REGISTER, $context, $this);
+
+        return $context->rejectReason;
     }
 
     public function webhookRepository(): WebhookRepository

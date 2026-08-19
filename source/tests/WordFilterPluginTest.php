@@ -103,6 +103,26 @@ final class WordFilterPluginTest extends TestCase
         $this->assertSame('What **** timing.', $ctx->body);
     }
 
+    public function testMatchesWordsSplitByFormatChars(): void
+    {
+        $filter = $this->filterWithWords(['fuck']);
+        $ctx = $this->context("f\u{200B}uck");
+
+        $this->assertSame('Your post contains language that is not allowed on this forum.', $filter->process($ctx));
+    }
+
+    public function testMatchesFullwidthLetters(): void
+    {
+        if (!class_exists(\Normalizer::class)) {
+            $this->markTestSkipped('intl Normalizer not available');
+        }
+
+        $filter = $this->filterWithWords(['fuck']);
+        $ctx = $this->context('ｆｕｃｋ');
+
+        $this->assertSame('Your post contains language that is not allowed on this forum.', $filter->process($ctx));
+    }
+
     public function testCaseInsensitiveMatch(): void
     {
         $filter = $this->filterWithWords(['shit'], caseSensitive: false);

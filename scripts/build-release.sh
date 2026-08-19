@@ -85,6 +85,7 @@ mkdir -p "${STAGE}" "${DIST}"
 echo "==> Stage release tree"
 rsync -a \
     --exclude='.git' \
+    --exclude='.github' \
     --exclude='.DS_Store' \
     --exclude='source/storage/database/*.sqlite' \
     --exclude='source/storage/database/*.sqlite-*' \

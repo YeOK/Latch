@@ -29,6 +29,7 @@
             <file>tests/ImageUploadPluginTest.php</file>
             <file>tests/AdminLogsTest.php</file>
             <file>tests/StaffSessionHardeningTest.php</file>
+            <file>tests/SecurityLogTest.php</file>
             <file>tests/LogFeedGuardTest.php</file>
             <file>tests/LinkPreviewPluginTest.php</file>
             <file>tests/WordFilterPluginTest.php</file>

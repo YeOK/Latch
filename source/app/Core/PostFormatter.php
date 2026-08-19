@@ -13,6 +13,10 @@ namespace Latch\Core;
 
 /**
  * Converts raw post markup to safe HTML (allowlist only).
+ *
+ * post.format.after may append trusted HTML. Core does not re-escape that
+ * filter result — plugins must htmlspecialchars any user content they add.
+ * Context keys: user_id (int, 0 if unknown), skip_after (truthy skips the hook).
  */
 final class PostFormatter
 {
@@ -24,7 +28,7 @@ final class PostFormatter
     /** @var (callable(string, string, string, bool): string)|null */
     private $linkFormatter = null;
 
-    /** @var (callable(string, string): string)|null */
+    /** @var (callable(string, string, array<string, mixed>): string)|null */
     private $formatAfterFilter = null;
 
     private bool $composerPreview = false;
@@ -72,7 +76,7 @@ final class PostFormatter
         $this->linkFormatter = $formatter;
     }
 
-    /** @param callable(string, string): string $filter */
+    /** @param callable(string, string, array<string, mixed>): string $filter */
     public function setFormatAfterFilter(callable $filter): void
     {
         $this->formatAfterFilter = $filter;
@@ -104,7 +108,10 @@ final class PostFormatter
         return $text;
     }
 
-    public function format(string $raw, bool $composerPreview = false): string
+    /**
+     * @param array<string, mixed> $context Passed to post.format.after (e.g. user_id for signatures).
+     */
+    public function format(string $raw, bool $composerPreview = false, array $context = []): string
     {
         $previousPreview = $this->composerPreview;
         $this->composerPreview = $composerPreview;
@@ -133,8 +140,8 @@ final class PostFormatter
                 };
             }
 
-            if ($this->formatAfterFilter !== null) {
-                $html = ($this->formatAfterFilter)($html, $raw);
+            if ($this->formatAfterFilter !== null && empty($context['skip_after'])) {
+                $html = ($this->formatAfterFilter)($html, $raw, $context);
             }
 
             return $mdImport ? '<div class="post-md-import">' . $html . '</div>' : $html;

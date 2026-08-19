@@ -372,11 +372,12 @@ final class Auth
             if (is_string($referer) && $referer !== '') {
                 $path = parse_url($referer, PHP_URL_PATH);
                 if (is_string($path) && str_starts_with($path, '/')) {
-                    $return = $path;
+                    $candidate = $path;
                     $q = parse_url($referer, PHP_URL_QUERY);
                     if (is_string($q) && $q !== '') {
-                        $return .= '?' . $q;
+                        $candidate .= '?' . $q;
                     }
+                    $return = $this->request->safeRedirectPath($candidate, '/admin');
                 }
             } else {
                 $return = '/admin';
@@ -408,21 +409,21 @@ final class Auth
     {
         $return = $this->session->get(self::SESSION_STEPUP_RETURN);
         $this->session->forget(self::SESSION_STEPUP_RETURN);
-        if (!is_string($return) || $return === '' || !str_starts_with($return, '/')) {
+        if (!is_string($return) || $return === '') {
             return '/admin';
         }
 
-        return $return;
+        return $this->request->safeRedirectPath($return, '/admin');
     }
 
     public function peekStaffStepUpReturn(): string
     {
         $return = $this->session->get(self::SESSION_STEPUP_RETURN);
-        if (!is_string($return) || $return === '' || !str_starts_with($return, '/')) {
+        if (!is_string($return) || $return === '') {
             return '/admin';
         }
 
-        return $return;
+        return $this->request->safeRedirectPath($return, '/admin');
     }
 
     private function requireMandatoryTwoFactorEnrolled(): void

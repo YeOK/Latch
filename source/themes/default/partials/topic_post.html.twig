@@ -22,13 +22,13 @@
                 </span>
             {% endif %}
             {% if is_mod and post.revision_count > 0 %}
-                <a class="badge badge-muted post-revision-link mod-tools-active-only" href="/mod/post/{{ post.id }}/revisions">History ({{ post.revision_count }})</a>
+                <a class="badge badge-muted post-revision-link mod-tools-active-only" href="/mod/post/{{ post.id }}/revisions">{{ trans('topic.history', { count: post.revision_count }) }}</a>
             {% endif %}
-            {% if quarantined and is_mod %}<span class="badge badge-quarantine">Quarantined</span>{% endif %}
-            {% if pending %}<span class="badge badge-pending">Pending approval</span>{% endif %}
+            {% if quarantined and is_mod %}<span class="badge badge-quarantine">{{ trans('topic.quarantined') }}</span>{% endif %}
+            {% if pending %}<span class="badge badge-pending">{{ trans('topic.pending_approval') }}</span>{% endif %}
             {% if is_mod_trash_board|default(false) and post.restore_board_name %}
                 <span class="badge badge-muted">
-                    From
+                    {{ trans('topic.from_board') }}
                     <a href="/board/{{ post.restore_board_slug }}">{{ post.restore_board_name }}</a>
                     {% if post.trash_restore_topic_id %}
                         · <a href="/topic/{{ post.trash_restore_topic_id }}">{{ post.restore_topic_title }}</a>
@@ -50,7 +50,7 @@
         </div>
     {% else %}
         <div class="post-body post-content">
-            {{ post.body|format_post }}
+            {{ post.body|format_post({ user_id: post.user_id|default(0) }) }}
         </div>
     {% endif %}
     <footer class="post-actions">

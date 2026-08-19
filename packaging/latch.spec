@@ -12,7 +12,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.5.4.0
+Version:        0.5.5.0
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -202,6 +202,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Wed Aug 19 2026 YeOK <yeokky@gmail.com> - 0.5.5.0-1
+- Plugin hooks for invite/register/signatures; catalog mixed-version skip; security hardening (webhooks, auditor, OIDC)
+
 * Fri Aug 14 2026 YeOK <yeokky@gmail.com> - 0.5.4.0-1
 - Follow user: profile follow/unfollow, /following, ACL-safe topic notifications
 

@@ -27,7 +27,7 @@ final class PluginAuditReport
     }
 
     /** Prefixes for hook-injection warnings that block admin/CLI enable. */
-    private const ENABLE_BLOCKING_WARN_PREFIXES = ['markup_', 'js_'];
+    private const ENABLE_BLOCKING_WARN_PREFIXES = ['markup_', 'js_', 'variable_function'];
 
     public function passed(): bool
     {

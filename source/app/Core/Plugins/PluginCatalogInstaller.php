@@ -35,6 +35,12 @@ final class PluginCatalogInstaller
         try {
             $zipPath = $this->downloader->downloadEntry($entry, $releaseTag);
             $manifest = $this->installer->installFromSource($zipPath);
+            if ($manifest->slug !== $entry->slug) {
+                $this->rollbackInstall($manifest->slug);
+                throw new RuntimeException(
+                    "Catalog zip slug {$manifest->slug} does not match {$entry->slug}",
+                );
+            }
         } catch (\Throwable $e) {
             if ($manifest instanceof PluginManifest) {
                 $this->rollbackInstall($manifest->slug);

@@ -32,6 +32,8 @@ final class PluginAuditor
         ['pattern' => '/\bcreate_function\s*\(/i', 'code' => 'dangerous_create_function', 'message' => 'create_function() is not allowed in plugins'],
         ['pattern' => '/\bassert\s*\(\s*[\'"`]/i', 'code' => 'dangerous_assert', 'message' => 'String assert() is not allowed in plugins'],
         ['pattern' => '/\b(include|require)(_once)?\s*\(\s*\$_(GET|POST|REQUEST|COOKIE|SERVER)\b/i', 'code' => 'dynamic_include', 'message' => 'Dynamic include/require from request data is not allowed'],
+        ['pattern' => '/(?:^|[\s(=])`[a-zA-Z][^`\n]{0,200}`/', 'code' => 'dangerous_backtick', 'message' => 'Shell backticks are not allowed in plugins'],
+        ['pattern' => '/\b(include|require)(_once)?\s*[\s(][^\n]*\.\./i', 'code' => 'include_parent_path', 'message' => 'include/require with .. is not allowed'],
     ];
 
     /** @var list<array{pattern: string, code: string, message: string}> */
@@ -313,10 +315,6 @@ final class PluginAuditor
             $absolute = $fileInfo->getPathname();
             $relative = ltrim(str_replace($pluginDir, '', $absolute), '/\\');
 
-            if (str_starts_with($relative, 'vendor/')) {
-                continue;
-            }
-
             $size = $fileInfo->getSize();
             if ($size > self::MAX_FILE_BYTES) {
                 $findings[] = new PluginAuditFinding(
@@ -330,13 +328,27 @@ final class PluginAuditor
             $lower = strtolower($relative);
             $isPhp = str_ends_with($lower, '.php');
             $isJs = str_ends_with($lower, '.js') || str_ends_with($lower, '.mjs');
+            $isMarkup = str_ends_with($lower, '.html') || str_ends_with($lower, '.htm') || str_ends_with($lower, '.twig');
+            $isSvg = str_ends_with($lower, '.svg');
 
-            if (!$isPhp && !$isJs) {
+            if (!$isPhp && !$isJs && !$isMarkup && !$isSvg) {
                 continue;
             }
 
             $contents = file_get_contents($absolute);
             if (!is_string($contents) || $contents === '') {
+                continue;
+            }
+
+            if ($isSvg) {
+                if (\Latch\Support\SvgSafety::containsDisallowedMarkup($contents)) {
+                    $findings[] = new PluginAuditFinding(
+                        PluginAuditFinding::SEVERITY_CRITICAL,
+                        'svg_script',
+                        'SVG contains disallowed script or event-handler markup',
+                        $relative,
+                    );
+                }
                 continue;
             }
 
@@ -377,13 +389,32 @@ final class PluginAuditor
                         );
                     }
 
-                    if (preg_match('/\.\./', $line) && preg_match('/\b(file_put_contents|fopen|unlink|rename|copy|mkdir)\s*\(/i', $line)) {
+                    if (preg_match('/\.\./', $line) && preg_match('/\b(file_put_contents|fopen|unlink|rename|copy|mkdir|include|require|include_once|require_once)\s*\(/i', $line)) {
                         $findings[] = new PluginAuditFinding(
                             PluginAuditFinding::SEVERITY_CRITICAL,
                             'path_traversal',
                             'Path traversal (..) near filesystem operation',
                             $relative,
                             $lineNo,
+                        );
+                    }
+                }
+
+                if ($isMarkup) {
+                    $htmlFindings = $this->scanLineForPatterns(
+                        $line,
+                        $lineNo,
+                        $relative,
+                        self::MARKUP_WARN_PATTERNS,
+                        PluginAuditFinding::SEVERITY_WARN,
+                    );
+                    foreach ($htmlFindings as $finding) {
+                        $findings[] = new PluginAuditFinding(
+                            $finding->severity,
+                            'asset_' . $finding->code,
+                            $finding->message . ' (HTML/Twig asset — review |raw injection)',
+                            $finding->file,
+                            $finding->line,
                         );
                     }
                 }

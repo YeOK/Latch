@@ -23,6 +23,8 @@ final class HookName
     public const POST_DELETE = 'post.delete';
     public const POST_VOTE = 'post.vote';
     public const USER_REGISTER = 'user.register';
+    public const USER_BEFORE_REGISTER = 'user.before_register';
+    public const AUTH_REGISTER_FORM = 'auth.register_form';
     public const ADMIN_MENU = 'admin.menu';
     public const THEME_ASSETS = 'theme.assets';
     public const THEME_SCRIPTS = 'theme.scripts';
@@ -57,6 +59,8 @@ final class HookName
             self::POST_DELETE,
             self::POST_VOTE,
             self::USER_REGISTER,
+            self::USER_BEFORE_REGISTER,
+            self::AUTH_REGISTER_FORM,
             self::ADMIN_MENU,
             self::THEME_ASSETS,
             self::THEME_SCRIPTS,

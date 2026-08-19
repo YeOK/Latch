@@ -24,6 +24,7 @@ final class PluginSettingsStore
     ) {
     }
 
+    /** Settings live under storage/plugins/{slug}/settings.json — do not read that file yourself. */
     public static function forPlugin(PluginManifest $manifest, string $storageRoot): self
     {
         $dir = rtrim($storageRoot, '/') . '/plugins/' . $manifest->slug;
@@ -37,6 +38,8 @@ final class PluginSettingsStore
     }
 
     /**
+     * Manifest defaults merged with stored writable keys only.
+     *
      * @return array<string, mixed>
      */
     public function all(): array
@@ -65,6 +68,8 @@ final class PluginSettingsStore
     }
 
     /**
+     * Persist writable schema keys only.
+     *
      * @param array<string, mixed> $values
      */
     public function save(array $values): void
