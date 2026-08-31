@@ -20,6 +20,7 @@ return [
         // 'turnstile_site_key' => '',
         // 'turnstile_secret_key' => '',
         // 'trust_cloudflare' => true, // default; set false if not behind Cloudflare
+        // 'trusted_proxy_cidrs' => ['10.0.0.0/8'], // extra CIDRs allowed to send CF / X-Forwarded headers
         // Staff session hardening (admin/mod) — see docs/SECURITY.md
         // 'staff_session_fingerprint' => true,
         // 'staff_idle_timeout_minutes' => 30, // 0 = off

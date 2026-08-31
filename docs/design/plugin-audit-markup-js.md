@@ -1,5 +1,7 @@
 # Design: Plugin-Audit Markup & JavaScript Static Scanning
 
+> Historical design note. Live behaviour is [source/docs/PLUGINS.md](../../source/docs/PLUGINS.md) § Security audit (includes `vendor/` as of 0.5.5).
+
 | Field | Value |
 |-------|-------|
 | **Author** | (TBD) |

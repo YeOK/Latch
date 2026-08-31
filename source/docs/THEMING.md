@@ -68,7 +68,7 @@ Static assets are served from `/assets/…` (mapped to `themes/{active}/assets/`
 | `assets.css` | Declarative list for future loader / plugin integration |
 | `assets.js` | Global scripts; page-specific scripts belong in `{% block scripts %}` |
 
-Phase 4 plugins may register extra assets via hooks. Until then, add scripts explicitly in Twig blocks.
+Plugins may register extra CSS/JS via `theme.assets` / `theme.scripts`. Static files under `plugins/{slug}/assets/` are served at `/plugin/{slug}/…` by `PluginAssetServer` without booting the kernel.
 
 ---
 

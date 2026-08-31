@@ -27,6 +27,12 @@ final class TwoFactorController
             Response::redirect('/');
         }
 
+        if (!$this->app->request()->isPost()
+            || !$this->app->csrf()->validateAndRotate($this->app->request()->input('_csrf'))) {
+            $this->app->session()->flash('error', 'Invalid form token.');
+            Response::redirect('/login');
+        }
+
         if ($this->app->auth()->hasTotpPending()) {
             $this->app->auth()->clearTotpPending();
         }
@@ -76,6 +82,9 @@ final class TwoFactorController
 
         if (!$valid) {
             $this->app->rateLimiter()->recordLoginAttempt($ip, (string) $user['username'], false);
+            $maxAttempts = (int) $this->app->config()->get('security.login_max_attempts', 10);
+            $lockoutMinutes = (int) $this->app->config()->get('security.login_lockout_minutes', 15);
+            $this->app->users()->recordFailedLogin((int) $user['id'], $maxAttempts, $lockoutMinutes);
             $this->app->securityLog()->log('login_totp_fail', [
                 'ip' => $ip,
                 'user_id' => (int) $user['id'],

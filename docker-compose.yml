@@ -1,0 +1,43 @@
+# Latch homelab / demo stack. Production Fedora installs use COPR instead.
+# Docs: source/docs/DOCKER.md
+
+services:
+  latch:
+    build: .
+    image: latch:local
+    ports:
+      - "${LATCH_HTTP_PORT:-8080}:80"
+    environment:
+      LATCH_URL: ${LATCH_URL:-http://localhost:8080}
+      LATCH_NAME: ${LATCH_NAME:-Latch}
+      LATCH_ADMIN_USER: ${LATCH_ADMIN_USER:-admin}
+      LATCH_ADMIN_EMAIL: ${LATCH_ADMIN_EMAIL:-admin@localhost}
+      LATCH_ADMIN_PASS: ${LATCH_ADMIN_PASS:-}
+      LATCH_ENCRYPTION_KEY: ${LATCH_ENCRYPTION_KEY:-}
+    volumes:
+      - latch-storage:/var/www/latch/source/storage
+      - latch-config:/persist/config
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 45s
+    restart: unless-stopped
+
+  latch-cron:
+    image: latch:local
+    depends_on:
+      latch:
+        condition: service_healthy
+    command: ["cron"]
+    environment:
+      LATCH_URL: ${LATCH_URL:-http://localhost:8080}
+    volumes:
+      - latch-storage:/var/www/latch/source/storage
+      - latch-config:/persist/config
+    restart: unless-stopped
+
+volumes:
+  latch-storage:
+  latch-config:

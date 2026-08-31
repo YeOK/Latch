@@ -6,14 +6,14 @@ Every public release must bump **all** version surfaces together. Partial bumps 
 
 | Surface | File / artifact | Example |
 |---------|-----------------|---------|
-| Tree version | `VERSION` | `0.4.5.0` |
-| Config fallback | `source/config/default.php` → `app.version` | `0.4.5.0` |
-| RPM spec | `packaging/latch.spec` → `Version:` | `0.4.5.0` |
-| Changelog | `CHANGELOG.md` → `## [0.4.5.0]` | dated section, `[Unreleased]` empty |
+| Tree version | `VERSION` | `0.5.6.0` |
+| Config fallback | `source/config/default.php` → `app.version` | `0.5.6.0` |
+| RPM spec | `packaging/latch.spec` → `Version:` | `0.5.6.0` |
+| Changelog | `CHANGELOG.md` → `## [0.5.6.0]` | dated section, `[Unreleased]` empty |
 | Security policy | `SECURITY.md` supported-versions table | latest = current |
-| Git tag | `v0.4.5.0` | matches `VERSION` |
+| Git tag | `v0.5.6.0` | matches `VERSION` |
 | GitHub Release | tag + notes + assets | tarball + `SHA256SUMS` |
-| Release tarball | `dist/latch-0.4.5.0.tar.gz` | from `build-release.sh` |
+| Release tarball | `dist/latch-0.5.6.0.tar.gz` | from `build-release.sh` |
 | COPR / RPM | `dnf upgrade latch` | built from tag via `packaging/latch.spec` |
 
 Preflight (must pass before `build-release.sh`):
@@ -28,12 +28,14 @@ Preflight (must pass before `build-release.sh`):
 2. **Bump all core versions** — same semver in `VERSION`, `app.version`, and `latch.spec` `Version:`.
 3. **RPM changelog** — add a `* date … - X.Y.Z-1` entry at the top of `%changelog` in `packaging/latch.spec`.
 4. **SECURITY.md** — set the new version as `(latest)` in the supported-versions table.
-5. **Tests** — from `source/`:
+5. **Tests** — from `source/` (or `./scripts/release-gate.sh` from the repo root; GitHub Actions workflow `.github/workflows/release-gate.yml` mirrors this):
    ```bash
+   php bin/latch test
    php bin/latch test --smoke
    php bin/latch test --security   # if auth, plugins, or JS changed
    php bin/latch audit
    ```
+   Docker image: `docker compose exec latch php bin/latch doctor` after `docker compose up --build`.
 6. **Version sync** — `./scripts/check-versions.sh`
 7. **Commit** — e.g. `Release 0.4.4.1: …` (include spec + SECURITY bumps in the same commit as `VERSION`).
 

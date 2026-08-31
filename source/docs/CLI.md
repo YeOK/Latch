@@ -82,6 +82,8 @@ php bin/latch install \
 
 On an interactive TTY, `install` offers **Configure Turnstile, mail, Cloudflare, and plugin secrets now?** (default no). Non-interactive installs print a one-line tip instead. RPM `latch-setup` never auto-runs the walkthrough — it prints `sudo latch configure` after setup.
 
+Docker demo first-run calls this command from the image entrypoint (see [DOCKER.md](DOCKER.md)).
+
 ---
 
 ## migrate
@@ -684,8 +686,8 @@ Runs live smoke tests against `/api/v1` and `/oauth/token`. Configure credential
 Interactive harness for **user-delegated** OAuth and `/api/v1/messages/*`.
 
 ```bash
-# 1. Create OAuth client on the server (once)
-~/Documents/latch/scripts/setup-api-test-client.sh
+# 1. Create an OAuth client on the forum (Admin → API, or)
+#    php bin/latch api-client create --name=local-test --redirect=http://127.0.0.1:8080/callback
 
 # 2. Local config
 cp tests/api/config.example.php tests/api/config.local.php

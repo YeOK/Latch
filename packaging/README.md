@@ -8,7 +8,7 @@
 | `latch-rpm-update` | `%posttrans` upgrade hook (calls `scripts/update.sh`) |
 | `latch-httpd.conf` | Apache vhost template → `/etc/httpd/conf.d/latch.conf` |
 | `latch-remoteip.conf` | `mod_remoteip` snippet → `/etc/httpd/conf.d/latch-remoteip.conf` (real client IPs in access logs) |
-| `fail2ban/` | `latch-login` filter + jail → `/etc/fail2ban/{filter.d,jail.d}/` |
+| `fail2ban/` | `latch-login` filter + jail → `/etc/fail2ban/{filter.d,jail.d}/`; `install.sh` for non-RPM hosts |
 | `systemd/` | `latch-cron-*.timer` replaces crontab for `apache` |
 
 **Operators:** [source/docs/INSTALL-FEDORA.md](../source/docs/INSTALL-FEDORA.md) (install, **`sudo latch backup` / restore**, paths under `/var/lib/latch/storage/`)  
@@ -34,7 +34,7 @@ ErrorLog  /var/log/httpd/latch-error.log
 CustomLog /var/log/httpd/latch-access.log combined
 ```
 
-fail2ban `latch-login` watches `/var/lib/latch/storage/logs/security.log` by default (`login_fail` JSON with real IPs). Apache paths above are for the admin log viewer; if you change vhost log locations, update `logs.sources[]` in `/etc/latch/local.php`.
+fail2ban `latch-login` watches `/var/lib/latch/storage/logs/security.log` by default (`login_fail` / `login_totp_fail` JSON with real IPs). Apache paths above are for the admin log viewer; if you change vhost log locations, update `logs.sources[]` in `/etc/latch/local.php`.
 
 **Enabling server logs in the viewer** — opt-in in `/etc/latch/local.php`:
 

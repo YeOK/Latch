@@ -25,7 +25,7 @@ sudo systemctl enable --now httpd php-fpm
 sudo systemctl enable --now latch-cron-hourly.timer latch-cron-daily.timer latch-cron-weekly.timer
 ```
 
-The RPM installs a **fail2ban** `latch-login` jail (watches `/var/lib/latch/storage/logs/security.log` for `login_fail` events with real client IPs). `dnf install latch` pulls in fail2ban via a weak dependency when recommends are enabled. Verify:
+The RPM installs a **fail2ban** `latch-login` jail (watches `/var/lib/latch/storage/logs/security.log` for `login_fail` and `login_totp_fail` events with real client IPs). `dnf install latch` pulls in fail2ban via a weak dependency when recommends are enabled. Verify:
 
 ```bash
 sudo fail2ban-client status latch-login
@@ -40,7 +40,7 @@ If you customized Apache log paths, edit `/etc/fail2ban/jail.d/latch-login.local
    sudo grep logpath /etc/fail2ban/jail.d/latch-login.local
    sudo fail2ban-regex /var/lib/latch/storage/logs/security.log /etc/fail2ban/filter.d/latch-login.conf
    ```
-   Expect non-zero `Failregex` hits on `"event":"login_fail"` lines.
+   Expect non-zero `Failregex` hits on `login_fail` / `login_totp_fail` lines, and date-template hits on JSON `ts`.
 
 2. **Access log still shows `::1`** — normal behind a local reverse proxy; fail2ban uses `security.log` because Latch already resolves `CF-Connecting-IP`. Optional: `/etc/httpd/conf.d/latch-remoteip.conf` for correlating Apache access logs in Admin → Logs.
 
@@ -262,7 +262,7 @@ The COPR vhost (`packaging/latch-httpd.conf` → `/etc/httpd/conf.d/latch.conf`)
 | Access | `/var/log/httpd/latch-access.log` |
 | Error | `/var/log/httpd/latch-error.log` |
 
-fail2ban `latch-login` watches `security.log` for `login_fail` events (`packaging/fail2ban/latch-login.local` → `/var/lib/latch/storage/logs/security.log`). Apache access logs are optional for correlation in Admin → Logs (`latch-access.log`).
+fail2ban `latch-login` watches `security.log` for `login_fail` and `login_totp_fail` events (`packaging/fail2ban/latch-login.local` → `/var/lib/latch/storage/logs/security.log`). Apache access logs are optional for correlation in Admin → Logs (`latch-access.log`).
 
 **Admin → Logs** always shows Latch-owned files. To tail Apache/PHP-FPM logs in the UI or CLI, enable server sources in `/etc/latch/local.php`:
 

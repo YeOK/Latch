@@ -44,13 +44,13 @@ final class LogLineRedactor
         ) ?? $line;
 
         $line = preg_replace(
-            '/\b(token|reset_token|client_secret)=([^\s&"\']+)/i',
+            '/\b(token|reset_token|client_secret|encryption_key|totp_secret|admin_password|recovery_code)=([^\s&"\']+)/i',
             '$1=[REDACTED]',
             $line,
         ) ?? $line;
 
         $line = preg_replace(
-            '/"(token|reset_token|client_secret)"\s*:\s*"[^"]*"/i',
+            '/"(token|reset_token|client_secret|encryption_key|totp_secret|admin_password|recovery_code)"\s*:\s*"[^"]*"/i',
             '"$1":"[REDACTED]"',
             $line,
         ) ?? $line;

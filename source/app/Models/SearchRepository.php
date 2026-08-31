@@ -164,7 +164,7 @@ final class SearchRepository
     /**
      * @return array{results: list<array<string, mixed>>, total: int}
      */
-    public function search(string $query, bool $loggedIn, bool $membersOnly, int $page, int $perPage, ?string $userRole = null): array
+    public function search(string $query, bool $loggedIn, bool $membersOnly, int $page, int $perPage, ?string $userRole = null, ?int $reputationRank = null): array
     {
         if (!$this->isEnabled()) {
             return ['results' => [], 'total' => 0];
@@ -180,7 +180,7 @@ final class SearchRepository
             return ['results' => [], 'total' => 0];
         }
 
-        $accessSql = BoardAcl::sqlBoardReadFilter($loggedIn, $userRole);
+        $accessSql = BoardAcl::sqlBoardReadFilter($loggedIn, $userRole, $reputationRank);
         $trashSql = $this->excludeTrashedSql('p.');
 
         $countSql = "SELECT COUNT(DISTINCT si.topic_id)

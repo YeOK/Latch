@@ -14,7 +14,11 @@ namespace Latch\Core\Plugins;
 use InvalidArgumentException;
 
 /**
- * Static security scanner for third-party plugins (Phase 4b).
+ * Static security scanner run before plugin enable (CLI and Admin).
+ *
+ * Pattern-matches PHP (and size-checks other files). Critical hits block
+ * enable; warnings are review-only. Not a sandbox — enabling a plugin is
+ * a high-trust operator action. Scans vendor/ and HTML/SVG assets too.
  */
 final class PluginAuditor
 {
@@ -34,6 +38,8 @@ final class PluginAuditor
         ['pattern' => '/\b(include|require)(_once)?\s*\(\s*\$_(GET|POST|REQUEST|COOKIE|SERVER)\b/i', 'code' => 'dynamic_include', 'message' => 'Dynamic include/require from request data is not allowed'],
         ['pattern' => '/(?:^|[\s(=])`[a-zA-Z][^`\n]{0,200}`/', 'code' => 'dangerous_backtick', 'message' => 'Shell backticks are not allowed in plugins'],
         ['pattern' => '/\b(include|require)(_once)?\s*[\s(][^\n]*\.\./i', 'code' => 'include_parent_path', 'message' => 'include/require with .. is not allowed'],
+        ['pattern' => '/\bcall_user_func(_array)?\s*\(\s*[\'"`]\\\\?(eval|exec|shell_exec|system|passthru|proc_open|popen|assert|passthru|include|require|create_function)\b/i', 'code' => 'dangerous_call_user_func', 'message' => 'call_user_func targeting a dangerous function is not allowed'],
+        ['pattern' => '/\bnew\s+\\\\?Reflection(Function|Method)\s*\(/i', 'code' => 'dangerous_reflection', 'message' => 'ReflectionFunction/Method is not allowed in plugins'],
     ];
 
     /** @var list<array{pattern: string, code: string, message: string}> */
@@ -48,8 +54,12 @@ final class PluginAuditor
     private const NETWORK_PATTERNS = [
         ['pattern' => '/\bcurl_exec\s*\(/i', 'code' => 'network_curl', 'message' => 'Outbound network via curl_exec()'],
         ['pattern' => '/\bfile_get_contents\s*\(\s*[\'"`]https?:\/\//i', 'code' => 'network_file_get_contents', 'message' => 'Outbound HTTP(S) via file_get_contents()'],
+        ['pattern' => '/\bfile_get_contents\s*\(\s*\$(url|uri|href|endpoint|request|link|webhook)\b/i', 'code' => 'network_file_get_contents_var', 'message' => 'file_get_contents($url) — declare permissions.network'],
         ['pattern' => '/\bfopen\s*\(\s*[\'"`]https?:\/\//i', 'code' => 'network_fopen', 'message' => 'Outbound HTTP(S) via fopen()'],
+        ['pattern' => '/\bfopen\s*\(\s*\$(url|uri|href|endpoint|request|link|webhook)\b/i', 'code' => 'network_fopen_var', 'message' => 'fopen($url) — declare permissions.network'],
+        ['pattern' => '/\bcurl_init\s*\(/i', 'code' => 'network_curl_init', 'message' => 'Outbound network via curl_init()'],
         ['pattern' => '/\bstream_socket_client\s*\(/i', 'code' => 'network_socket', 'message' => 'Outbound socket connection'],
+        ['pattern' => '/\bfsockopen\s*\(/i', 'code' => 'network_fsockopen', 'message' => 'Outbound network via fsockopen()'],
     ];
 
     /** @var list<array{pattern: string, code: string, message: string}> */
@@ -326,18 +336,21 @@ final class PluginAuditor
             }
 
             $lower = strtolower($relative);
-            $isPhp = str_ends_with($lower, '.php');
+            $isPhp = (bool) preg_match('/\.(php\d?|phtml|phps|inc)$/', $lower);
             $isJs = str_ends_with($lower, '.js') || str_ends_with($lower, '.mjs');
             $isMarkup = str_ends_with($lower, '.html') || str_ends_with($lower, '.htm') || str_ends_with($lower, '.twig');
             $isSvg = str_ends_with($lower, '.svg');
 
-            if (!$isPhp && !$isJs && !$isMarkup && !$isSvg) {
-                continue;
-            }
-
             $contents = file_get_contents($absolute);
             if (!is_string($contents) || $contents === '') {
                 continue;
+            }
+
+            if (!$isPhp && !$isJs && !$isMarkup && !$isSvg) {
+                if (!str_contains($contents, '<?php')) {
+                    continue;
+                }
+                $isPhp = true;
             }
 
             if ($isSvg) {

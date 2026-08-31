@@ -29,13 +29,13 @@ final class RssRepository
     /**
      * @return list<array<string, mixed>>
      */
-    public function recentTopicsForSite(int $limit, bool $loggedIn, bool $membersOnly, ?string $userRole = null): array
+    public function recentTopicsForSite(int $limit, bool $loggedIn, bool $membersOnly, ?string $userRole = null, ?int $reputationRank = null): array
     {
         if ($membersOnly && !$loggedIn) {
             return [];
         }
 
-        $accessSql = BoardAcl::sqlBoardReadFilter($loggedIn, $userRole);
+        $accessSql = BoardAcl::sqlBoardReadFilter($loggedIn, $userRole, $reputationRank);
 
         $stmt = $this->db->pdo()->prepare(
             "SELECT t.id, t.title, t.slug, t.last_post_at,

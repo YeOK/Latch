@@ -16,8 +16,12 @@
             <file>tests/ProfileDeleteTest.php</file>
             <file>tests/TwoFactorCancelTest.php</file>
             <file>tests/RequestHttpsTest.php</file>
+            <file>tests/RequestIpTest.php</file>
+            <file>tests/TrustedClientIpTest.php</file>
+            <file>tests/SvgSafetyTest.php</file>
             <file>tests/BoardAclTest.php</file>
             <file>tests/PluginAuditorTest.php</file>
+            <file>tests/CatalogPluginAuditTest.php</file>
             <file>tests/PluginAuditServiceTest.php</file>
             <file>tests/ThemeJsAuditorTest.php</file>
             <file>tests/OutboundUrlGuardTest.php</file>

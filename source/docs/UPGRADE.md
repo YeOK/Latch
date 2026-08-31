@@ -25,6 +25,26 @@ This runs:
 
 Add `--clear-cache` to the shell script invocation to purge guest page cache at the end. Plugin audit cache and SQLite data in `storage/` are preserved across upgrades.
 
+## Docker (homelab / demo)
+
+Volumes keep SQLite and `local.php`. After pulling new sources:
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+The entrypoint runs `php bin/latch migrate`. For lock → backup → migrate:
+
+```bash
+docker compose exec latch php bin/latch lock on --message="update"
+docker compose exec latch php bin/latch backup
+docker compose exec latch php bin/latch update --skip-lock --skip-backup --assume-files-ready
+docker compose exec latch php bin/latch lock off
+```
+
+See [DOCKER.md](DOCKER.md). Fedora production still uses `dnf upgrade latch`.
+
 ## Manual sequence
 
 Use when you deploy files yourself (rsync, tarball, Docker overlay):

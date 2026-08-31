@@ -362,7 +362,7 @@ final class Application implements PluginCollectContext
             $this->pluginDatabaseManager,
         );
 
-        $this->registerRoutes();
+        $this->registerRoutes(); // core routes first so route.register can add, not replace
         $this->pluginLoader->boot($this);
         $this->pluginCacheCoordinator = new PluginCacheCoordinator(
             $this->pluginLoader->loaded(),
@@ -421,6 +421,7 @@ final class Application implements PluginCollectContext
         $path = $this->request->path();
 
         if (str_starts_with($path, '/assets/')) {
+            // Fallback when tests/CLI construct Application without index.php.
             ThemeAssetServer::serveRelative($this->config, substr($path, 8), $this->activeTheme());
             return;
         }
@@ -509,7 +510,7 @@ final class Application implements PluginCollectContext
         $this->router->post('/reset-password', $this->bind($auth, 'resetPassword'));
         $this->router->get('/verify-email', $this->bind($auth, 'verifyEmail'));
         $this->router->get('/confirm-email-change', $this->bind($auth, 'confirmEmailChange'));
-        $this->router->get('/login/2fa/cancel', $this->bind($twoFactor, 'cancelPendingLogin'));
+        $this->router->post('/login/2fa/cancel', $this->bind($twoFactor, 'cancelPendingLogin'));
         $this->router->get('/login/2fa', $this->bind($twoFactor, 'showChallenge'));
         $this->router->post('/login/2fa', $this->bind($twoFactor, 'verifyChallenge'));
         $this->router->get('/login/2fa/setup', $this->bind($twoFactor, 'showLoginSetup'));
@@ -700,6 +701,10 @@ final class Application implements PluginCollectContext
     }
 
     /**
+     * Render a Twig page. Guest HTML cache is consulted here — after the
+     * controller has already run SQL. A cache hit still paid that query cost
+     * (assets skip this kernel entirely via ThemeAssetServer in index.php).
+     *
      * @param array{route: string, params?: array<string, scalar>, tags?: list<string>}|null $cacheOptions
      */
     public function render(string $template, array $data = [], ?array $cacheOptions = null): void

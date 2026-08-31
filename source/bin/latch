@@ -1526,7 +1526,13 @@ function run_install(array $argv): void
 
     $adminUser = (string) ($opts['admin-user'] ?? prompt('Admin username', 'admin'));
     $adminEmail = (string) ($opts['admin-email'] ?? prompt('Admin email', 'admin@localhost'));
-    $adminPass = (string) ($opts['admin-pass'] ?? prompt_password('Admin password (min 8 chars)'));
+    $adminPass = (string) ($opts['admin-pass'] ?? '');
+    if ($adminPass === '') {
+        $fromEnv = getenv('LATCH_ADMIN_PASS');
+        $adminPass = is_string($fromEnv) && $fromEnv !== ''
+            ? $fromEnv
+            : prompt_password('Admin password (min 8 chars)');
+    }
 
     if (strlen($adminPass) < 8) {
         fwrite(STDERR, "Password must be at least 8 characters.\n");

@@ -58,6 +58,19 @@ final class LogLineRedactorTest extends TestCase
         $this->assertStringContainsString('client_secret=[REDACTED]', $redactor->redact($line));
     }
 
+    public function testRedactsEncryptionKeyAndAdminPassword(): void
+    {
+        $redactor = new LogLineRedactor();
+        $line = 'encryption_key=abc123secret admin_password=hunter2 totp_secret=JBSWY3DPEHPK3PXP';
+
+        $redacted = $redactor->redact($line);
+        $this->assertStringContainsString('encryption_key=[REDACTED]', $redacted);
+        $this->assertStringContainsString('admin_password=[REDACTED]', $redacted);
+        $this->assertStringContainsString('totp_secret=[REDACTED]', $redacted);
+        $this->assertStringNotContainsString('hunter2', $redacted);
+        $this->assertStringNotContainsString('abc123secret', $redacted);
+    }
+
     public function testMasksEmailsWhenEnabled(): void
     {
         $redactor = new LogLineRedactor(maskEmails: true);

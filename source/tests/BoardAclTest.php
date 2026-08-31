@@ -47,7 +47,9 @@ final class BoardAclTest extends TestCase
 
     public function testSqlFilterForGuestOnlyIncludesGuestBoards(): void
     {
-        $this->assertSame(" AND b.acl_read IN ('guest')", BoardAcl::sqlBoardReadFilter(false, null));
+        $sql = BoardAcl::sqlBoardReadFilter(false, null);
+        $this->assertStringContainsString("b.acl_read IN ('guest')", $sql);
+        $this->assertStringContainsString('min_rank_read', $sql);
     }
 
     public function testSqlFilterForModIncludesLowerRoles(): void
@@ -66,5 +68,11 @@ final class BoardAclTest extends TestCase
 
         $this->assertFalse(BoardAcl::allows($board, BoardAcl::ACTION_READ, true, 'member', false, 2));
         $this->assertTrue(BoardAcl::allows($board, BoardAcl::ACTION_READ, true, 'member', false, 4));
+
+        $low = BoardAcl::sqlBoardReadFilter(true, 'member', 2);
+        $high = BoardAcl::sqlBoardReadFilter(true, 'member', 4);
+        $this->assertStringContainsString('min_rank_read <= 2', $low);
+        $this->assertStringContainsString('min_rank_read <= 4', $high);
+        $this->assertStringNotContainsString('min_rank_read', BoardAcl::sqlBoardReadFilter(true, 'mod'));
     }
 }

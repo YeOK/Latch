@@ -1,5 +1,7 @@
 # Design: WebAuthn for admins (optional)
 
+> Historical design note. Not implemented — do not treat this file as current architecture.
+
 | Field | Value |
 |-------|-------|
 | **Status** | Proposed — deferred |

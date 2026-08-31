@@ -182,8 +182,10 @@ final class BoardAcl
     /**
      * SQL fragment for guest/member board visibility in RSS, search, and sitemap.
      * Role names come from readableRoles() only — never from user input.
+     * Rank-gated boards (min_rank_read 1–5) match satisfiesMinRank(): guests never,
+     * mods/admins always, members when $reputationRank >= threshold.
      */
-    public static function sqlBoardReadFilter(bool $loggedIn, ?string $userRole): string
+    public static function sqlBoardReadFilter(bool $loggedIn, ?string $userRole, ?int $reputationRank = null): string
     {
         $roles = self::readableRoles($loggedIn, $userRole);
         if ($roles === []) {
@@ -191,8 +193,20 @@ final class BoardAcl
         }
 
         $quoted = array_map(static fn (string $role): string => "'" . $role . "'", $roles);
+        $sql = ' AND b.acl_read IN (' . implode(',', $quoted) . ')';
 
-        return ' AND b.acl_read IN (' . implode(',', $quoted) . ')';
+        if (self::viewerLevel($loggedIn, $userRole) >= self::LEVELS[self::ROLE_MOD]) {
+            return $sql;
+        }
+
+        $ungated = '(b.min_rank_read IS NULL OR b.min_rank_read < 1 OR b.min_rank_read > 5)';
+        if (!$loggedIn) {
+            return $sql . ' AND ' . $ungated;
+        }
+
+        $rank = max(0, (int) ($reputationRank ?? 0));
+
+        return $sql . ' AND (' . $ungated . ' OR b.min_rank_read <= ' . $rank . ')';
     }
 
     public static function isStaffOnlyTopics(array $board): bool

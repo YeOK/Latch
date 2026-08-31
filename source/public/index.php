@@ -55,11 +55,12 @@ if ($config->isInstalled()) {
     }
 }
 
-// Theme CSS/JS/images — no session, plugins, or kernel (see ThemeAssetServer).
+// Theme CSS/JS/images — tryServe() exits on a hit (no session/plugins/kernel).
 if (ThemeAssetServer::isAssetPath($requestPath)) {
     ThemeAssetServer::tryServe($config, $requestPath);
 }
 
+// Static plugin assets only. JSON/admin /plugin/{slug}/… routes return false and hit Application.
 if (PluginAssetServer::isAssetPath($requestPath)) {
     PluginAssetServer::tryServe($config, $requestPath);
 }

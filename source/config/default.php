@@ -15,7 +15,7 @@ declare(strict_types=1);
  */
 return [
     'app' => [
-        'version' => '0.5.5.0',
+        'version' => '0.5.6.0',
     ],
     'site' => [
         'name' => 'Latch',
@@ -58,11 +58,16 @@ return [
         'encryption_key' => '',
         // Roles that must enrol TOTP before sign-in completes.
         'totp_required_roles' => ['admin'],
-        // When behind Cloudflare (CF-Ray header present), log rate-limit by CF-Connecting-IP.
+        // Trust CF-Connecting-IP only when CF-Ray is present. Anyone who can hit
+        // the origin directly can send those headers — lock the origin (Tunnel /
+        // allowlist) or set false for Docker/direct Apache.
         'trust_cloudflare' => true,
         // When true, X-Forwarded-Proto is trusted without requiring CF-Ray (only if behind a trusted proxy).
         'trust_forwarded_proto' => false,
         'trust_x_forwarded_for' => false,
+        // Extra CIDRs that may send CF-Connecting-IP / X-Forwarded-* (in addition to
+        // Cloudflare anycast and loopback). Example: a local reverse-proxy subnet.
+        'trusted_proxy_cidrs' => [],
         // Cloudflare Turnstile — set in config/local.php (free at dash.cloudflare.com → Turnstile).
         'turnstile_site_key' => '',
         'turnstile_secret_key' => '',

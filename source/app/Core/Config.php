@@ -12,7 +12,10 @@ declare(strict_types=1);
 namespace Latch\Core;
 
 /**
- * Loads default config and optional local overrides.
+ * Loads default.php then config/local.php (array_replace_recursive).
+ *
+ * Docker/tests may override storage and SQLite paths via LATCH_STORAGE_PATH
+ * and LATCH_DB_PATH; Apache must PassEnv those if you rely on them in-request.
  */
 final class Config
 {

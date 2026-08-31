@@ -64,7 +64,8 @@ final class UserRepositoryPurgeTest extends TestCase
                 id INTEGER PRIMARY KEY,
                 slug TEXT,
                 name TEXT,
-                acl_read TEXT DEFAULT "guest"
+                acl_read TEXT DEFAULT "guest",
+                min_rank_read INTEGER
              );
              CREATE TABLE topics (
                 id INTEGER PRIMARY KEY,

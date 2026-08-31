@@ -105,9 +105,10 @@ rsync -a \
     --exclude='PLAN.md' \
     --exclude='docs/design/' \
     --exclude='docs/RELEASE-v0.3.0.md' \
-    --exclude='deploy/forum-data/' \
-    --exclude='deploy/msmtp.conf' \
-    --exclude='deploy/server/fail2ban-latch-login.local' \
+    --exclude='deploy/' \
+    --exclude='source/BUILD/' \
+    --exclude='source/RPMS/' \
+    --exclude='source/SRPMS/' \
     --exclude='scripts/sync-latch.sh' \
     --exclude='scripts/publish-latch-server.sh' \
     --exclude='scripts/publish-latch-nopass.sh' \
@@ -126,6 +127,12 @@ rsync -a \
     --exclude='scripts/install-latch-security.sh' \
     --exclude='scripts/dev-server.sh' \
     --exclude='scripts/router-dev.php' \
+    --exclude='packaging/fail2ban/install-update.sh' \
+    --exclude='data/' \
+    --exclude='.env' \
+    --exclude='.env.*' \
+    --exclude='docker-bootstrap.secret' \
+    --exclude='**/docker-bootstrap.secret' \
     --exclude='dist/' \
     "${REPO_ROOT}/" "${STAGE}/"
 
@@ -138,18 +145,26 @@ if find "${STAGE}/source/data" -type f -print -quit 2>/dev/null | grep -q .; the
     echo "Error: operator forum-post data must not ship in release (source/data/)" >&2
     exit 1
 fi
-if grep -RInE '(BEGIN (RSA |EC )?PRIVATE KEY|client_secret["\x27]\s*=>|encryption_key["\x27]\s*=>\s*["\x27][^"\x27]{8,})' \
-    "${STAGE}/source" --exclude-dir=vendor 2>/dev/null | grep -v 'docs/' | grep -v 'tests/' ; then
+if grep -RInE '(BEGIN (RSA |EC )?PRIVATE KEY|client_secret["\x27]\s*=>\s*["\x27][^"\x27]+|encryption_key["\x27]\s*=>\s*["\x27][^"\x27]{8,})' \
+    "${STAGE}/source" --exclude-dir=vendor --exclude='*.example' 2>/dev/null \
+    | grep -v 'docs/' | grep -v 'tests/' | grep -v 'REPLACE_WITH' ; then
     echo "Error: possible secret in staged tree (see above)" >&2
     exit 1
 fi
-if grep -RInE '(henpen\.(dev|org)|noreply@henpen\.org|yeok@192\.168|192\.168\.1\.6|/home/yeok/|latch\.network|images\.latch\.network)' \
+if grep -RInE '(henpen\.(dev|org)|noreply@henpen\.org|yeok@192\.168|192\.168\.1\.6|/home/yeok/)' \
+    "${STAGE}" --exclude-dir=vendor --exclude-dir=dist --exclude=CHANGELOG.md --exclude=README.md 2>/dev/null \
+    | grep -v 'scripts/build-release.sh' ; then
+    echo "Error: operator-specific hostnames or paths in staged tree (see above)" >&2
+    exit 1
+fi
+# Live demo hostnames are allowed in root README/CHANGELOG only — not in source/.
+if grep -RInE '(latch\.network|images\.latch\.network)' \
     "${STAGE}/source" --exclude-dir=vendor 2>/dev/null ; then
     echo "Error: operator-specific hostnames or paths in staged source tree (see above)" >&2
     exit 1
 fi
-if [[ -f "${STAGE}/PLAN.md" ]] || [[ -d "${STAGE}/deploy/forum-data" ]] || [[ -f "${STAGE}/deploy/msmtp.conf" ]]; then
-    echo "Error: operator-only paths must not ship (PLAN.md, deploy/forum-data/, deploy/msmtp.conf)" >&2
+if [[ -f "${STAGE}/PLAN.md" ]] || [[ -d "${STAGE}/deploy" ]]; then
+    echo "Error: operator-only paths must not ship (PLAN.md, deploy/)" >&2
     exit 1
 fi
 if [[ -f "${STAGE}/source/public/router-dev.php" ]]; then

@@ -170,10 +170,158 @@ final class OutboundUrlGuard
         return null;
     }
 
+    /**
+     * HTTPS request with DNS pinning when curl is available (SSRF / rebinding).
+     *
+     * @param list<string> $headers
+     * @return array{status: int, body: string, headers: list<string>}|null
+     */
+    public static function request(
+        string $method,
+        string $url,
+        array $headers = [],
+        ?string $body = null,
+        int $timeoutSeconds = 15,
+        int $maxBytes = 1_048_576,
+    ): ?array {
+        $url = self::normalizePublicHttpsUrl($url);
+        if ($url === null) {
+            return null;
+        }
+
+        $parts = parse_url($url);
+        if (!is_array($parts) || empty($parts['host'])) {
+            return null;
+        }
+
+        $host = strtolower((string) $parts['host']);
+        $port = isset($parts['port']) ? (int) $parts['port'] : 443;
+        $ipLiteral = self::stripIpv6Brackets($host);
+        $pinIp = filter_var($ipLiteral, FILTER_VALIDATE_IP) ? $ipLiteral : self::resolvedPublicIp($host);
+        if ($pinIp === null || self::publicIpError($pinIp) !== null) {
+            return null;
+        }
+
+        if (function_exists('curl_init')) {
+            return self::curlPinned($method, $url, $host, $port, $pinIp, $headers, $body, $timeoutSeconds, $maxBytes);
+        }
+
+        return self::streamRequest($method, $url, $headers, $body, $timeoutSeconds, $maxBytes);
+    }
+
+    /**
+     * @param list<string> $headers
+     * @return array{status: int, body: string, headers: list<string>}|null
+     */
+    private static function curlPinned(
+        string $method,
+        string $url,
+        string $host,
+        int $port,
+        string $pinIp,
+        array $headers,
+        ?string $body,
+        int $timeoutSeconds,
+        int $maxBytes,
+    ): ?array {
+        $ch = curl_init($url);
+        if ($ch === false) {
+            return null;
+        }
+
+        $resolveHost = str_contains($pinIp, ':') ? "{$host}:{$port}:[{$pinIp}]" : "{$host}:{$port}:{$pinIp}";
+        $responseHeaders = [];
+        $opts = [
+            CURLOPT_CUSTOMREQUEST => strtoupper($method),
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_POSTFIELDS => $body ?? '',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HEADERFUNCTION => static function ($curl, string $headerLine) use (&$responseHeaders): int {
+                $trimmed = trim($headerLine);
+                if ($trimmed !== '') {
+                    $responseHeaders[] = $trimmed;
+                }
+
+                return strlen($headerLine);
+            },
+            CURLOPT_TIMEOUT => $timeoutSeconds,
+            CURLOPT_CONNECTTIMEOUT => $timeoutSeconds,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_MAXREDIRS => 0,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_RESOLVE => [$resolveHost],
+        ];
+        if (defined('CURLPROTO_HTTPS')) {
+            $opts[CURLOPT_PROTOCOLS] = CURLPROTO_HTTPS;
+            $opts[CURLOPT_REDIR_PROTOCOLS] = CURLPROTO_HTTPS;
+        }
+        curl_setopt_array($ch, $opts);
+
+        $raw = curl_exec($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+
+        if (!is_string($raw) || strlen($raw) > $maxBytes) {
+            return null;
+        }
+
+        return [
+            'status' => $status > 0 ? $status : 0,
+            'body' => $raw,
+            'headers' => $responseHeaders,
+        ];
+    }
+
+    /**
+     * @param list<string> $headers
+     * @return array{status: int, body: string, headers: list<string>}|null
+     */
+    private static function streamRequest(
+        string $method,
+        string $url,
+        array $headers,
+        ?string $body,
+        int $timeoutSeconds,
+        int $maxBytes,
+    ): ?array {
+        $context = stream_context_create([
+            'http' => [
+                'method' => strtoupper($method),
+                'header' => implode("\r\n", $headers),
+                'content' => $body ?? '',
+                'timeout' => $timeoutSeconds,
+                'ignore_errors' => true,
+                'follow_location' => 0,
+                'max_redirects' => 0,
+            ],
+        ]);
+
+        $raw = @file_get_contents($url, false, $context);
+        if (!is_string($raw) || strlen($raw) > $maxBytes) {
+            return null;
+        }
+
+        $responseHeaders = $http_response_header ?? [];
+        $status = 0;
+        foreach ($responseHeaders as $line) {
+            if (preg_match('/^HTTP\/\S+\s+(\d{3})/', $line, $match)) {
+                $status = (int) $match[1];
+            }
+        }
+
+        return [
+            'status' => $status,
+            'body' => $raw,
+            'headers' => $responseHeaders,
+        ];
+    }
+
     private static function publicIpError(string $ip): ?string
     {
+        $canonical = TrustedClientIp::canonicalize($ip) ?? $ip;
+
         if (filter_var(
-            $ip,
+            $canonical,
             FILTER_VALIDATE_IP,
             FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
         ) === false) {

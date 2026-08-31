@@ -15,6 +15,11 @@ use Latch\Core\Application;
 
 /**
  * Boots enabled plugins and registers their hook listeners.
+ *
+ * Incompatible plugins (min_latch_version newer than this core) are skipped
+ * silently at boot — catalog/install still refuse them with an error.
+ * Failures in plugins that declare user.before_register fail closed
+ * (registrationGateFailed()) so signup cannot bypass an invite-only plugin.
  */
 final class PluginLoader
 {

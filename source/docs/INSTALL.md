@@ -16,14 +16,24 @@ sudo dnf install -y php-pdo php-mbstring
 - Composer (or use the bundled `composer.phar`)
 - Apache with `mod_rewrite`, or nginx with equivalent routing
 
-## Release install (v0.4.x)
+## Docker (homelab / demo)
 
-Download the latest **`latch-<version>.tar.gz`** and **`SHA256SUMS`** from **[GitHub Releases](https://github.com/YeOK/Latch/releases)** (example below uses `0.4.4.1`):
+```bash
+git clone https://github.com/YeOK/Latch.git
+cd Latch
+docker compose up --build
+```
+
+Open http://localhost:8080. SQLite and `local.php` live in compose volumes. This is **not** the Fedora production path. Full notes: [DOCKER.md](DOCKER.md). Contributor map: [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Release install (v0.5.x)
+
+Download the latest **`latch-<version>.tar.gz`** and **`SHA256SUMS`** from **[GitHub Releases](https://github.com/YeOK/Latch/releases)** (example below uses `0.5.6.0`):
 
 ```bash
 sha256sum -c SHA256SUMS
-tar -xzf latch-0.4.4.1.tar.gz
-cd latch-0.4.4.1-stage
+tar -xzf latch-0.5.6.0.tar.gz
+cd latch-0.5.6.0-stage
 bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 ```
 
@@ -285,7 +295,7 @@ sudo -u apache php bin/latch cron daily
 
 On Fedora COPR, systemd timers replace cron — see [INSTALL-FEDORA.md](INSTALL-FEDORA.md).
 
-**Docker:** run the same commands in a sidecar cron container or the host crontab pointing at the mounted `source/` volume.
+**Docker:** `docker-compose.yml` already starts a `latch-cron` sidecar. See [DOCKER.md](DOCKER.md).
 
 ## Upgrading
 

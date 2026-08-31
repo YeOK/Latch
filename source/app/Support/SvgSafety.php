@@ -39,6 +39,6 @@ final class SvgSafety
             }
         }
 
-        return preg_match('/on(load|error|click|mouse\w*|focus|blur|change|submit|input)\s*=/i', $svg) === 1;
+        return preg_match('/\bon[a-z]+\s*=/i', $svg) === 1;
     }
 }

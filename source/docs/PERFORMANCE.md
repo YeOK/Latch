@@ -11,6 +11,9 @@ Operator-focused query counts for pages that affect daily perceived speed. Light
 | **Revision counts batch** | Mods on topic view: one `GROUP BY post_id` (was `COUNT` per edited post) |
 | **Home unread batch** | One unread-flags query for all recent topics across boards (was one per board) |
 | **Topic cursor `LIMIT n+1`** | `has_more` / `has_earlier` from extra row (no separate existence queries) |
+| **No-op `topic_reads`** | Re-reading the same last post skips the WAL write (`ON CONFLICT … WHERE` post id changed) |
+
+A cache **hit still runs the controller** (lookup is inside `Application::render()` after Home/Board/Topic SQL). Theme `/assets/*` skips the kernel but still does one read-only `settings.active_theme` SELECT. Left for a later pass: page-cache lookup before controllers; batch mod `author.role` on topic view; drop `tagSite()` from per-board fragments.
 
 ## Home (`/`)
 

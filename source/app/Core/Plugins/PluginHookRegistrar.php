@@ -30,6 +30,7 @@ final class PluginHookRegistrar
     public function add(string $hook, callable $callback, int $priority = 10): void
     {
         if (!in_array($hook, $this->manifest->hooks, true)) {
+            // Undeclared hooks are ignored, not an error — list them in plugin.json.
             return;
         }
 

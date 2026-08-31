@@ -119,7 +119,7 @@ Operator walkthrough (Tunnel, Turnstile, Free plan): **[CLOUDFLARE.md](CLOUDFLAR
 
 `Latch\Core\Request::ip()` uses `REMOTE_ADDR` by default. Behind Cloudflare + a local reverse proxy, Apache often sees `127.0.0.1` / `::1` instead of the visitor.
 
-When a request includes **`CF-Ray`** (set by Cloudflare edge), Latch trusts **`CF-Connecting-IP`** for rate limits, audit logs, and `security.log`. Spoofing is mitigated by requiring `CF-Ray`; also **firewall the origin** so only Cloudflare IP ranges can reach port 80.
+When a request includes **`CF-Ray`** (set by Cloudflare edge) **and** `REMOTE_ADDR` is a Cloudflare anycast address or loopback (Tunnel), Latch trusts **`CF-Connecting-IP`** for rate limits, audit logs, and `security.log`. A client on the public internet sending fake `CF-Ray` headers is ignored. Extra reverse-proxy CIDRs: `security.trusted_proxy_cidrs` in `local.php`. Still **firewall the origin** so only Cloudflare can reach port 80.
 
 **Apache access logs** use the same `REMOTE_ADDR` unless `mod_remoteip` is configured. The COPR RPM installs `/etc/httpd/conf.d/latch-remoteip.conf` so `latch-access.log` (and fail2ban) see real visitor IPs instead of loopback. Reload `httpd` after install; verify with `grep 'POST /login' /var/log/httpd/latch-access.log | tail -3` — the first field should not be `::1` for internet traffic.
 
@@ -133,7 +133,7 @@ Disable if not using Cloudflare: in `config/local.php`:
 
 `Request::isHttps()` and session cookie `Secure` flags use `X-Forwarded-Proto` only when:
 
-1. **Cloudflare** — `CF-Ray` is present and `trust_cloudflare` is not `false` (default), or
+1. **Cloudflare** — `CF-Ray` is present, `REMOTE_ADDR` is Cloudflare or loopback, and `trust_cloudflare` is not `false` (default), or
 2. **Other reverse proxy** — `trust_forwarded_proto` is explicitly `true` in `config/local.php`.
 
 Without either gate, clients cannot spoof HTTPS by sending `X-Forwarded-Proto: https` to a plain HTTP origin.
@@ -147,9 +147,11 @@ Templates ship in `packaging/fail2ban/` (installed by the COPR RPM):
 - `latch-login.conf` → `/etc/fail2ban/filter.d/`
 - `latch-login.local` → `/etc/fail2ban/jail.d/`
 
-Default `logpath` is `/var/lib/latch/storage/logs/security.log` — matches `"event":"login_fail","ip":"<HOST>"` JSON lines (real client IPs via Cloudflare). Test with `sudo fail2ban-regex /var/lib/latch/storage/logs/security.log /etc/fail2ban/filter.d/latch-login.conf`.
+Default `logpath` is `/var/lib/latch/storage/logs/security.log` — matches `login_fail` and `login_totp_fail` JSON lines (real client IPs via Cloudflare). Test with `sudo fail2ban-regex /var/lib/latch/storage/logs/security.log /etc/fail2ban/filter.d/latch-login.conf`. Non-RPM hosts: `sudo bash packaging/fail2ban/install.sh`.
 
 For direct Apache exposure (no proxy), point `logpath` at your access log instead; the filter also matches failed `POST /login` HTTP 200 lines (`^<HOST> -.*"POST /login…" 200`). Loopback is ignored in both modes.
+
+The Docker demo image does **not** include fail2ban. Put a reverse proxy or WAF in front. Only set `security.trust_forwarded_proto` when the container is not reachable directly from the internet ([DOCKER.md](DOCKER.md)).
 
 ## Backups
 

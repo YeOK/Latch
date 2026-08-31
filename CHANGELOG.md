@@ -7,6 +7,38 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.6.0] — 2026-08-31
+
+Docker demo path, fail2ban `latch-login` hardening, and a security pass on client-IP trust, plugin audit, outbound HTTP, and 2FA.
+
+### Added
+- **Docker demo** — `Dockerfile` + `docker compose up --build` for homelab try-out (PHP 8.2 + Apache, cron sidecar, volumes for SQLite and `local.php`). Not the Fedora COPR production path. See `source/docs/DOCKER.md`.
+- **Contributor map** — `source/docs/ARCHITECTURE.md` (request lifecycle, where to put core vs plugin work).
+- **GitHub Actions** — `.github/workflows/release-gate.yml` runs smoke + security PHPUnit on `main` / PRs.
+- **fail2ban host installer** — `packaging/fail2ban/install.sh` for git/tarball hosts (COPR already installs the jail).
+
+### Changed
+- **Release hygiene** — `build-release.sh` excludes the whole `deploy/` tree, rpmbuild leftovers, `.env`, and operator host paths; grep covers the staged tree, not only `source/`.
+- **`topic_reads`** — skip the WAL write when the last-read post id is unchanged (logged-in topic re-views).
+- **Board list SQL** — search, RSS, sitemap, and profiles apply `min_rank_read` the same way as `/board/{slug}` (no rank-gated excerpts for guests or under-rank members).
+- **Plugin HTTP client** — outbound URL guard runs on every method, not GET-only; curl path pins DNS (`CURLOPT_RESOLVE`) to block rebinding.
+- **Docker** — first-run sets `trust_cloudflare` false unless `LATCH_TRUST_CLOUDFLARE=1`; admin password via env (not argv); `local.php` is `root:www-data` 640; bootstrap secret stays under `/persist/config/`.
+- **Release gate** — `scripts/release-gate.sh` and GitHub Actions run `plugin-audit` on every Latch-plugins catalog tree.
+
+### Security
+- **Client IP** — `CF-Connecting-IP` is trusted only when `REMOTE_ADDR` is Cloudflare anycast or loopback (Tunnel), not from an arbitrary public client sending `CF-Ray`.
+- **TOTP / staff step-up** — failed codes count toward account lockout like password failures.
+- **2FA cancel** — `POST /login/2fa/cancel` with CSRF (GET no longer clears the pending login).
+- **Plugin auditor** — `call_user_func('exec')`, `ReflectionFunction`/`Method`, `.inc`/embedded `<?php`, and `file_get_contents($url)` without `permissions.network` block enable.
+- **SVG denylist** — any `on*` event handler attribute is rejected.
+- **fail2ban** — JSON `security.log` loopback lines are counted (Apache access-log loopback still ignored).
+- **Log redactor** — also masks `encryption_key`, `totp_secret`, `admin_password`, `recovery_code`.
+- **IPv4-mapped literals** — `::ffff:127.0.0.1` / IMDS mapped addresses fail the outbound URL guard.
+
+### Fixed
+- **fail2ban `latch-login`** — also matches `login_totp_fail`; JSON `event`/`ip` in either order; `datepattern` reads `security.log` `ts` so `findtime` works after a jail restart.
+- **Public docs** — stale 0.4.x install examples, 28-hook count, auditor `vendor/` claim, and a private `~/Documents/latch/…` path in the API harness example.
+
 ## [0.5.5.0] — 2026-08-19
 
 Plugin-author hooks for invite-only signup and member signatures, mixed catalog versions, and a security pass on webhooks, the auditor, and OIDC.

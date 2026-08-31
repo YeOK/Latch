@@ -80,4 +80,29 @@ echo "==> Smoke + plugin audit gate"
 )
 echo ""
 
+CATALOG="${LATCH_PLUGINS_CATALOG:-${REPO_ROOT}/../Latch-plugins}"
+if [[ -d "${CATALOG}" ]]; then
+    echo "==> Catalog plugin-audit (${CATALOG})"
+    fail=0
+    shopt -s nullglob
+    for manifest in "${CATALOG}"/*/plugin.json; do
+        dir="$(cd "$(dirname "${manifest}")" && pwd)"
+        echo "-- $(basename "${dir}")"
+        if ! (
+            cd "${SOURCE}"
+            php bin/latch plugin-audit "${dir}"
+        ); then
+            fail=1
+        fi
+    done
+    if [[ "${fail}" -ne 0 ]]; then
+        echo "Error: catalog plugin-audit failed" >&2
+        exit 1
+    fi
+    echo ""
+else
+    echo "==> Catalog plugin-audit skipped (clone Latch-plugins or set LATCH_PLUGINS_CATALOG)"
+    echo ""
+fi
+
 echo "Release gate passed."

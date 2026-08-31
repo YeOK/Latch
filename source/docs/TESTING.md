@@ -21,9 +21,11 @@ php bin/latch test
 php bin/latch test --smoke
 php bin/latch test --security
 php bin/latch audit
+# catalog plugins (sibling Latch-plugins or LATCH_PLUGINS_CATALOG):
+php bin/latch plugin-audit /path/to/Latch-plugins/forum-stats
 ```
 
-**OSS tag rule:** all five commands exit 0 on the release artifact (locally or in CI).
+**OSS tag rule:** `./scripts/release-gate.sh` exit 0 (full PHPUnit, security, smoke, and plugin-audit on every catalog plugin).
 
 Then build the tarball from the repo root:
 
@@ -47,7 +49,7 @@ sudo -u apache php bin/latch audit
 
 ### `php bin/latch test`
 
-Runs the full **Latch** PHPUnit testsuite (~410 tests). Covers repositories, formatters, plugins, moderation, API scopes, migrations, and most application logic.
+Runs the full **Latch** PHPUnit testsuite (600+ tests). Covers repositories, formatters, plugins, moderation, API scopes, migrations, and most application logic.
 
 **Plugin tests** expect the [Latch-plugins](https://github.com/YeOK/Latch-plugins) catalog cloned as a sibling directory (`../Latch-plugins` next to `Latch-Git`) or `LATCH_PLUGINS_CATALOG` pointing at the catalog root.
 

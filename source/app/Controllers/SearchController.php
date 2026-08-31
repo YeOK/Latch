@@ -60,6 +60,7 @@ final class SearchController
                         $page,
                         self::RESULTS_PER_PAGE,
                         $this->app->viewerRole(),
+                        $this->app->viewerReputationRank(),
                     );
                     $results = $search['results'];
                     $total = $search['total'];

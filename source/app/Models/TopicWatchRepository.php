@@ -85,7 +85,8 @@ final class TopicWatchRepository
              VALUES (:user_id, :topic_id, :last_read_post_id, :last_read_at)
              ON CONFLICT(user_id, topic_id) DO UPDATE SET
                 last_read_post_id = excluded.last_read_post_id,
-                last_read_at = excluded.last_read_at'
+                last_read_at = excluded.last_read_at
+             WHERE topic_reads.last_read_post_id IS NOT excluded.last_read_post_id'
         );
         $stmt->execute([
             'user_id' => $userId,

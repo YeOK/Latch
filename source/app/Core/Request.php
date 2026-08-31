@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace Latch\Core;
 
+use Latch\Support\TrustedClientIp;
+
 /**
  * HTTP request wrapper.
  */
@@ -88,9 +90,13 @@ final class Request
             return false;
         }
 
-        // CF-Ray is set by Cloudflare edge — require it so clients cannot spoof CF-Connecting-IP alone.
-        // This is not a substitute for locking the origin: anyone who can hit Apache directly can send CF-Ray.
-        return $this->header('CF-Ray') !== '';
+        if ($this->header('CF-Ray') === '') {
+            return false;
+        }
+
+        $remote = $_SERVER['REMOTE_ADDR'] ?? '';
+
+        return is_string($remote) && TrustedClientIp::isTrustedProxy($remote, $this->extraTrustedCidrs());
     }
 
     private function trustXForwardedFor(): bool
@@ -132,8 +138,45 @@ final class Request
             return false;
         }
 
-        // Require CF-Ray (same gate as CF-Connecting-IP) so clients cannot spoof proto alone.
-        return ($server['HTTP_CF_RAY'] ?? '') !== '';
+        if (($server['HTTP_CF_RAY'] ?? '') === '') {
+            return false;
+        }
+
+        $remote = (string) ($server['REMOTE_ADDR'] ?? '');
+
+        return TrustedClientIp::isTrustedProxy($remote, self::extraTrustedCidrsFrom($config));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function extraTrustedCidrs(): array
+    {
+        return self::extraTrustedCidrsFrom($this->config);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function extraTrustedCidrsFrom(?Config $config): array
+    {
+        if ($config === null) {
+            return [];
+        }
+
+        $raw = $config->get('security.trusted_proxy_cidrs', []);
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($raw as $cidr) {
+            if (is_string($cidr) && $cidr !== '') {
+                $out[] = $cidr;
+            }
+        }
+
+        return $out;
     }
 
     public function userAgent(): string

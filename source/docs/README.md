@@ -1,12 +1,14 @@
 # Latch documentation
 
-Operator and developer reference under `source/docs/`. Published to the forum Documentation board via `scripts/post-documentation.php` (operator tree only).
+Operator and contributor reference under `source/docs/`. Start with [ARCHITECTURE.md](ARCHITECTURE.md) and [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 ## Core
 
 | Document | Topic |
 |----------|-------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Request lifecycle, tree map, plugin vs core (contributors start here) |
 | [INSTALL.md](INSTALL.md) | Fresh install and requirements |
+| [DOCKER.md](DOCKER.md) | Homelab/demo `docker compose` (not COPR) |
 | [INSTALL-FEDORA.md](INSTALL-FEDORA.md) | Fedora COPR RPM — paths, configure, **backups/restore**, fail2ban |
 | [UPGRADE.md](UPGRADE.md) | Version upgrades and migrations |
 | [CLI.md](CLI.md) | `bin/latch` commands (migrate, backup, test, import, …) |

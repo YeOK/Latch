@@ -1,3 +1,5 @@
+> Historical design note. Prefer [source/docs/UPGRADE.md](../../source/docs/UPGRADE.md) and [source/docs/CLI.md](../../source/docs/CLI.md) (`backup`, `restore`, `update`, `db-check`).
+
 # Design: SQLite Integrity, Restore, and Update Orchestration CLI
 
 | Field | Value |

@@ -35,7 +35,8 @@ final class RssRepositoryTest extends TestCase
                 requires_login_to_read INTEGER DEFAULT 0,
                 acl_read TEXT NOT NULL DEFAULT "guest",
                 acl_topic TEXT NOT NULL DEFAULT "member",
-                acl_reply TEXT NOT NULL DEFAULT "member"
+                acl_reply TEXT NOT NULL DEFAULT "member",
+                min_rank_read INTEGER
              );
              CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, email TEXT, avatar_url TEXT);
              CREATE TABLE topics (id INTEGER PRIMARY KEY, board_id INTEGER, user_id INTEGER, title TEXT, slug TEXT, deleted_at TEXT, last_post_at TEXT);

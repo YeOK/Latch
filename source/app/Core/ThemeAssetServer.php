@@ -139,6 +139,7 @@ final class ThemeAssetServer
         return $registry->resolve(self::activeThemeFromSettings($config) ?? '', $fallback);
     }
 
+    /** Read-only SQLite for settings.active_theme — /assets/* skips session, not the DB. */
     private static function activeThemeFromSettings(Config $config): ?string
     {
         if (!$config->isInstalled()) {

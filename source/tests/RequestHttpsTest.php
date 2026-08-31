@@ -27,15 +27,28 @@ final class RequestHttpsTest extends TestCase
         $this->assertFalse(Request::detectHttps($config, $server));
     }
 
-    public function testAcceptsForwardedProtoWithCfRay(): void
+    public function testAcceptsForwardedProtoWithCfRayFromTunnel(): void
     {
         $config = new Config(dirname(__DIR__) . '/config');
         $server = [
+            'REMOTE_ADDR' => '127.0.0.1',
             'HTTP_X_FORWARDED_PROTO' => 'https',
             'HTTP_CF_RAY' => 'abc123-LHR',
         ];
 
         $this->assertTrue(Request::detectHttps($config, $server));
+    }
+
+    public function testRejectsForwardedProtoWithSpoofedCfRayFromPublicClient(): void
+    {
+        $config = new Config(dirname(__DIR__) . '/config');
+        $server = [
+            'REMOTE_ADDR' => '8.8.8.8',
+            'HTTP_X_FORWARDED_PROTO' => 'https',
+            'HTTP_CF_RAY' => 'spoof',
+        ];
+
+        $this->assertFalse(Request::detectHttps($config, $server));
     }
 
     public function testQueryReadsGetWithoutPost(): void

@@ -233,8 +233,13 @@ final class AdminController
         }
 
         if (!$ok) {
+            $ip = $this->app->request()->ip();
+            $this->app->rateLimiter()->recordLoginAttempt($ip, (string) ($user['username'] ?? ''), false);
+            $maxAttempts = (int) $this->app->config()->get('security.login_max_attempts', 10);
+            $lockoutMinutes = (int) $this->app->config()->get('security.login_lockout_minutes', 15);
+            $this->app->users()->recordFailedLogin((int) $user['id'], $maxAttempts, $lockoutMinutes);
             $this->app->securityLog()->log('staff_stepup_fail', [
-                'ip' => $this->app->request()->ip(),
+                'ip' => $ip,
                 'user_id' => (int) $user['id'],
                 'username' => (string) ($user['username'] ?? ''),
             ]);

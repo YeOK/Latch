@@ -104,34 +104,26 @@ final class WebhookDispatcher
         $signature = hash_hmac('sha256', $payload, $secret);
         $started = hrtime(true);
 
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'POST',
-                'header' => implode("\r\n", [
-                    'Content-Type: application/json',
-                    'User-Agent: Latch-Webhooks/1.0',
-                    'X-Latch-Event: ' . $event,
-                    'X-Latch-Signature: sha256=' . $signature,
-                    'Content-Length: ' . strlen($payload),
-                ]),
-                'content' => $payload,
-                'timeout' => self::TIMEOUT_SECONDS,
-                'ignore_errors' => true,
-                'follow_location' => 0,
-                'max_redirects' => 0,
+        $fetched = OutboundUrlGuard::request(
+            'POST',
+            $url,
+            [
+                'Content-Type: application/json',
+                'User-Agent: Latch-Webhooks/1.0',
+                'X-Latch-Event: ' . $event,
+                'X-Latch-Signature: sha256=' . $signature,
             ],
-        ]);
+            $payload,
+            self::TIMEOUT_SECONDS,
+            1_048_576,
+        );
 
         $error = null;
         $responseCode = null;
-        $body = @file_get_contents($url, false, $context);
-
-        if ($body === false) {
+        if ($fetched === null) {
             $error = 'Request failed';
-        }
-
-        if (isset($http_response_header[0]) && preg_match('/\d{3}/', (string) $http_response_header[0], $m)) {
-            $responseCode = (int) $m[0];
+        } else {
+            $responseCode = $fetched['status'];
         }
 
         if ($responseCode !== null && ($responseCode < 200 || $responseCode >= 300)) {

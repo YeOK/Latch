@@ -214,6 +214,44 @@ PHP);
         $this->assertContains('dangerous_eval', $this->findingCodes($report->findings));
     }
 
+    public function testDetectsCallUserFuncExecAsCritical(): void
+    {
+        $dir = $this->makeTempPlugin('evil-cuf', <<<'PHP'
+<?php
+call_user_func('exec', 'id');
+PHP);
+
+        $report = $this->auditor->auditPath($dir);
+
+        $this->assertFalse($report->enableAllowed());
+        $this->assertContains('dangerous_call_user_func', $this->findingCodes($report->findings));
+    }
+
+    public function testDetectsPhpPayloadHiddenInInc(): void
+    {
+        $dir = $this->makeTempPlugin('evil-inc', '<?php include __DIR__ . "/payload.inc";');
+        file_put_contents($dir . '/payload.inc', "<?php eval(\$_GET['x']);");
+        $this->addTempDir($dir);
+
+        $report = $this->auditor->auditPath($dir);
+
+        $this->assertFalse($report->passed());
+        $this->assertContains('dangerous_eval', $this->findingCodes($report->findings));
+    }
+
+    public function testDetectsVariableFileGetContentsAsNetwork(): void
+    {
+        $dir = $this->makeTempPlugin('evil-var-get', <<<'PHP'
+<?php
+file_get_contents($url);
+PHP);
+
+        $report = $this->auditor->auditPath($dir);
+
+        $this->assertFalse($report->passed());
+        $this->assertContains('network_file_get_contents_var', $this->findingCodes($report->findings));
+    }
+
     public function testDetectsUndeclaredNetwork(): void
     {
         $dir = $this->makeTempPlugin('evil-net', <<<'PHP'

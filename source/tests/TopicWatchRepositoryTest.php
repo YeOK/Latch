@@ -87,6 +87,23 @@ final class TopicWatchRepositoryTest extends TestCase
         $this->assertFalse($this->watches->toggleWatch(2, 10));
     }
 
+    public function testMarkReadSkipsUnchangedPostId(): void
+    {
+        $this->watches->markRead(2, 10, 100, '2026-06-30T10:00:00+00:00');
+        $this->watches->markRead(2, 10, 100, '2026-06-30T11:00:00+00:00');
+
+        $at = $this->db->pdo()->query(
+            'SELECT last_read_at FROM topic_reads WHERE user_id = 2 AND topic_id = 10'
+        )->fetchColumn();
+        $this->assertSame('2026-06-30T10:00:00+00:00', $at);
+
+        $this->watches->markRead(2, 10, 101, '2026-06-30T12:00:00+00:00');
+        $id = $this->db->pdo()->query(
+            'SELECT last_read_post_id FROM topic_reads WHERE user_id = 2 AND topic_id = 10'
+        )->fetchColumn();
+        $this->assertSame(101, (int) $id);
+    }
+
     public function testUnreadAfterNewActivity(): void
     {
         $this->watches->watch(2, 10);

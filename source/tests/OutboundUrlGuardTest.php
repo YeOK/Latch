@@ -49,6 +49,12 @@ final class OutboundUrlGuardTest extends TestCase
         $this->assertNotNull(OutboundUrlGuard::publicHttpsUrlError('https://[::1]/hook'));
     }
 
+    public function testRejectsIpv4MappedLoopbackAndImds(): void
+    {
+        $this->assertNotNull(OutboundUrlGuard::publicHttpsUrlError('https://[::ffff:127.0.0.1]/hook'));
+        $this->assertNotNull(OutboundUrlGuard::publicHttpsUrlError('https://[::ffff:169.254.169.254]/latest'));
+    }
+
     public function testRejectsMdnsAndMetadataHosts(): void
     {
         $this->assertNotNull(OutboundUrlGuard::publicHttpsUrlError('https://printer.local/hook'));

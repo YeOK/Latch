@@ -196,6 +196,7 @@ final class ApiV1Controller
             $ctx->isLoggedIn(),
             $ctx->isMod(),
             $ctx->userRole(),
+            $this->app->viewerReputationRank(),
         );
         $avatarSrc = $this->app->resolveAvatar(
             (string) $user['email'],

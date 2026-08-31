@@ -42,33 +42,21 @@ final class PluginHttpClient implements PluginHttpClientInterface
     {
         $current = $url;
         for ($hop = 0; $hop <= self::MAX_REDIRECTS; $hop++) {
-            if ($method === 'GET' && OutboundUrlGuard::normalizePublicHttpsUrl($current) === null) {
+            $fetched = OutboundUrlGuard::request(
+                $method,
+                $current,
+                ['User-Agent: Latch-PluginCatalog/1.0'],
+                $body,
+                $this->timeoutSeconds,
+                self::MAX_BODY_BYTES,
+            );
+            if ($fetched === null) {
                 return null;
             }
 
-            $context = stream_context_create([
-                'http' => [
-                    'method' => $method,
-                    'header' => "User-Agent: Latch-PluginCatalog/1.0\r\n",
-                    'content' => $body ?? '',
-                    'timeout' => $this->timeoutSeconds,
-                    'ignore_errors' => true,
-                    'follow_location' => 0,
-                    'max_redirects' => 0,
-                ],
-            ]);
-
-            $raw = @file_get_contents($current, false, $context);
-            if ($raw === false) {
-                return null;
-            }
-
-            if (strlen($raw) > self::MAX_BODY_BYTES) {
-                return null;
-            }
-
-            $headers = $http_response_header ?? [];
-            $status = self::statusFromHeaders($headers);
+            $headers = $fetched['headers'];
+            $status = $fetched['status'] > 0 ? $fetched['status'] : self::statusFromHeaders($headers);
+            $raw = $fetched['body'];
             if ($status >= 300 && $status < 400) {
                 $location = self::locationFromHeaders($headers);
                 if ($location === null) {

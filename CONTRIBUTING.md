@@ -13,9 +13,11 @@ php bin/latch install --url=http://localhost:8080 --name="Latch Dev"
 php bin/latch doctor
 ```
 
-Run the dev server: `bash scripts/dev-server.sh` (from the repo root).
+Run the dev server: `bash scripts/dev-server.sh` (from the repo root). Homelab/demo: `docker compose up --build` (see [source/docs/DOCKER.md](source/docs/DOCKER.md)).
 
-Clone [Latch-plugins](https://github.com/YeOK/Latch-plugins) as `../Latch-plugins` (sibling of `Latch-Git`) before running `php bin/latch test` — plugin tests resolve the catalog from that path.
+Read [source/docs/ARCHITECTURE.md](source/docs/ARCHITECTURE.md) before changing request routing, plugins, or cache.
+
+Clone [Latch-plugins](https://github.com/YeOK/Latch-plugins) as a sibling directory named `Latch-plugins` (next to whatever you named the Latch clone) before running `php bin/latch test`. Override with `LATCH_PLUGINS_CATALOG` if needed.
 
 ## Tests
 
@@ -43,8 +45,8 @@ php bin/latch test --smoke --url=https://your-staging-forum
 2. Add or extend PHPUnit coverage for behaviour changes (especially auth, deletion, moderation, cron).
 3. Run `php bin/latch test --smoke` before submitting; run `test --security` for auth, plugin, or JS changes.
 4. Update `CHANGELOG.md` under `[Unreleased]` for user-visible fixes.
-5. Update operator docs when behaviour changes: `source/docs/CLI.md` (commands), `PLUGINS.md` (plugins), `INSTALL.md` / `PERFORMANCE.md` (SQLite), `TESTING.md` (gates).
-6. Do not commit secrets (`config/local.php`, API tokens, operator deploy paths).
+5. Update operator docs when behaviour changes: `source/docs/CLI.md` (commands), `PLUGINS.md` (plugins), `INSTALL.md` / `PERFORMANCE.md` (SQLite), `TESTING.md` (gates), `ARCHITECTURE.md` (lifecycle).
+6. Do not commit secrets (`config/local.php`, `.env`, API tokens, operator host paths such as `/home/…` or private LAN IPs). `scripts/build-release.sh` greps the staged tree for those.
 
 ## Releases
 

@@ -746,10 +746,10 @@ final class PostRepository
     /**
      * @return list<array<string, mixed>>
      */
-    public function recentPublicByUser(int $userId, int $limit, bool $loggedIn, bool $isMod, ?string $userRole = null): array
+    public function recentPublicByUser(int $userId, int $limit, bool $loggedIn, bool $isMod, ?string $userRole = null, ?int $reputationRank = null): array
     {
         $limit = max(1, min(50, $limit));
-        $accessSql = BoardAcl::sqlBoardReadFilter($loggedIn, $userRole);
+        $accessSql = BoardAcl::sqlBoardReadFilter($loggedIn, $userRole, $reputationRank);
         $quarantineSql = $isMod ? '' : ' AND p.quarantined_at IS NULL';
 
         $stmt = $this->db->pdo()->prepare(

@@ -542,9 +542,9 @@ final class UserRepository
     /**
      * @return array{post_count: int, topic_count: int}
      */
-    public function profileStats(int $userId, bool $loggedIn, bool $includeQuarantined = false, ?string $userRole = null): array
+    public function profileStats(int $userId, bool $loggedIn, bool $includeQuarantined = false, ?string $userRole = null, ?int $reputationRank = null): array
     {
-        $accessSql = BoardAcl::sqlBoardReadFilter($loggedIn, $userRole);
+        $accessSql = BoardAcl::sqlBoardReadFilter($loggedIn, $userRole, $reputationRank);
         $quarantineSql = $includeQuarantined ? '' : ' AND p.quarantined_at IS NULL AND p.approval_status = \'approved\'';
 
         $postStmt = $this->db->pdo()->prepare(

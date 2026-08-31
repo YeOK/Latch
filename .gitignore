@@ -29,6 +29,21 @@ source/plugins/board-icon-pack/
 # Composer (lock file is committed; install with composer or source/composer.phar)
 source/vendor/
 
+# rpmbuild leftovers if someone builds inside source/
+source/BUILD/
+source/RPMS/
+source/SRPMS/
+
+# Docker compose bind-mount data and env files (see source/docs/DOCKER.md)
+/data/
+.env
+.env.*
+docker-bootstrap.secret
+**/docker-bootstrap.secret
+
+# Operator-only fail2ban helpers with host paths (public installer is packaging/fail2ban/install.sh)
+packaging/fail2ban/install-update.sh
+
 # Tests / build
 source/sqlite:*/
 **/latch-rate-limit-*.sqlite

@@ -12,7 +12,7 @@ Most forums ask you to run a database server, a cache, a job queue, and a dozen 
 
 **Security is not an afterthought.** Mandatory admin 2FA, **staff session hardening** (fingerprint, idle timeout, step-up for sensitive admin actions), Security mode Standard/High, strict CSP, session registry, audit logging, board ACLs, report queue, Cloudflare Turnstile on signup, fail2ban on login failures, and a **`plugin-audit` gate** before any plugin is enabled — hardened from Phase 1.5 onward, not bolted on years later. Admin **log viewer** tails `security.log` and optional server logs with filters and redaction.
 
-**Modern forum features, modest footprint.** Full-text search, tags, reactions, DMs, notifications, reputation, OAuth API, webhooks, live AJAX preview while composing, fenced code blocks with syntax highlighting, and a **28-hook plugin system** with an official **[Latch-plugins](https://github.com/YeOK/Latch-plugins)** catalog — install from **Admin → Plugins**, update in place, audit before enable. No Redis, Elasticsearch, or a separate Node process.
+**Modern forum features, modest footprint.** Full-text search, tags, reactions, DMs, notifications, reputation, OAuth API, webhooks, live AJAX preview while composing, fenced code blocks with syntax highlighting, and a **31-hook plugin system** with an official **[Latch-plugins](https://github.com/YeOK/Latch-plugins)** catalog — install from **Admin → Plugins**, update in place, audit before enable. No Redis, Elasticsearch, or a separate Node process.
 
 **Good fit if you:** want a self-hosted community on a home server or small VPS; are comfortable with PHP and a Unix web stack; value data ownership and operator tooling over managed SaaS.
 
@@ -51,7 +51,7 @@ Try it in minutes — download a release tarball, run `php bin/latch install`, p
 
 ## Status
 
-**v0.5.5.0** — plugin hooks for invite-only signup and member signatures; mixed catalog versions; webhook/OIDC/auditor hardening. Live demo: **[latch.network](https://latch.network)** · Release notes: [CHANGELOG.md](CHANGELOG.md) · Plugins: [Latch-plugins](https://github.com/YeOK/Latch-plugins) · Cloudflare: [source/docs/CLOUDFLARE.md](source/docs/CLOUDFLARE.md)
+**v0.5.6.0** — Docker demo, fail2ban TOTP matching, Cloudflare IP trust, tighter plugin-audit and outbound HTTP. Live demo: **[latch.network](https://latch.network)** · Release notes: [CHANGELOG.md](CHANGELOG.md) · Plugins: [Latch-plugins](https://github.com/YeOK/Latch-plugins) · Cloudflare: [source/docs/CLOUDFLARE.md](source/docs/CLOUDFLARE.md)
 
 ## Quick paths
 
@@ -59,14 +59,14 @@ Try it in minutes — download a release tarball, run `php bin/latch install`, p
 |------|---------|
 | `source/public/` | Web root (only this should be exposed to HTTP) |
 | `source/bin/` | CLI tools (`install`, `migrate`, `audit`, `plugin install`) |
-| `source/docs/` | Installation and developer documentation |
+| `source/docs/` | Installation, [architecture](source/docs/ARCHITECTURE.md), and operator docs |
 | `source/storage/` | SQLite database and runtime files (keep private) |
 | `source/plugins/` | Installed plugins (catalog zips land here) |
 
 ## Install (release tarball)
 
 ```bash
-VERSION=0.5.5.0
+VERSION=0.5.6.0
 tar -xzf latch-${VERSION}.tar.gz && cd latch-${VERSION}-stage
 bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 # Optional: php bin/latch configure   # Turnstile, mail, OIDC (secrets stay in local.php)
@@ -76,6 +76,8 @@ bash scripts/install.sh --url=https://forum.example.com --name="My Forum"
 Download: [GitHub Releases](https://github.com/YeOK/Latch/releases) · Build locally: `./scripts/build-release.sh` → `dist/latch-<version>.tar.gz`
 
 **Fedora/RHEL:** `dnf install latch` from [COPR](https://copr.fedorainfracloud.org/coprs/yeok/latch/) — see [source/docs/INSTALL-FEDORA.md](source/docs/INSTALL-FEDORA.md).
+
+**Docker (demo / homelab):** `docker compose up --build` → http://localhost:8080 — see [source/docs/DOCKER.md](source/docs/DOCKER.md).
 
 See [source/docs/INSTALL.md](source/docs/INSTALL.md) and [source/docs/UPGRADE.md](source/docs/UPGRADE.md).
 

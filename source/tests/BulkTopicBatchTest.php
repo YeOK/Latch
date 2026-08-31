@@ -70,7 +70,8 @@ final class BulkTopicBatchTest extends TestCase
                 icon_key TEXT NOT NULL DEFAULT "",
                 acl_read TEXT NOT NULL DEFAULT "guest",
                 acl_topic TEXT NOT NULL DEFAULT "member",
-                acl_reply TEXT NOT NULL DEFAULT "member"
+                acl_reply TEXT NOT NULL DEFAULT "member",
+                min_rank_read INTEGER
              );
              CREATE TABLE topics (
                 id INTEGER PRIMARY KEY,

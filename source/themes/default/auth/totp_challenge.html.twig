@@ -25,6 +25,9 @@
                 <button type="submit" class="btn btn-small">{{ trans('auth.totp_use_recovery') }}</button>
             </form>
         </details>
-        <p class="muted"><a href="/login/2fa/cancel">{{ trans('auth.back_to_sign_in') }}</a></p>
+        <form method="post" action="/login/2fa/cancel" class="muted" style="margin-top:1rem">
+            {{ csrf_field() }}
+            <button type="submit" class="link-button">{{ trans('auth.back_to_sign_in') }}</button>
+        </form>
     </section>
 {% endblock %}

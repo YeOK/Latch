@@ -295,8 +295,8 @@ final class BoardRepository
         return BoardAcl::allows($board, BoardAcl::ACTION_REPLY, $loggedIn, $userRole, $membersOnly, $reputationRank);
     }
 
-    public function sqlReadFilter(bool $loggedIn, ?string $userRole): string
+    public function sqlReadFilter(bool $loggedIn, ?string $userRole, ?int $reputationRank = null): string
     {
-        return BoardAcl::sqlBoardReadFilter($loggedIn, $userRole);
+        return BoardAcl::sqlBoardReadFilter($loggedIn, $userRole, $reputationRank);
     }
 }

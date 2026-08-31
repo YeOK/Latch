@@ -12,7 +12,7 @@
 %global _unitdir %{_prefix}/lib/systemd/system
 
 Name:           latch
-Version:        0.5.5.0
+Version:        0.5.6.0
 Release:        1%{?dist}
 Summary:        Self-hosted PHP + SQLite forum engine
 
@@ -202,6 +202,9 @@ fi
 %{_unitdir}/latch-cron-weekly.timer
 
 %changelog
+* Mon Aug 31 2026 YeOK <yeokky@gmail.com> - 0.5.6.0-1
+- Docker demo; fail2ban TOTP/JSON; CF IP trust; plugin-audit bypasses; outbound DNS pin
+
 * Wed Aug 19 2026 YeOK <yeokky@gmail.com> - 0.5.5.0-1
 - Plugin hooks for invite/register/signatures; catalog mixed-version skip; security hardening (webhooks, auditor, OIDC)
 

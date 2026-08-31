@@ -45,13 +45,15 @@ final class UserController
         $isMod = $this->app->auth()->isMod();
         $userId = (int) $user['id'];
         $viewerRole = $this->app->viewerRole();
-        $stats = $this->app->users()->profileStats($userId, $loggedIn, $isMod, $viewerRole);
+        $viewerRank = $this->app->viewerReputationRank();
+        $stats = $this->app->users()->profileStats($userId, $loggedIn, $isMod, $viewerRole, $viewerRank);
         $recentPosts = $this->app->posts()->recentPublicByUser(
             $userId,
             self::RECENT_POSTS_LIMIT,
             $loggedIn,
             $isMod,
             $viewerRole,
+            $viewerRank,
         );
 
         foreach ($recentPosts as $i => $post) {

@@ -13,10 +13,8 @@ declare(strict_types=1);
  * Copy to config.local.php and fill in OAuth client credentials.
  * config.local.php is gitignored — safe for production secrets on the server.
  *
- * Create a client on the server:
- *   ~/Documents/latch/scripts/setup-api-test-client.sh
- * or manually:
- *   sudo -u apache php bin/latch api-client create --name="Local API Harness" \
+ * Create a client:
+ *   php bin/latch api-client create --name="Local API Harness" \
  *     --redirect=https://forum.example.com/oauth/cli-callback \
  *     --scopes=read,messages:read,messages:write
  */

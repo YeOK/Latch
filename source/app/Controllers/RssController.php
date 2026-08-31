@@ -40,6 +40,7 @@ final class RssController
                 $this->app->auth()->check(),
                 $this->app->membersOnly(),
                 $this->app->viewerRole(),
+                $this->app->viewerReputationRank(),
             );
             $topicIds = array_map(static fn (array $row): int => (int) $row['id'], $topics);
             $tagsByTopic = $this->app->tags()->forTopics($topicIds);

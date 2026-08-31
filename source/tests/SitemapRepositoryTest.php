@@ -32,7 +32,8 @@ final class SitemapRepositoryTest extends TestCase
                 sort_order INTEGER DEFAULT 0,
                 acl_read TEXT NOT NULL DEFAULT "guest",
                 acl_topic TEXT NOT NULL DEFAULT "member",
-                acl_reply TEXT NOT NULL DEFAULT "member"
+                acl_reply TEXT NOT NULL DEFAULT "member",
+                min_rank_read INTEGER
              );
              CREATE TABLE topics (id INTEGER PRIMARY KEY, board_id INTEGER, user_id INTEGER, title TEXT, slug TEXT, deleted_at TEXT, last_post_at TEXT);
              CREATE TABLE posts (id INTEGER PRIMARY KEY, topic_id INTEGER, user_id INTEGER, body TEXT, created_at TEXT, deleted_at TEXT, quarantined_at TEXT, approval_status TEXT DEFAULT "approved");'

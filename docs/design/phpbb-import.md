@@ -1,5 +1,7 @@
 # Design: phpBB → Latch Import CLI
 
+> Historical design note. v1 shipped — use [source/docs/CLI.md](../../source/docs/CLI.md) § import phpbb and [source/docs/design/phpbb-import.md](../../source/docs/design/phpbb-import.md).
+
 | Field | Value |
 |-------|-------|
 | **Status** | Proposed (plan only — no implementation in this phase) |

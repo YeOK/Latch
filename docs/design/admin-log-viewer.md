@@ -1,5 +1,7 @@
 # Admin Log Viewer
 
+> Historical design note. Live operator guide: [source/docs/SECURITY.md](../../source/docs/SECURITY.md) (admin log viewer).
+
 | Field | Value |
 |-------|-------|
 | **Author** | TBD |

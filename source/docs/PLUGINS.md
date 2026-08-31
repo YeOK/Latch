@@ -1,4 +1,4 @@
-# Latch plugins (Phase 4)
+# Latch plugins
 
 Customize Latch **without editing core** (`app/`, migrations, router). Plugins live in `plugins/{slug}/` and are enabled explicitly by the operator.
 
@@ -617,7 +617,7 @@ Ignored plugins are hidden from **Admin → Plugins** and skipped by `cron daily
 
 ### What it checks
 
-Scans all `.php` files and `.js` / `.mjs` assets under the plugin tree (excluding `vendor/`). Non-PHP assets other than JS are size-checked only.
+Walks the whole plugin tree, including `vendor/`. PHP, `.inc`/`.phtml`, files containing `<?php`, JS/MJS, HTML/Twig, and SVG are pattern-scanned; other files are size-checked only. Critical hits block enable — including `call_user_func('exec')`, `ReflectionFunction`/`Method`, and `file_get_contents($url)` without `permissions.network`.
 
 | Severity | Examples |
 |----------|----------|
