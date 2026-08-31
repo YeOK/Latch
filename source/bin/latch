@@ -716,6 +716,12 @@ function run_test_audit_step(): bool
 {
     fwrite(STDOUT, "==> audit\n");
     $config = new Config(LATCH_ROOT . '/config');
+    if (!$config->isInstalled()) {
+        fwrite(STDOUT, "Skipped (no database — fresh tree)\n");
+
+        return true;
+    }
+
     $issues = collect_audit_issues($config);
     if ($issues !== []) {
         Doctor::writeAuditFailure($issues);

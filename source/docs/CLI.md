@@ -749,8 +749,8 @@ php bin/latch test --security --url=https://forum.example.com
 | Command | PHPUnit | CLI extras | HTTP (with `--url` or `tests/smoke/config.local.php`) |
 |---------|---------|------------|------------------------------------------------------|
 | `test` | Full `Latch` suite | — | — |
-| `test --smoke` | `smoke` suite (migrations, restore, plugins, PostFormatter, cron, …) | `db-check`, `audit` | Web smoke + API harness if `tests/api/config.local.php` exists |
-| `test --security` | `security` suite (CSRF, OIDC, ACL, spam, plugin audit, SSRF, …) | `audit` | Read-only security probes |
+| `test --smoke` | `smoke` suite (migrations, restore, plugins, PostFormatter, cron, …) | `db-check`, `audit` (both skip on a fresh tree with no database) | Web smoke + API harness if `tests/api/config.local.php` exists |
+| `test --security` | `security` suite (CSRF, OIDC, ACL, spam, plugin audit, SSRF, …) | `audit` (skips on a fresh tree) | Read-only security probes |
 
 Without `php-xml`, `test --smoke` falls back to a built-in SQLite integrity check plus `db-check` and `audit`.
 
