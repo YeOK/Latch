@@ -1,0 +1,155 @@
+# Release gate — required before merge to main and before tagging a release.
+# Mirrors scripts/release-gate.sh (PHPUnit smoke/security, audit, plugin scans).
+#
+# Branch protection (GitHub → Settings → Branches → main):
+#   Require status checks: release-gate / smoke, release-gate / security
+# Maintainer release: ./scripts/release-gate.sh --sync-dev --url=… then build-release.sh
+
+name: release-gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout Latch-plugins catalog
+        uses: actions/checkout@v4
+        with:
+          repository: YeOK/Latch-plugins
+          path: Latch-plugins
+          sparse-checkout: |
+            catalog.json
+            link-preview
+            word-filter
+            image-upload
+            forum-stats
+            spam-bridge
+            slack-notify
+            invite-only
+            member-signature
+            avatar-url
+            fediverse-share
+            privacy-analytics
+            git-release
+            board-icon-pack
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: dom, xml, mbstring, pdo, pdo_sqlite, curl, sodium
+          coverage: none
+
+      - name: Composer install
+        working-directory: source
+        run: composer install --optimize-autoloader --no-interaction
+
+      - name: Version sync
+        run: ./scripts/check-versions.sh
+
+      - name: Smoke PHPUnit + db-check + audit
+        working-directory: source
+        env:
+          LATCH_PLUGINS_CATALOG: ${{ github.workspace }}/Latch-plugins
+        run: php bin/latch test --smoke
+
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout Latch-plugins catalog
+        uses: actions/checkout@v4
+        with:
+          repository: YeOK/Latch-plugins
+          path: Latch-plugins
+          sparse-checkout: |
+            catalog.json
+            link-preview
+            word-filter
+            image-upload
+            forum-stats
+            spam-bridge
+            slack-notify
+            invite-only
+            member-signature
+            avatar-url
+            fediverse-share
+            privacy-analytics
+            git-release
+            board-icon-pack
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: dom, xml, mbstring, pdo, pdo_sqlite, curl, sodium
+          coverage: none
+
+      - name: Composer install
+        working-directory: source
+        run: composer install --optimize-autoloader --no-interaction
+
+      - name: Security PHPUnit + audit
+        working-directory: source
+        env:
+          LATCH_PLUGINS_CATALOG: ${{ github.workspace }}/Latch-plugins
+        run: php bin/latch test --security
+
+      - name: Catalog plugin-audit
+        working-directory: source
+        env:
+          LATCH_PLUGINS_CATALOG: ${{ github.workspace }}/Latch-plugins
+        run: |
+          fail=0
+          for manifest in "${LATCH_PLUGINS_CATALOG}"/*/plugin.json; do
+            echo "-- $(basename "$(dirname "${manifest}")")"
+            php bin/latch plugin-audit "$(dirname "${manifest}")" || fail=1
+          done
+          exit "${fail}"
+
+  http-smoke:
+    name: http-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Optional live probes — enable when repository secrets are configured.
+    if: >-
+      vars.LATCH_SMOKE_URL != '' ||
+      secrets.LATCH_SMOKE_URL != ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: curl, dom, xml, mbstring
+          coverage: none
+
+      - name: Composer install (vendor for harness autoload)
+        working-directory: source
+        run: composer install --optimize-autoloader --no-interaction
+
+      - name: HTTP role smoke (guest / member / admin)
+        working-directory: source
+        env:
+          LATCH_TEST_URL: ${{ vars.LATCH_SMOKE_URL || secrets.LATCH_SMOKE_URL }}
+          LATCH_SMOKE_MEMBER_USER: ${{ secrets.LATCH_SMOKE_MEMBER_USER }}
+          LATCH_SMOKE_MEMBER_PASS: ${{ secrets.LATCH_SMOKE_MEMBER_PASS }}
+          LATCH_SMOKE_ADMIN_USER: ${{ secrets.LATCH_SMOKE_ADMIN_USER }}
+          LATCH_SMOKE_ADMIN_PASS: ${{ secrets.LATCH_SMOKE_ADMIN_PASS }}
+        run: |
+          php bin/latch test --smoke --url="${LATCH_TEST_URL}"
