@@ -7,6 +7,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **GHCR image** — `ghcr.io/yeok/latch` published from `.github/workflows/docker.yml` on `v*` tags (`linux/amd64` + `linux/arm64`). Pull `ghcr.io/yeok/latch:0.5.6.0` or use `docker compose pull`. See `source/docs/DOCKER.md`.
+
 ## [0.5.6.0] — 2026-08-31
 
 Docker demo path, fail2ban `latch-login` hardening, and a security pass on client-IP trust, plugin audit, outbound HTTP, and 2FA.

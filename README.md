@@ -77,7 +77,7 @@ Download: [GitHub Releases](https://github.com/YeOK/Latch/releases) · Build loc
 
 **Fedora/RHEL:** `dnf install latch` from [COPR](https://copr.fedorainfracloud.org/coprs/yeok/latch/) — see [source/docs/INSTALL-FEDORA.md](source/docs/INSTALL-FEDORA.md).
 
-**Docker (demo / homelab):** `docker compose up --build` → http://localhost:8080 — see [source/docs/DOCKER.md](source/docs/DOCKER.md).
+**Docker (demo / homelab):** `docker pull ghcr.io/yeok/latch:0.5.6.0` then `docker compose up -d` → http://localhost:8080 — image: [ghcr.io/yeok/latch](https://github.com/YeOK/Latch/pkgs/container/latch) · docs: [source/docs/DOCKER.md](source/docs/DOCKER.md).
 
 See [source/docs/INSTALL.md](source/docs/INSTALL.md) and [source/docs/UPGRADE.md](source/docs/UPGRADE.md).
 

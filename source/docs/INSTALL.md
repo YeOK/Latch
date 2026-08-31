@@ -18,13 +18,16 @@ sudo dnf install -y php-pdo php-mbstring
 
 ## Docker (homelab / demo)
 
+Published image ([ghcr.io/yeok/latch](https://github.com/YeOK/Latch/pkgs/container/latch)):
+
 ```bash
 git clone https://github.com/YeOK/Latch.git
 cd Latch
-docker compose up --build
+docker compose pull
+docker compose up -d
 ```
 
-Open http://localhost:8080. SQLite and `local.php` live in compose volumes. This is **not** the Fedora production path. Full notes: [DOCKER.md](DOCKER.md). Contributor map: [ARCHITECTURE.md](ARCHITECTURE.md).
+Or build from the checkout: `docker compose up --build`. Open http://localhost:8080. SQLite and `local.php` live in compose volumes. This is **not** the Fedora production path. Full notes: [DOCKER.md](DOCKER.md). Contributor map: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Release install (v0.5.x)
 

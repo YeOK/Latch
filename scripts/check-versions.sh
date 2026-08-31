@@ -48,6 +48,19 @@ if [[ -z "${SPEC_VERSION}" ]]; then
     exit 1
 fi
 
+COMPOSE_FILE="${REPO_ROOT}/docker-compose.yml"
+COMPOSE_IMAGE="ghcr.io/yeok/latch:\${LATCH_IMAGE_TAG:-${TREE_VERSION}}"
+if [[ ! -f "${COMPOSE_FILE}" ]]; then
+    echo "Error: ${COMPOSE_FILE} missing" >&2
+    exit 1
+fi
+
+DOCKERFILE="${REPO_ROOT}/Dockerfile"
+if [[ ! -f "${DOCKERFILE}" ]]; then
+    echo "Error: ${DOCKERFILE} missing" >&2
+    exit 1
+fi
+
 ERR=0
 if [[ "${APP_VERSION}" != "${TREE_VERSION}" ]]; then
     echo "Error: source/config/default.php app.version is ${APP_VERSION}; VERSION is ${TREE_VERSION}" >&2
@@ -59,10 +72,20 @@ if [[ "${SPEC_VERSION}" != "${TREE_VERSION}" ]]; then
     ERR=1
 fi
 
+if ! grep -F "${COMPOSE_IMAGE}" "${COMPOSE_FILE}" >/dev/null; then
+    echo "Error: docker-compose.yml default image is not ${COMPOSE_IMAGE}" >&2
+    ERR=1
+fi
+
+if ! grep -E "^ARG LATCH_VERSION=${TREE_VERSION}$" "${DOCKERFILE}" >/dev/null; then
+    echo "Error: Dockerfile ARG LATCH_VERSION is not ${TREE_VERSION}" >&2
+    ERR=1
+fi
+
 if [[ "${ERR}" -ne 0 ]]; then
-    echo "Bump VERSION, source/config/default.php (app.version), and packaging/latch.spec (Version:) together." >&2
+    echo "Bump VERSION, source/config/default.php (app.version), packaging/latch.spec (Version:), docker-compose.yml image tag, and Dockerfile ARG LATCH_VERSION together." >&2
     echo "See docs/RELEASE.md" >&2
     exit 1
 fi
 
-echo "Version sync OK: ${TREE_VERSION} (VERSION, app.version, latch.spec)"
+echo "Version sync OK: ${TREE_VERSION} (VERSION, app.version, latch.spec, compose, Dockerfile)"

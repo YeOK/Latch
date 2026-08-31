@@ -1,10 +1,12 @@
 # Latch homelab / demo stack. Production Fedora installs use COPR instead.
+# Image: ghcr.io/yeok/latch  (set LATCH_IMAGE_TAG to pin; default matches VERSION)
 # Docs: source/docs/DOCKER.md
 
 services:
   latch:
+    image: ghcr.io/yeok/latch:${LATCH_IMAGE_TAG:-0.5.6.0}
     build: .
-    image: latch:local
+    pull_policy: missing
     ports:
       - "${LATCH_HTTP_PORT:-8080}:80"
     environment:
@@ -26,7 +28,8 @@ services:
     restart: unless-stopped
 
   latch-cron:
-    image: latch:local
+    image: ghcr.io/yeok/latch:${LATCH_IMAGE_TAG:-0.5.6.0}
+    pull_policy: missing
     depends_on:
       latch:
         condition: service_healthy

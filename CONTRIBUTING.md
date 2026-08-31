@@ -13,7 +13,7 @@ php bin/latch install --url=http://localhost:8080 --name="Latch Dev"
 php bin/latch doctor
 ```
 
-Run the dev server: `bash scripts/dev-server.sh` (from the repo root). Homelab/demo: `docker compose up --build` (see [source/docs/DOCKER.md](source/docs/DOCKER.md)).
+Run the dev server: `bash scripts/dev-server.sh` (from the repo root). Homelab/demo: `docker compose up --build`, or pull `ghcr.io/yeok/latch` (see [source/docs/DOCKER.md](source/docs/DOCKER.md)).
 
 Read [source/docs/ARCHITECTURE.md](source/docs/ARCHITECTURE.md) before changing request routing, plugins, or cache.
 

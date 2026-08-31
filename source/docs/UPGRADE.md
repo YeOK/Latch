@@ -27,7 +27,15 @@ Add `--clear-cache` to the shell script invocation to purge guest page cache at 
 
 ## Docker (homelab / demo)
 
-Volumes keep SQLite and `local.php`. After pulling new sources:
+Volumes keep SQLite and `local.php`. Published image:
+
+```bash
+export LATCH_IMAGE_TAG=0.5.6.0   # or latest
+docker compose pull
+docker compose up -d
+```
+
+Or rebuild from a git checkout:
 
 ```bash
 docker compose build

@@ -15,6 +15,9 @@ Every public release must bump **all** version surfaces together. Partial bumps 
 | GitHub Release | tag + notes + assets | tarball + `SHA256SUMS` |
 | Release tarball | `dist/latch-0.5.6.0.tar.gz` | from `build-release.sh` |
 | COPR / RPM | `dnf upgrade latch` | built from tag via `packaging/latch.spec` |
+| GHCR image | `ghcr.io/yeok/latch:0.5.6.0` | `.github/workflows/docker.yml` on `v*` tags |
+| Compose pin | `docker-compose.yml` `LATCH_IMAGE_TAG` default | same four-part version |
+| Dockerfile label | `ARG LATCH_VERSION` | same four-part version |
 
 Preflight (must pass before `build-release.sh`):
 
@@ -35,7 +38,7 @@ Preflight (must pass before `build-release.sh`):
    php bin/latch test --security   # if auth, plugins, or JS changed
    php bin/latch audit
    ```
-   Docker image: `docker compose exec latch php bin/latch doctor` after `docker compose up --build`.
+   Docker image: `docker compose exec latch php bin/latch doctor` after `docker compose up --build` (or `docker compose pull` for the GHCR image).
 6. **Version sync** — `./scripts/check-versions.sh`
 7. **Commit** — e.g. `Release 0.4.4.1: …` (include spec + SECURITY bumps in the same commit as `VERSION`).
 
@@ -63,6 +66,8 @@ gh release create v0.4.4.1 \
 ```
 
 GitHub’s source archive for tag `v0.4.4.1` (`Latch-0.4.4.1.tar.gz`) is what COPR `%prep` consumes — the tag must exist **before** triggering a COPR build.
+
+Pushing tag `vX.Y.Z.W` also runs `.github/workflows/docker.yml`, which builds `linux/amd64` + `linux/arm64` and pushes `ghcr.io/yeok/latch:X.Y.Z.W` and `:latest`. Confirm the package is **public** (first publish is often private): GitHub → Packages → `latch` → Package settings → Change visibility. Manual republish: **Actions → docker → Run workflow**.
 
 ### COPR / RPM
 

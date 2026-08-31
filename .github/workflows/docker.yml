@@ -1,0 +1,109 @@
+# Publish the homelab/demo image to GitHub Container Registry.
+# Pull: docker pull ghcr.io/yeok/latch:0.5.6.0
+# Package: https://github.com/YeOK/Latch/pkgs/container/latch
+#
+# First package created by GITHUB_TOKEN is often private — set visibility
+# to Public under the package settings so anonymous `docker pull` works.
+
+name: docker
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image version (defaults to VERSION file; omit the v prefix)"
+        required: false
+        type: string
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    name: ghcr
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version and image name
+        id: meta
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          TREE="$(tr -d '[:space:]' < VERSION)"
+          if [ -n "${INPUT_TAG}" ]; then
+            V="${INPUT_TAG#v}"
+          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            V="${GITHUB_REF_NAME#v}"
+            if [ "${V}" != "${TREE}" ]; then
+              echo "Tag ${GITHUB_REF_NAME} does not match VERSION file (${TREE})" >&2
+              exit 1
+            fi
+          else
+            V="${TREE}"
+          fi
+          case "${V}" in
+            [0-9]*.[0-9]*.[0-9]*.[0-9]*) ;;
+            *)
+              echo "Refusing image tag '${V}' (expected four-part version like ${TREE})" >&2
+              exit 1
+              ;;
+          esac
+          OWNER="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          IMAGE="ghcr.io/${OWNER}/latch"
+          echo "version=${V}" >> "${GITHUB_OUTPUT}"
+          echo "image=${IMAGE}" >> "${GITHUB_OUTPUT}"
+          echo "Publishing ${IMAGE}:${V} (and :latest)"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: docker_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.meta.outputs.image }}
+          tags: |
+            type=raw,value=${{ steps.meta.outputs.version }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=Latch
+            org.opencontainers.image.description=Self-hosted PHP forum (homelab / demo image)
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
+          build-args: |
+            LATCH_VERSION=${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false

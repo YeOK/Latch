@@ -19,6 +19,13 @@ RUN composer dump-autoload --optimize --no-dev --no-interaction
 
 FROM php:8.2-apache-bookworm
 
+ARG LATCH_VERSION=0.5.6.0
+LABEL org.opencontainers.image.title="Latch" \
+      org.opencontainers.image.description="Self-hosted PHP forum (homelab / demo image)" \
+      org.opencontainers.image.source="https://github.com/YeOK/Latch" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${LATCH_VERSION}"
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl \
