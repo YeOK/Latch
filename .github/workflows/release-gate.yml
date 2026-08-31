@@ -126,10 +126,11 @@ jobs:
     name: http-smoke
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Optional live probes — enable when repository secrets are configured.
-    if: >-
-      vars.LATCH_SMOKE_URL != '' ||
-      secrets.LATCH_SMOKE_URL != ''
+    # Optional live probes. Job `if:` cannot read `secrets` (GitHub rejects the workflow).
+    # Enable with a repository *variable* (Settings → Secrets and variables → Actions → Variables):
+    #   LATCH_SMOKE_URL = https://forum.example.com
+    # Credentials stay as secrets: LATCH_SMOKE_MEMBER_USER / _PASS, LATCH_SMOKE_ADMIN_USER / _PASS.
+    if: ${{ vars.LATCH_SMOKE_URL != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -146,7 +147,7 @@ jobs:
       - name: HTTP role smoke (guest / member / admin)
         working-directory: source
         env:
-          LATCH_TEST_URL: ${{ vars.LATCH_SMOKE_URL || secrets.LATCH_SMOKE_URL }}
+          LATCH_TEST_URL: ${{ vars.LATCH_SMOKE_URL }}
           LATCH_SMOKE_MEMBER_USER: ${{ secrets.LATCH_SMOKE_MEMBER_USER }}
           LATCH_SMOKE_MEMBER_PASS: ${{ secrets.LATCH_SMOKE_MEMBER_PASS }}
           LATCH_SMOKE_ADMIN_USER: ${{ secrets.LATCH_SMOKE_ADMIN_USER }}
