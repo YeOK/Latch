@@ -52,7 +52,7 @@ Secrets live in `source/config/local.php` (gitignored). Defaults and comments: `
 - Failed login **HTTP 200**, success **302** (fail2ban).
 - CSRF on every mutating form; staff **step-up** TOTP for sensitive admin POSTs.
 - Founder (user id `1`) cannot be demoted/banned by other admins.
-- Plugins are high trust: `plugin-audit` is a static gate, not a sandbox.
+- Plugins are high trust **today**: `plugin-audit` is a static gate, not a sandbox. A **capability sandbox** is planned (`$context->app()` goes away in 0.6.0.0) — see [design/plugin-sandbox.md](design/plugin-sandbox.md) and the warning in [PLUGINS.md](PLUGINS.md). Do not add new `$context->app()` call sites.
 - Bound SQL parameters; no string-built queries with request data.
 
 ## Tests

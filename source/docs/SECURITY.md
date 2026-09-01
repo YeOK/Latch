@@ -205,7 +205,7 @@ Cached HTML is only served to unauthenticated visitors on public boards when `me
 | Layer | Scope | When it runs |
 |-------|-------|----------------|
 | **`bin/latch audit`** | File permissions, `local.php` readability, encryption key | Smoke/security gates, `update` |
-| **`PluginAuditor`** | Third-party plugins under `plugins/` | Enable gate, `plugin-audit`, cached admin/cron scans |
+| **`PluginAuditor`** | Third-party plugins under `plugins/` | Enable gate, `plugin-audit`, cached admin/cron scans. **Not a sandbox.** Runtime capability fences are planned for 0.5.7+ / 0.6 — see [design/plugin-sandbox.md](design/plugin-sandbox.md) |
 | **`ThemeJsAuditor`** | First-party `themes/*/assets/js/` (default + child packs) | `test --security` PHPUnit gate |
 | **GitHub CodeQL** | All tracked JS on `main` | CI on push + weekly schedule |
 

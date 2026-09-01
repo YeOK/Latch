@@ -359,6 +359,8 @@ If your login user is in the `apache` group and `storage/` is group-writable (`c
 
 Customize Latch **without editing core** — see `docs/PLUGINS.md`. Installed plugins live in `plugins/{slug}/`. Enabled slugs are stored in `settings.enabled_plugins` (JSON). **Admin UI:** `/admin/plugins` (audit status, enable/disable, settings when `settings_schema` is declared). Distributable plugins publish to **[github.com/YeOK/Latch-plugins](https://github.com/YeOK/Latch-plugins)**. Install from **Admin → Plugins → Catalog** or `plugin install` (dir/zip).
 
+**API change coming:** `$context->app()` is deprecated in 0.5.7.0 and **removed for untrusted plugins in 0.6.0.0**. Details and author checklist: [PLUGINS.md — Upcoming change](PLUGINS.md#upcoming-change--capability-sandbox), [design/plugin-sandbox.md](design/plugin-sandbox.md).
+
 ### Quick reference
 
 | Command | Purpose |

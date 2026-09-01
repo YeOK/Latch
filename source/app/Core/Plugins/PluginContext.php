@@ -15,6 +15,9 @@ use Latch\Core\Application;
 
 /**
  * Per-plugin bootstrap context (limited surface for third-party code).
+ *
+ * `$context->app()` is going away for untrusted plugins in 0.6.0.0.
+ * See docs/PLUGINS.md and docs/design/plugin-sandbox.md.
  */
 final class PluginContext
 {
@@ -25,7 +28,13 @@ final class PluginContext
     ) {
     }
 
-    /** Forum kernel. Avoid storing long-lived state on it. */
+    /**
+     * Forum kernel. Avoid storing long-lived state on it.
+     *
+     * Deprecated starting 0.5.7.0; removed for untrusted plugins in 0.6.0.0.
+     * Prefer forthcoming helpers (`http()`, `storage()`, `forum()`, …).
+     * See docs/PLUGINS.md and docs/design/plugin-sandbox.md.
+     */
     public function app(): Application
     {
         return $this->app;

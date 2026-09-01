@@ -2,6 +2,26 @@
 
 Customize Latch **without editing core** (`app/`, migrations, router). Plugins live in `plugins/{slug}/` and are enabled explicitly by the operator.
 
+## Upcoming change — capability sandbox
+
+**The plugin API is about to change.** Design: [plugin-sandbox.md](design/plugin-sandbox.md).
+
+| Latch | What plugin authors should expect |
+|-------|-----------------------------------|
+| **0.5.6.x (today)** | `$context->app()` returns the full kernel. `plugin-audit` is a **static scan**, not a sandbox. Enabling a plugin is still a high-trust operator action. |
+| **0.5.7.0** | Typed helpers land beside `app()`: `http()`, `storage()`, `forum()`, `request()`, `routes()`, `settings()`, `secrets()`, bound `database()`. `$context->app()` still works but is **deprecated**. |
+| **Catalog 1.1** | Official [Latch-plugins](https://github.com/YeOK/Latch-plugins) stop calling `app()`. `min_latch_version` becomes `0.5.7.0`. |
+| **0.6.0.0** | **Breaking for untrusted plugins:** `$context->app()` is removed. Hook callbacks no longer receive `Application`. Routes must be under `/plugin/{slug}/` only. Plugin SQLite is prepared statements only (no raw `pdo()`). |
+
+**Write new plugins as if 0.6 is already here:**
+
+- Do **not** start new work that depends on the full `Application` object, core PDO, `config/local.php`, or routes outside `/plugin/{your-slug}/`.
+- Prefer `$context->hooks()`, `path()`, `slug()`, `manifest()`, and the forthcoming helpers.
+- `permissions.network` / `permissions.filesystem` will be **enforced at runtime**, not only at `plugin-audit`.
+- Operator plugin `md-import` stays trusted (core allowlist). Catalog zips will not.
+
+Official catalog plugins on **0.5.6.x keep working** until you upgrade past 0.6 without catalog 1.1. Core already hides catalog rows whose `min_latch_version` is newer than the running Latch.
+
 ## Do not hack core
 
 Upgrades replace `source/app/`, `source/bin/`, and `source/database/migrations/`. Put site-specific behaviour in:

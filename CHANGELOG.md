@@ -9,6 +9,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - **GHCR image** — `ghcr.io/yeok/latch` published from `.github/workflows/docker.yml` on `v*` tags (`linux/amd64` + `linux/arm64`). Pull `ghcr.io/yeok/latch:0.5.6.0` or use `docker compose pull`. See `source/docs/DOCKER.md`.
+- **Plugin sandbox plan** — `source/docs/design/plugin-sandbox.md`. Capability APIs in 0.5.7.0; `$context->app()` removed for untrusted plugins in 0.6.0.0. Author warning in `source/docs/PLUGINS.md`.
 
 ### Fixed
 - **GitHub Actions** — `release-gate.yml` job `if` no longer references `secrets` (invalid at job level). Optional HTTP smoke gates on repository variable `LATCH_SMOKE_URL`. `test --smoke` / `--security` skip host `audit` on a fresh tree (no database), same as `db-check`. Workflow sets `permissions: contents: read` so CodeQL `actions/missing-workflow-permissions` is satisfied.

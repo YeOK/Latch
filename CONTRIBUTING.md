@@ -15,7 +15,7 @@ php bin/latch doctor
 
 Run the dev server: `bash scripts/dev-server.sh` (from the repo root). Homelab/demo: `docker compose up --build`, or pull `ghcr.io/yeok/latch` (see [source/docs/DOCKER.md](source/docs/DOCKER.md)).
 
-Read [source/docs/ARCHITECTURE.md](source/docs/ARCHITECTURE.md) before changing request routing, plugins, or cache.
+Read [source/docs/ARCHITECTURE.md](source/docs/ARCHITECTURE.md) before changing request routing, plugins, or cache. Plugin authors: the context API is changing (`$context->app()` goes away in 0.6) — read the warning in [source/docs/PLUGINS.md](source/docs/PLUGINS.md) and [source/docs/design/plugin-sandbox.md](source/docs/design/plugin-sandbox.md).
 
 Clone [Latch-plugins](https://github.com/YeOK/Latch-plugins) as a sibling directory named `Latch-plugins` (next to whatever you named the Latch clone) before running `php bin/latch test`. Override with `LATCH_PLUGINS_CATALOG` if needed.
 

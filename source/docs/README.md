@@ -26,8 +26,14 @@ Operator and contributor reference under `source/docs/`. Start with [ARCHITECTUR
 | [EMAIL.md](EMAIL.md) | Outbound mail |
 | [WEBHOOKS.md](WEBHOOKS.md) | Outbound webhooks |
 | [THEMING.md](THEMING.md) | Themes and `theme.json` |
-| [PLUGINS.md](PLUGINS.md) | Plugin API, cached audits, `ignore` flag, examples |
+| [PLUGINS.md](PLUGINS.md) | Plugin API, cached audits, `ignore` flag, examples — **sandbox API change coming** |
 | [PERFORMANCE.md](PERFORMANCE.md) | Guest cache, SQLite PRAGMAs, query hot paths |
+
+## Design
+
+| Document | Topic |
+|----------|-------|
+| [plugin-sandbox.md](design/plugin-sandbox.md) | Capability sandbox — `PluginContext` APIs, runtime fences, catalog off `$context->app()` (draft) |
 
 ## Plugin examples
 
