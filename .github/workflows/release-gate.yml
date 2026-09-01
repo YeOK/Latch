@@ -18,6 +18,9 @@ concurrency:
   group: release-gate-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   smoke:
     name: smoke
